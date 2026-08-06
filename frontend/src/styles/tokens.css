@@ -1,0 +1,64 @@
+/*
+  DeskBuddies Games — design tokens
+  ----------------------------------
+  Cozy "game night" palette: warm cream background, terracotta accent,
+  soft sage for success states. Everything colour/typography-related
+  lives here so re-theming with server colors/logo later is a
+  find-and-replace, not a rewrite.
+*/
+
+:root {
+  /* Surfaces */
+  --color-bg: #fbf3e7;
+  --color-bg-alt: #f4e9d8;
+  --color-surface: #fffdf9;
+  --color-surface-raised: #ffffff;
+  --color-border: #e7d9c2;
+  --color-border-soft: #f0e4d0;
+
+  /* Text */
+  --color-text: #3d3229;
+  --color-text-muted: #7a6c5d;
+  --color-text-faint: #a6987f;
+  --color-text-on-primary: #fffaf3;
+
+  /* Brand / accent */
+  --color-primary: #d97a5f;
+  --color-primary-hover: #c8664b;
+  --color-primary-soft: #f7ded2;
+  --color-secondary: #7c9473;
+  --color-secondary-soft: #e3ead9;
+
+  /* Feedback */
+  --color-success: #6e9b5e;
+  --color-success-soft: #e2ecda;
+  --color-danger: #c2594a;
+  --color-danger-soft: #f6ddd7;
+  --color-warning: #d6a03c;
+  --color-warning-soft: #f7ecd3;
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(61, 50, 41, 0.06), 0 1px 1px rgba(61, 50, 41, 0.04);
+  --shadow-md: 0 4px 14px rgba(61, 50, 41, 0.08), 0 2px 4px rgba(61, 50, 41, 0.05);
+  --shadow-lg: 0 12px 30px rgba(61, 50, 41, 0.12), 0 4px 10px rgba(61, 50, 41, 0.06);
+
+  /* Type */
+  --font-heading: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+}
