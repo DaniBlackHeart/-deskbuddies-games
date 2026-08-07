@@ -58,12 +58,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
+    // If Discord/Supabase sent back an explicit error in the URL (rare, but
+    // possible), surface it instead of silently landing on a blank login.
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const oauthError = params.get("error_description") || hashParams.get("error_description");
+    const hadAuthAttempt =
+      params.has("code") || hashParams.has("access_token") || params.has("error") || hashParams.has("error");
+
     supabase.auth.getSession().then(({ data }) => {
       if (!isMounted) return;
       if (data.session) {
         setSession(data.session);
         verifyMembership(data.session);
       } else {
+        if (oauthError) {
+          setVerifyError(oauthError);
+        } else if (hadAuthAttempt) {
+          // A login attempt clearly happened (Discord/Supabase redirected back
+          // with auth params) but no session came out of it — most likely an
+          // in-app-browser quirk. Give people something actionable instead of
+          // just quietly dropping them back at the sign-in button.
+          setVerifyError(
+            "Sign-in didn't complete. If you opened this link from inside another app (like Discord), try opening it in your regular browser instead and sign in again."
+          );
+        }
         setStatus("signed_out");
       }
     });

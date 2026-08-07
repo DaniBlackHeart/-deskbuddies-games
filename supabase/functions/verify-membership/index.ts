@@ -67,10 +67,29 @@ Deno.serve(async (req) => {
     const roles: string[] = member.roles ?? [];
     const isMod = roles.includes(DISCORD_MOD_ROLE_ID);
 
+    // TEMPORARY DEBUG LOGGING — remove once the nickname issue is confirmed fixed.
+    // View these in Supabase: Edge Functions -> verify-membership -> Logs
+    console.log("DEBUG nickname fields", {
+      discordId,
+      member_nick: member.nick,
+      member_user_username: member.user?.username,
+      member_user_global_name: member.user?.global_name,
+      claims_global_name: claims.global_name,
+      claims_full_name: claims.full_name,
+      claims_name: claims.name,
+      claims_custom_claims: claims.custom_claims,
+    });
+
     // Prefer the member's DeskBuddies server nickname (what everyone actually
     // knows them as in-server) over their global Discord display name.
     const username: string =
-      member.nick || claims.global_name || claims.full_name || claims.name || claims.custom_claims?.global_name || "DeskBuddy";
+      member.nick ||
+      member.user?.global_name ||
+      claims.global_name ||
+      claims.full_name ||
+      claims.name ||
+      claims.custom_claims?.global_name ||
+      "DeskBuddy";
 
     const resolvedAvatar =
       providedAvatar ?? discordAvatarUrl(discordId, avatarHash, claims.discriminator ?? "0");
