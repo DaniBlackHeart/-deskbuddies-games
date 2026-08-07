@@ -2,7 +2,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginPage() {
-  const { status, verifyError, signInWithDiscord } = useAuth();
+  const { status, verifyError, debugInfo, signInWithDiscord } = useAuth();
 
   if (status === "member") return <Navigate to="/" replace />;
   if (status === "not_a_member") return <Navigate to="/not-a-member" replace />;
@@ -34,6 +34,24 @@ export default function LoginPage() {
         <p className="hint" style={{ marginTop: "16px" }}>
           You'll need to be a member of the DeskBuddies Discord server.
         </p>
+
+        {debugInfo && (
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "10px",
+              background: "var(--color-bg-alt)",
+              borderRadius: "var(--radius-sm)",
+              textAlign: "left",
+              fontFamily: "monospace",
+              fontSize: "0.7rem",
+              wordBreak: "break-all",
+              color: "var(--color-text-muted)",
+            }}
+          >
+            DEBUG: {debugInfo}
+          </div>
+        )}
       </div>
     </div>
   );

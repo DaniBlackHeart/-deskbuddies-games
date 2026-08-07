@@ -3,6 +3,10 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import type { Profile } from "../types";
 
+// Captured once, at module load, before any auth processing touches the URL.
+// TEMPORARY — used to diagnose the mobile in-app-browser login issue.
+const RAW_REDIRECT_URL = typeof window !== "undefined" ? window.location.href : "";
+
 type AuthStatus =
   | "loading" // still figuring out session state
   | "signed_out"
@@ -15,6 +19,7 @@ type AuthContextValue = {
   session: Session | null;
   profile: Profile | null;
   verifyError: string | null;
+  debugInfo: string | null;
   signInWithDiscord: () => Promise<void>;
   signOut: () => Promise<void>;
   retryVerification: () => Promise<void>;
@@ -27,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   async function verifyMembership(currentSession: Session) {
     setStatus("verifying");
@@ -66,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const hadAuthAttempt =
       params.has("code") || hashParams.has("access_token") || params.has("error") || hashParams.has("error");
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error: sessionError }) => {
       if (!isMounted) return;
       if (data.session) {
         setSession(data.session);
@@ -81,6 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // just quietly dropping them back at the sign-in button.
           setVerifyError(
             "Sign-in didn't complete. If you opened this link from inside another app (like Discord), try opening it in your regular browser instead and sign in again."
+          );
+        }
+        if (hadAuthAttempt || sessionError) {
+          // TEMPORARY diagnostic — remove once the mobile login issue is confirmed fixed.
+          setDebugInfo(
+            `url=${RAW_REDIRECT_URL} | sessionError=${sessionError ? sessionError.message : "none"}`
           );
         }
         setStatus("signed_out");
@@ -128,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ status, session, profile, verifyError, signInWithDiscord, signOut, retryVerification }}
+      value={{ status, session, profile, verifyError, debugInfo, signInWithDiscord, signOut, retryVerification }}
     >
       {children}
     </AuthContext.Provider>
