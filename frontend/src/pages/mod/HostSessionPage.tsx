@@ -169,7 +169,9 @@ export default function HostSessionPage() {
   }
 
   async function handleEndSession() {
-    if (!confirm("End the session for everyone?")) return;
+    const message =
+      session?.status === "lobby" ? "Cancel this session before it starts?" : "End the session for everyone?";
+    if (!confirm(message)) return;
     await callHost("end_session");
     loadSession();
   }
@@ -203,9 +205,28 @@ export default function HostSessionPage() {
         {session.status === "lobby" && (
           <div className="card text-center">
             <p>Members can join now from the Trivia Night tab. Start when you're ready.</p>
-            <button className="btn btn-primary" onClick={handleStart} disabled={busy}>
-              {busy ? <span className="spinner" /> : "▶ Start Session"}
-            </button>
+            <div className="row" style={{ justifyContent: "center" }}>
+              <button className="btn btn-primary" onClick={handleStart} disabled={busy}>
+                {busy ? <span className="spinner" /> : "▶ Start Session"}
+              </button>
+              <button className="btn btn-ghost" onClick={handleEndSession} disabled={busy}>
+                Cancel session
+              </button>
+            </div>
+          </div>
+        )}
+
+        {session.status === "live" && !currentQuestion && (
+          <div className="card text-center">
+            <p>Session is live — members can join, but no question has started yet.</p>
+            <div className="row" style={{ justifyContent: "center" }}>
+              <button className="btn btn-primary" onClick={handleNext} disabled={busy}>
+                {busy ? <span className="spinner" /> : "▶ Start First Question"}
+              </button>
+              <button className="btn btn-danger" onClick={handleEndSession} disabled={busy}>
+                End session
+              </button>
+            </div>
           </div>
         )}
 

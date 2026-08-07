@@ -54,6 +54,21 @@ Deno.serve(async (req) => {
     switch (action) {
       case "create_session": {
         const { question_set_id } = body;
+
+        const { data: existingActive } = await admin
+          .from("trivia_sessions")
+          .select("id")
+          .in("status", ["lobby", "live", "grading"])
+          .limit(1)
+          .maybeSingle();
+
+        if (existingActive) {
+          return jsonResponse(
+            { error: "A session is already running. End it before starting a new one." },
+            409
+          );
+        }
+
         const { count } = await admin
           .from("questions")
           .select("id", { count: "exact", head: true })
@@ -240,7 +255,7 @@ Deno.serve(async (req) => {
           .eq("id", session_id)
           .single();
         if (!session) return jsonResponse({ error: "Session not found" }, 404);
-        if (!["live", "grading"].includes(session.status)) {
+        if (!["lobby", "live", "grading"].includes(session.status)) {
           return jsonResponse({ error: "Session isn't running" }, 409);
         }
 
