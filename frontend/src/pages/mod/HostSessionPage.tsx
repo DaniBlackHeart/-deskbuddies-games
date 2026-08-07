@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import Leaderboard from "../../components/Leaderboard";
@@ -20,10 +20,12 @@ export default function HostSessionPage() {
   const [pending, setPending] = useState<PendingAnswer[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const autoEndedIndexRef = useRef<number | null>(null);
 
   const currentQuestion = session
     ? questions.find((q) => q.order_index === session.current_question_index) ?? null
     : null;
+  const isLastQuestion = currentQuestion ? currentQuestion.order_index + 1 >= questions.length : false;
 
   async function loadSession() {
     const { data } = await supabase.from("trivia_sessions").select("*").eq("id", sessionId).single();
@@ -164,6 +166,16 @@ export default function HostSessionPage() {
     loadSession();
   }
 
+  async function handleTimerExpire() {
+    // Guard: Timer can re-fire its onExpire if the component re-renders
+    // near the boundary, and multiple mods could theoretically have this
+    // page open at once — only the first to reach here for this question
+    // index should actually trigger the end.
+    if (!currentQuestion || autoEndedIndexRef.current === currentQuestion.order_index) return;
+    autoEndedIndexRef.current = currentQuestion.order_index;
+    await handleEndQuestion();
+  }
+
   async function handleGrade(answerId: string, isCorrect: boolean) {
     await callHost("grade_answer", { answer_id: answerId, is_correct: isCorrect });
   }
@@ -236,7 +248,9 @@ export default function HostSessionPage() {
               <span className="badge badge-neutral">
                 Question {currentQuestion.order_index + 1} / {questions.length}
               </span>
-              {session.status === "live" && deadlineMs && <Timer deadline={deadlineMs} />}
+              {session.status === "live" && deadlineMs && (
+                <Timer deadline={deadlineMs} onExpire={handleTimerExpire} />
+              )}
             </div>
             <h2 style={{ marginTop: "12px" }}>{currentQuestion.prompt}</h2>
 
@@ -262,13 +276,19 @@ export default function HostSessionPage() {
               <p className="text-muted">Accepted answers: {currentQuestion.accepted_answers?.join(", ")}</p>
             )}
 
+            {session.status === "grading" && isLastQuestion && (
+              <p className="text-muted" style={{ marginTop: "12px" }}>
+                That was the last question — end the session to reveal final results.
+              </p>
+            )}
+
             <div className="row" style={{ marginTop: "16px" }}>
               {session.status === "live" && (
                 <button className="btn btn-secondary" onClick={handleEndQuestion} disabled={busy}>
                   End question now
                 </button>
               )}
-              {session.status === "grading" && (
+              {session.status === "grading" && !isLastQuestion && (
                 <button className="btn btn-primary" onClick={handleNext} disabled={busy}>
                   Next question →
                 </button>

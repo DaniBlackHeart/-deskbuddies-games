@@ -28,6 +28,7 @@ export default function TriviaPlayPage() {
     null
   );
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [timeExpired, setTimeExpired] = useState(false);
   const questionStartRef = useRef<number>(0);
 
   async function hydrate() {
@@ -63,6 +64,7 @@ export default function TriviaPlayPage() {
       setMyText(undefined);
       setMyResult(null);
     }
+    setTimeExpired(data.status === "grading" || (data.deadline_ms ? Date.now() > data.deadline_ms : false));
     setPhase(data.status === "grading" ? "question" : "question");
     setRevealed(null);
     if (data.status === "grading") {
@@ -87,6 +89,7 @@ export default function TriviaPlayPage() {
         setMyResult(null);
         setRevealed(null);
         setSubmitError(null);
+        setTimeExpired(false);
         setPhase("question");
       })
       .on("broadcast", { event: "question_ended" }, ({ payload }: { payload: SessionEvent & { type: "question_ended" } }) => {
@@ -185,13 +188,13 @@ export default function TriviaPlayPage() {
 
         <h2 style={{ marginTop: "16px" }}>{question.prompt}</h2>
 
-        {!revealed && deadlineMs && <Timer deadline={deadlineMs} />}
+        {!revealed && deadlineMs && <Timer deadline={deadlineMs} onExpire={() => setTimeExpired(true)} />}
 
         {!revealed && (
           <div style={{ marginTop: "16px" }}>
             <AnswerInput
               question={question}
-              disabled={false}
+              disabled={timeExpired}
               onSubmit={handleSubmit}
               submittedChoice={myChoice}
               submittedText={myText}
@@ -199,6 +202,11 @@ export default function TriviaPlayPage() {
             {(myChoice !== undefined || myText !== undefined) && !submitError && (
               <p className="text-muted text-center" style={{ marginTop: "12px" }}>
                 Answer locked in! Waiting for the reveal…
+              </p>
+            )}
+            {timeExpired && myChoice === undefined && myText === undefined && (
+              <p className="text-muted text-center" style={{ marginTop: "12px" }}>
+                ⏰ Time's up! Waiting for the host…
               </p>
             )}
             {submitError && <p className="error-text text-center">{submitError}</p>}
