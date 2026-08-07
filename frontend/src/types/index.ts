@@ -99,4 +99,11 @@ export type SessionEvent =
       pending_manual_grades: number;
     }
   | { type: "leaderboard_update"; leaderboard: LeaderboardEntry[] }
-  | { type: "session_ended"; leaderboard: LeaderboardEntry[] };
+  | { type: "session_ended"; leaderboard: LeaderboardEntry[] }
+  | {
+      type: "answer_graded";
+      user_id: string;
+      question_id: string;
+      is_correct: boolean;
+      points_awarded: number;
+    };

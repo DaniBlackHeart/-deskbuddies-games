@@ -30,6 +30,7 @@ export default function TriviaPlayPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [timeExpired, setTimeExpired] = useState(false);
   const questionStartRef = useRef<number>(0);
+  const currentQuestionIdRef = useRef<string | null>(null);
 
   async function hydrate() {
     const { data, error } = await supabase.functions.invoke("get-current-question", {
@@ -50,6 +51,7 @@ export default function TriviaPlayPage() {
       return;
     }
     setQuestion(data.question);
+    currentQuestionIdRef.current = data.question.id;
     setDeadlineMs(data.deadline_ms);
     questionStartRef.current = data.deadline_ms - data.question.time_limit_seconds * 1000;
     if (data.existing_answer) {
@@ -82,6 +84,7 @@ export default function TriviaPlayPage() {
       .channel(`trivia-session-${sessionId}`)
       .on("broadcast", { event: "question_started" }, ({ payload }: { payload: SessionEvent & { type: "question_started" } }) => {
         setQuestion(payload.question);
+        currentQuestionIdRef.current = payload.question.id;
         setDeadlineMs(payload.deadline_ms);
         questionStartRef.current = payload.deadline_ms - payload.question.time_limit_seconds * 1000;
         setMyChoice(undefined);
@@ -98,6 +101,16 @@ export default function TriviaPlayPage() {
       })
       .on("broadcast", { event: "leaderboard_update" }, ({ payload }: { payload: SessionEvent & { type: "leaderboard_update" } }) => {
         setLeaderboard(payload.leaderboard);
+      })
+      .on("broadcast", { event: "answer_graded" }, ({ payload }: { payload: SessionEvent & { type: "answer_graded" } }) => {
+        // Only react if this is a verdict on OUR OWN answer to the question
+        // currently on screen — a MOD grading someone else's answer, or an
+        // old question's pending answer, shouldn't touch our current state.
+        // Uses a ref (not the `question` state) because this listener closure
+        // is set up once and would otherwise only ever see its initial value.
+        if (payload.user_id === profile?.id && payload.question_id === currentQuestionIdRef.current) {
+          setMyResult({ isCorrect: payload.is_correct, points: payload.points_awarded });
+        }
       })
       .on("broadcast", { event: "session_ended" }, ({ payload }: { payload: SessionEvent & { type: "session_ended" } }) => {
         setLeaderboard(payload.leaderboard);
@@ -227,12 +240,12 @@ export default function TriviaPlayPage() {
             )}
             {myResult?.isCorrect === false && (
               <p className="text-center" style={{ fontWeight: 700, color: "var(--color-danger)" }}>
-                ❌ Not quite.
+                ❌ Not quite — that wasn't the answer.
               </p>
             )}
-            {myResult?.isCorrect === null && myResult !== undefined && myChoice === undefined && myText !== undefined && (
+            {myResult?.isCorrect === null && (
               <p className="text-center" style={{ fontWeight: 700, color: "var(--color-warning)" }}>
-                ⏳ Waiting on a MOD to review your answer.
+                ⏳ Your answer is being reviewed by a MOD.
               </p>
             )}
 

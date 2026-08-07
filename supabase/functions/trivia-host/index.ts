@@ -232,6 +232,13 @@ Deno.serve(async (req) => {
           .update({ is_correct, points_awarded: pointsAwarded, graded_by: user.id })
           .eq("id", answer_id);
 
+        await broadcast(admin, session_id, "answer_graded", {
+          user_id: answerRow.user_id,
+          question_id: answerRow.question_id,
+          is_correct,
+          points_awarded: pointsAwarded,
+        });
+
         const leaderboard = await computeLeaderboard(admin, session_id);
         await broadcast(admin, session_id, "leaderboard_update", { leaderboard });
 
