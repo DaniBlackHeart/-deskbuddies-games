@@ -40,7 +40,6 @@ Deno.serve(async (req) => {
 
     const claims = discordIdentity.identity_data ?? {};
     const discordId: string = claims.provider_id ?? claims.sub ?? discordIdentity.id;
-    const username: string = claims.global_name || claims.full_name || claims.name || claims.custom_claims?.global_name || "DeskBuddy";
     const avatarHash: string | null = claims.avatar_url ? null : null; // see note below
 
     // Discord's raw avatar hash isn't always forwarded by the OAuth provider mapping,
@@ -67,6 +66,11 @@ Deno.serve(async (req) => {
     const member = await memberRes.json();
     const roles: string[] = member.roles ?? [];
     const isMod = roles.includes(DISCORD_MOD_ROLE_ID);
+
+    // Prefer the member's DeskBuddies server nickname (what everyone actually
+    // knows them as in-server) over their global Discord display name.
+    const username: string =
+      member.nick || claims.global_name || claims.full_name || claims.name || claims.custom_claims?.global_name || "DeskBuddy";
 
     const resolvedAvatar =
       providedAvatar ?? discordAvatarUrl(discordId, avatarHash, claims.discriminator ?? "0");
