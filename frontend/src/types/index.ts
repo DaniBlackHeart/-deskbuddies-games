@@ -32,6 +32,7 @@ export type Question = {
   correct_choice: number | null; // index into choices, multiple_choice only
   accepted_answers: string[] | null; // typed only
   points: number;
+  penalty_points: number | null; // deduction if wrong; null = half of points, rounded
   time_limit_seconds: number;
 };
 
@@ -43,18 +44,21 @@ export type PublicQuestion = {
   prompt: string;
   choices: string[] | null;
   points: number;
+  penalty_points: number; // always resolved (never null) — the actual deduction if wrong
   time_limit_seconds: number;
   order_index: number;
   total_questions: number;
 };
 
 export type SessionStatus = "draft" | "lobby" | "live" | "grading" | "ended";
+export type SessionMode = "chill" | "hard";
 
 export type TriviaSession = {
   id: string;
   question_set_id: string;
   host_id: string;
   status: SessionStatus;
+  mode: SessionMode;
   current_question_index: number;
   current_question_started_at: string | null;
   join_code: string;

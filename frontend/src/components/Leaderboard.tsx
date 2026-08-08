@@ -43,7 +43,9 @@ export default function Leaderboard({
               )}
               <span>{entry.username}</span>
             </div>
-            <strong>{entry.total_points} pts</strong>
+            <strong style={{ color: entry.total_points < 0 ? "var(--color-danger)" : undefined }}>
+              {entry.total_points} pts
+            </strong>
           </div>
         );
       })}

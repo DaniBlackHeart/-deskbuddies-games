@@ -28,6 +28,7 @@ export type ParsedQuestion = {
   correct_choice: number | null;
   accepted_answers: string[] | null;
   points: number;
+  penalty_points: number; // deduction if wrong (used only in Hard mode sessions)
   time_limit_seconds: number;
 };
 
@@ -82,13 +83,15 @@ function parseJson(trimmed: string): ParseResult {
         errors.push(`${label}: "correct_choice" must be a valid index into "choices"`);
         return;
       }
+      const points = Number(item.points) || DEFAULT_POINTS;
       questions.push({
         prompt: item.prompt,
         type: "multiple_choice",
         choices: item.choices,
         correct_choice: item.correct_choice,
         accepted_answers: null,
-        points: Number(item.points) || DEFAULT_POINTS,
+        points,
+        penalty_points: Number(item.penalty_points) || Math.round(points / 2),
         time_limit_seconds: Number(item.time_limit_seconds) || DEFAULT_TIME_LIMIT,
       });
     } else {
@@ -96,13 +99,15 @@ function parseJson(trimmed: string): ParseResult {
         errors.push(`${label}: typed question needs at least 1 "accepted_answers" entry`);
         return;
       }
+      const points = Number(item.points) || DEFAULT_POINTS;
       questions.push({
         prompt: item.prompt,
         type: "typed",
         choices: null,
         correct_choice: null,
         accepted_answers: item.accepted_answers,
-        points: Number(item.points) || DEFAULT_POINTS,
+        points,
+        penalty_points: Number(item.penalty_points) || Math.round(points / 2),
         time_limit_seconds: Number(item.time_limit_seconds) || DEFAULT_TIME_LIMIT,
       });
     }
@@ -126,6 +131,7 @@ function parseTemplate(trimmed: string): ParseResult {
     let correctLetter: string | null = null;
     let acceptedRaw: string | null = null;
     let points = DEFAULT_POINTS;
+    let penaltyRaw: number | null = null;
     let timeLimit = DEFAULT_TIME_LIMIT;
 
     for (const line of lines) {
@@ -142,6 +148,8 @@ function parseTemplate(trimmed: string): ParseResult {
         acceptedRaw = line.replace(/^Accepted:/i, "").trim();
       } else if (/^Points:/i.test(line)) {
         points = Number(line.replace(/^Points:/i, "").trim()) || DEFAULT_POINTS;
+      } else if (/^Penalty:/i.test(line)) {
+        penaltyRaw = Number(line.replace(/^Penalty:/i, "").trim());
       } else if (/^Time:/i.test(line)) {
         timeLimit = Number(line.replace(/^Time:/i, "").trim()) || DEFAULT_TIME_LIMIT;
       } else if (!prompt) {
@@ -149,6 +157,10 @@ function parseTemplate(trimmed: string): ParseResult {
         prompt = line;
       }
     }
+
+    // Resolved after the loop since "Penalty:" might appear before "Points:"
+    // in a pasted block — this way it always reflects the final points value.
+    const penalty = penaltyRaw !== null && !Number.isNaN(penaltyRaw) ? penaltyRaw : Math.round(points / 2);
 
     if (!prompt) {
       errors.push(`${label}: couldn't find a question prompt (add a "Q: ..." line)`);
@@ -178,6 +190,7 @@ function parseTemplate(trimmed: string): ParseResult {
         correct_choice: correctIndex,
         accepted_answers: null,
         points,
+        penalty_points: penalty,
         time_limit_seconds: timeLimit,
       });
     } else if (resolvedType === "typed") {
@@ -193,6 +206,7 @@ function parseTemplate(trimmed: string): ParseResult {
         correct_choice: null,
         accepted_answers: accepted,
         points,
+        penalty_points: penalty,
         time_limit_seconds: timeLimit,
       });
     } else {
@@ -211,6 +225,7 @@ C) Berlin
 D) Madrid
 Correct: A
 Points: 100
+Penalty: 50
 Time: 20
 
 Q: Name the largest planet in our solar system.

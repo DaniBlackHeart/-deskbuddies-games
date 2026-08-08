@@ -12,6 +12,8 @@ import {
   getAdminClient,
   requireMod,
   computeLeaderboard,
+  resolveWrongPenalty,
+  resolveTimeoutPenalty,
 } from "../_shared/utils.ts";
 
 function randomJoinCode() {
@@ -19,13 +21,14 @@ function randomJoinCode() {
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
-function toPublicQuestion(question: any, totalQuestions: number) {
+function toPublicQuestion(question: any, totalQuestions: number, mode: string) {
   return {
     id: question.id,
     type: question.type,
     prompt: question.prompt,
     choices: question.choices,
     points: question.points,
+    penalty_points: mode === "hard" ? resolveWrongPenalty(question) : 0,
     time_limit_seconds: question.time_limit_seconds,
     order_index: question.order_index,
     total_questions: totalQuestions,
@@ -53,7 +56,8 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case "create_session": {
-        const { question_set_id } = body;
+        const { question_set_id, mode } = body;
+        const resolvedMode = mode === "hard" ? "hard" : "chill";
 
         const { data: existingActive } = await admin
           .from("trivia_sessions")
@@ -95,6 +99,7 @@ Deno.serve(async (req) => {
             question_set_id,
             host_id: user.id,
             status: "lobby",
+            mode: resolvedMode,
             current_question_index: -1,
             join_code: joinCode,
           })
@@ -163,7 +168,7 @@ Deno.serve(async (req) => {
           })
           .eq("id", session_id);
 
-        const publicQuestion = toPublicQuestion(nextQuestion, questions.length);
+        const publicQuestion = toPublicQuestion(nextQuestion, questions.length, session.mode);
         const deadline_ms = new Date(startedAt).getTime() + nextQuestion.time_limit_seconds * 1000;
 
         await broadcast(admin, session_id, "question_started", {
@@ -195,6 +200,39 @@ Deno.serve(async (req) => {
 
         await admin.from("trivia_sessions").update({ status: "grading" }).eq("id", session_id);
 
+        if (question && session.mode === "hard") {
+          // No-show sweep (Hard mode only): anyone who joined the session but
+          // never submitted an answer to this question gets an automatic
+          // penalty row. Uses upsert + ignoreDuplicates so a last-instant real
+          // submission that arrives around the same moment this runs is never
+          // overwritten — the unique (session_id, question_id, user_id)
+          // constraint means an existing row always wins over this sweep.
+          const [{ data: participants }, { data: answered }] = await Promise.all([
+            admin.from("session_participants").select("user_id").eq("session_id", session_id),
+            admin.from("answers").select("user_id").eq("session_id", session_id).eq("question_id", question.id),
+          ]);
+
+          const answeredIds = new Set((answered ?? []).map((a) => a.user_id));
+          const noShows = (participants ?? []).filter((p) => !answeredIds.has(p.user_id));
+
+          if (noShows.length > 0) {
+            const timeoutPenalty = resolveTimeoutPenalty(question);
+            await admin.from("answers").upsert(
+              noShows.map((p) => ({
+                session_id,
+                question_id: question.id,
+                user_id: p.user_id,
+                choice_index: null,
+                answer_text: null,
+                is_correct: false,
+                points_awarded: -timeoutPenalty,
+                response_ms: question.time_limit_seconds * 1000,
+              })),
+              { onConflict: "session_id,question_id,user_id", ignoreDuplicates: true }
+            );
+          }
+        }
+
         const { count: pendingCount } = await admin
           .from("answers")
           .select("id", { count: "exact", head: true })
@@ -219,13 +257,23 @@ Deno.serve(async (req) => {
         const { session_id, answer_id, is_correct } = body;
         const { data: answerRow } = await admin
           .from("answers")
-          .select("*, questions(points)")
+          .select("*, questions(points, penalty_points)")
           .eq("id", answer_id)
           .single();
 
         if (!answerRow) return jsonResponse({ error: "Answer not found" }, 404);
 
-        const pointsAwarded = is_correct ? answerRow.questions?.points ?? 0 : 0;
+        const { data: session } = await admin
+          .from("trivia_sessions")
+          .select("status, mode")
+          .eq("id", session_id)
+          .single();
+
+        const pointsAwarded = is_correct
+          ? answerRow.questions?.points ?? 0
+          : session?.mode === "hard"
+          ? -resolveWrongPenalty(answerRow.questions ?? { points: 0, penalty_points: null })
+          : 0;
 
         await admin
           .from("answers")
@@ -242,11 +290,6 @@ Deno.serve(async (req) => {
         const leaderboard = await computeLeaderboard(admin, session_id);
         await broadcast(admin, session_id, "leaderboard_update", { leaderboard });
 
-        const { data: session } = await admin
-          .from("trivia_sessions")
-          .select("status")
-          .eq("id", session_id)
-          .single();
         if (session?.status === "ended") {
           await broadcast(admin, session_id, "session_ended", { leaderboard });
         }

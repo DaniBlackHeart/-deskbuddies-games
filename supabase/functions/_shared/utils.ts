@@ -93,6 +93,16 @@ export function normalizeAnswer(text: string): string {
     .replace(/\s+/g, " ");
 }
 
+/** Deduction for a submitted-but-wrong answer. Defaults to half of points, rounded. */
+export function resolveWrongPenalty(question: { points: number; penalty_points: number | null }): number {
+  return question.penalty_points ?? Math.round(question.points / 2);
+}
+
+/** Flat deduction for not answering at all: 25% of points, rounded. */
+export function resolveTimeoutPenalty(question: { points: number }): number {
+  return Math.round(question.points * 0.25);
+}
+
 export function typedAnswerMatches(submitted: string, accepted: string[]): boolean {
   const normalizedSubmitted = normalizeAnswer(submitted);
   return accepted.some((a) => normalizeAnswer(a) === normalizedSubmitted);

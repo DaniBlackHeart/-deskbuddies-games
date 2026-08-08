@@ -3,7 +3,15 @@
 // Grading happens entirely here, server-side, using the service role
 // client — the browser never sees correct_choice/accepted_answers.
 
-import { corsHeaders, jsonResponse, handleOptions, getAdminClient, requireMember, typedAnswerMatches } from "../_shared/utils.ts";
+import {
+  corsHeaders,
+  jsonResponse,
+  handleOptions,
+  getAdminClient,
+  requireMember,
+  typedAnswerMatches,
+  resolveWrongPenalty,
+} from "../_shared/utils.ts";
 
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
@@ -81,7 +89,7 @@ Deno.serve(async (req) => {
 
     if (question.type === "multiple_choice") {
       isCorrect = choice_index === question.correct_choice;
-      pointsAwarded = isCorrect ? question.points : 0;
+      pointsAwarded = isCorrect ? question.points : session.mode === "hard" ? -resolveWrongPenalty(question) : 0;
     } else {
       const accepted: string[] = question.accepted_answers ?? [];
       const matched = typeof answer_text === "string" && typedAnswerMatches(answer_text, accepted);

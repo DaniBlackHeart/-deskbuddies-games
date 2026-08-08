@@ -211,7 +211,10 @@ export default function HostSessionPage() {
               Join code <strong>{session.join_code}</strong> · {participantCount} joined
             </p>
           </div>
-          <span className="badge badge-live">{session.status.toUpperCase()}</span>
+          <div className="row">
+            <span className="badge badge-neutral">{session.mode === "hard" ? "🔥 HARD" : "😌 CHILL"}</span>
+            <span className="badge badge-live">{session.status.toUpperCase()}</span>
+          </div>
         </div>
 
         {session.status === "lobby" && (
@@ -253,6 +256,16 @@ export default function HostSessionPage() {
               )}
             </div>
             <h2 style={{ marginTop: "12px" }}>{currentQuestion.prompt}</h2>
+            <p className="hint">
+              {currentQuestion.points} pts
+              {session.mode === "hard" && (
+                <>
+                  {" "}
+                  · −{currentQuestion.penalty_points ?? Math.round(currentQuestion.points / 2)} if wrong · −
+                  {Math.round(currentQuestion.points * 0.25)} if no answer
+                </>
+              )}
+            </p>
 
             {currentQuestion.type === "multiple_choice" && currentQuestion.choices && (
               <div className="stack">

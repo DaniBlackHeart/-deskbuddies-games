@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabaseClient";
 type ActiveSession = {
   id: string;
   status: string;
+  mode: string;
   question_sets: { name: string } | null;
 };
 
@@ -15,7 +16,7 @@ export default function ModDashboardPage() {
   useEffect(() => {
     supabase
       .from("trivia_sessions")
-      .select("id, status, question_sets(name)")
+      .select("id, status, mode, question_sets(name)")
       .in("status", ["lobby", "live", "grading"])
       .order("created_at", { ascending: false })
       .then(({ data }) => setActive((data as unknown as ActiveSession[]) ?? []));
@@ -34,7 +35,8 @@ export default function ModDashboardPage() {
             {active.map((s) => (
               <div key={s.id} className="row-between">
                 <span>
-                  {s.question_sets?.name} — <span className="badge badge-live">{s.status}</span>
+                  {s.question_sets?.name} — <span className="badge badge-live">{s.status}</span>{" "}
+                  <span className="badge badge-neutral">{s.mode === "hard" ? "🔥 hard" : "😌 chill"}</span>
                 </span>
                 <Link to={`/mod/host/${s.id}`} className="btn btn-primary btn-sm">
                   Go to host controls

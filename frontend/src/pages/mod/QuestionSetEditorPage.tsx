@@ -13,6 +13,7 @@ const emptyDraft = {
   correctChoice: 0,
   acceptedAnswers: "",
   points: 100,
+  penalty: 50,
   timeLimit: 20,
 };
 
@@ -28,6 +29,7 @@ export default function QuestionSetEditorPage() {
   const [draft, setDraft] = useState(emptyDraft);
   const [saving, setSaving] = useState(false);
   const [launching, setLaunching] = useState(false);
+  const [sessionMode, setSessionMode] = useState<"chill" | "hard">("chill");
   const [formError, setFormError] = useState<string | null>(null);
 
   async function loadData() {
@@ -100,6 +102,7 @@ export default function QuestionSetEditorPage() {
       question_set_id: setId,
       order_index: nextOrderIndex(),
       points: draft.points,
+      penalty_points: draft.penalty,
       time_limit_seconds: draft.timeLimit,
     });
     setSaving(false);
@@ -125,6 +128,7 @@ export default function QuestionSetEditorPage() {
       correct_choice: q.correct_choice,
       accepted_answers: q.accepted_answers,
       points: q.points,
+      penalty_points: q.penalty_points,
       time_limit_seconds: q.time_limit_seconds,
     }));
 
@@ -147,7 +151,7 @@ export default function QuestionSetEditorPage() {
     if (questions.length === 0) return;
     setLaunching(true);
     const { data, error } = await supabase.functions.invoke("trivia-host", {
-      body: { action: "create_session", question_set_id: setId },
+      body: { action: "create_session", question_set_id: setId, mode: sessionMode },
     });
     setLaunching(false);
     if (error || data?.error) {
@@ -169,21 +173,52 @@ export default function QuestionSetEditorPage() {
     <div className="app-shell">
       <AppHeader />
       <div className="container">
-        <div className="row-between">
+        <div className="row-between" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
           <div>
             <h1>{set?.name}</h1>
             <p className="text-muted" style={{ marginTop: "-8px" }}>
               {questions.length} question{questions.length === 1 ? "" : "s"}
             </p>
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={handleStartSession}
-            disabled={questions.length === 0 || launching}
-          >
-            {launching ? <span className="spinner" /> : "▶ Start a session"}
-          </button>
+          <div className="stack" style={{ marginTop: 0 }}>
+            <div className="row" style={{ justifyContent: "flex-end" }}>
+              <button
+                className="btn btn-sm"
+                onClick={() => setSessionMode("chill")}
+                style={{
+                  background: sessionMode === "chill" ? "var(--color-secondary-soft)" : "var(--color-surface-raised)",
+                  border: `1.5px solid ${sessionMode === "chill" ? "var(--color-secondary)" : "var(--color-border)"}`,
+                  color: "var(--color-text)",
+                }}
+              >
+                😌 Chill
+              </button>
+              <button
+                className="btn btn-sm"
+                onClick={() => setSessionMode("hard")}
+                style={{
+                  background: sessionMode === "hard" ? "var(--color-danger-soft)" : "var(--color-surface-raised)",
+                  border: `1.5px solid ${sessionMode === "hard" ? "var(--color-danger)" : "var(--color-border)"}`,
+                  color: "var(--color-text)",
+                }}
+              >
+                🔥 Hard
+              </button>
+            </div>
+            <button
+              className="btn btn-primary btn-block"
+              onClick={handleStartSession}
+              disabled={questions.length === 0 || launching}
+            >
+              {launching ? <span className="spinner" /> : "▶ Start a session"}
+            </button>
+          </div>
         </div>
+        <p className="hint" style={{ marginTop: "4px" }}>
+          {sessionMode === "chill"
+            ? "Chill: wrong or missed answers just score 0 — no risk."
+            : "Hard: wrong answers cost points, not answering costs 25% — scores can go negative."}
+        </p>
 
         <div className="row" style={{ margin: "16px 0" }}>
           <button className="btn btn-secondary" onClick={() => setShowManualForm((s) => !s)}>
@@ -284,6 +319,14 @@ export default function QuestionSetEditorPage() {
                 />
               </div>
               <div className="field" style={{ flex: 1 }}>
+                <label>Penalty if wrong</label>
+                <input
+                  type="number"
+                  value={draft.penalty}
+                  onChange={(e) => setDraft({ ...draft, penalty: Number(e.target.value) })}
+                />
+              </div>
+              <div className="field" style={{ flex: 1 }}>
                 <label>Time limit (seconds)</label>
                 <input
                   type="number"
@@ -292,6 +335,10 @@ export default function QuestionSetEditorPage() {
                 />
               </div>
             </div>
+            <p className="hint" style={{ marginTop: "-8px" }}>
+              Penalty only applies in Hard mode sessions. Defaults to half of points — set it equal
+              to points for a question that should cost everything if missed.
+            </p>
 
             {formError && <p className="error-text">{formError}</p>}
 
@@ -323,7 +370,8 @@ export default function QuestionSetEditorPage() {
                 </div>
               </div>
               <p className="hint" style={{ marginTop: "6px" }}>
-                {q.points} pts · {q.time_limit_seconds}s ·{" "}
+                {q.points} pts (−{q.penalty_points ?? Math.round(q.points / 2)} if wrong) ·{" "}
+                {q.time_limit_seconds}s ·{" "}
                 {q.type === "multiple_choice" && q.choices
                   ? `correct: ${q.choices[q.correct_choice ?? 0]}`
                   : `accepted: ${q.accepted_answers?.join(", ")}`}

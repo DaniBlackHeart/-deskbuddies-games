@@ -4,7 +4,15 @@
 // their own existing answer if any, and the current leaderboard.
 // Realtime broadcasts handle live updates after that.
 
-import { corsHeaders, jsonResponse, handleOptions, getAdminClient, requireMember, computeLeaderboard } from "../_shared/utils.ts";
+import {
+  corsHeaders,
+  jsonResponse,
+  handleOptions,
+  getAdminClient,
+  requireMember,
+  computeLeaderboard,
+  resolveWrongPenalty,
+} from "../_shared/utils.ts";
 
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
@@ -37,16 +45,16 @@ Deno.serve(async (req) => {
     const leaderboard = await computeLeaderboard(admin, session_id);
 
     if (session.status === "ended") {
-      return jsonResponse({ status: "ended", leaderboard });
+      return jsonResponse({ status: "ended", leaderboard, mode: session.mode });
     }
 
     if (session.current_question_index < 0 || !session.current_question_started_at) {
-      return jsonResponse({ status: session.status, question: null, leaderboard });
+      return jsonResponse({ status: session.status, question: null, leaderboard, mode: session.mode });
     }
 
     const { data: question } = await admin
       .from("questions")
-      .select("id, type, prompt, choices, points, time_limit_seconds, order_index")
+      .select("id, type, prompt, choices, points, penalty_points, time_limit_seconds, order_index")
       .eq("question_set_id", session.question_set_id)
       .eq("order_index", session.current_question_index)
       .single();
@@ -70,11 +78,27 @@ Deno.serve(async (req) => {
 
     return jsonResponse({
       status: session.status,
+      mode: session.mode,
       question: question
-        ? { ...question, total_questions: totalQuestions ?? 0 }
+        ? {
+            ...question,
+            penalty_points: session.mode === "hard" ? resolveWrongPenalty(question) : 0,
+            total_questions: totalQuestions ?? 0,
+          }
         : null,
       deadline_ms,
-      existing_answer: existingAnswer ?? null,
+      existing_answer: existingAnswer
+        ? {
+            ...existingAnswer,
+            // A no-show (auto-penalized, never actually answered) row has no
+            // choice/text at all — flagged so the frontend shows "you didn't
+            // answer" rather than "wrong answer" on reconnect.
+            was_no_show:
+              existingAnswer.choice_index === null &&
+              existingAnswer.answer_text === null &&
+              existingAnswer.is_correct === false,
+          }
+        : null,
       leaderboard,
     });
   } catch (err) {

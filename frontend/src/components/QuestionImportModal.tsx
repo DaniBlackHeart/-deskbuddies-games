@@ -110,7 +110,7 @@ export default function QuestionImportModal({ onCancel, onConfirm }: QuestionImp
                     </span>
                   </div>
                   <p className="hint" style={{ marginTop: "4px" }}>
-                    {q.points} pts · {q.time_limit_seconds}s
+                    {q.points} pts (−{q.penalty_points} if wrong) · {q.time_limit_seconds}s
                     {q.type === "multiple_choice" && q.choices
                       ? ` · correct: ${q.choices[q.correct_choice ?? 0]}`
                       : ` · accepted: ${q.accepted_answers?.join(", ")}`}

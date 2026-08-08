@@ -29,6 +29,8 @@ export default function TriviaPlayPage() {
   );
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [timeExpired, setTimeExpired] = useState(false);
+  const [mode, setMode] = useState<"chill" | "hard">("chill");
+  const [wasNoShow, setWasNoShow] = useState(false);
   const questionStartRef = useRef<number>(0);
   const currentQuestionIdRef = useRef<string | null>(null);
 
@@ -40,6 +42,7 @@ export default function TriviaPlayPage() {
       console.error(error);
       return;
     }
+    setMode(data.mode === "hard" ? "hard" : "chill");
     if (data.status === "ended") {
       setLeaderboard(data.leaderboard ?? []);
       setPhase("ended");
@@ -61,10 +64,12 @@ export default function TriviaPlayPage() {
         isCorrect: data.existing_answer.is_correct,
         points: data.existing_answer.points_awarded,
       });
+      setWasNoShow(Boolean(data.existing_answer.was_no_show));
     } else {
       setMyChoice(undefined);
       setMyText(undefined);
       setMyResult(null);
+      setWasNoShow(false);
     }
     setTimeExpired(data.status === "grading" || (data.deadline_ms ? Date.now() > data.deadline_ms : false));
     setPhase(data.status === "grading" ? "question" : "question");
@@ -90,6 +95,7 @@ export default function TriviaPlayPage() {
         setMyChoice(undefined);
         setMyText(undefined);
         setMyResult(null);
+        setWasNoShow(false);
         setRevealed(null);
         setSubmitError(null);
         setTimeExpired(false);
@@ -132,6 +138,7 @@ export default function TriviaPlayPage() {
     setSubmitError(null);
     setMyChoice(payload.choiceIndex);
     setMyText(payload.answerText);
+    setWasNoShow(false);
 
     const responseMs = Math.max(0, Date.now() - questionStartRef.current);
 
@@ -201,6 +208,13 @@ export default function TriviaPlayPage() {
 
         <h2 style={{ marginTop: "16px" }}>{question.prompt}</h2>
 
+        {mode === "hard" && (
+          <p className="text-center hint" style={{ marginBottom: "8px" }}>
+            ✅ +{question.points} · ❌ −{question.penalty_points} · ⌛ −
+            {Math.round(question.points * 0.25)}
+          </p>
+        )}
+
         {!revealed && deadlineMs && <Timer deadline={deadlineMs} onExpire={() => setTimeExpired(true)} />}
 
         {!revealed && (
@@ -228,22 +242,26 @@ export default function TriviaPlayPage() {
 
         {revealed && (
           <div className="stack" style={{ marginTop: "16px" }}>
-            {myResult === null && (
+            {(myResult === null || wasNoShow) && (
               <p className="text-center" style={{ fontWeight: 700, color: "var(--color-text-muted)" }}>
                 ⌛ You didn't answer in time.
+                {mode === "hard" && (
+                  <> −{myResult ? Math.abs(myResult.points) : Math.round(question.points * 0.25)} pts</>
+                )}
               </p>
             )}
-            {myResult?.isCorrect === true && (
+            {!wasNoShow && myResult?.isCorrect === true && (
               <p className="text-center" style={{ fontWeight: 700, color: "var(--color-success)" }}>
                 ✅ Correct! +{myResult.points} pts
               </p>
             )}
-            {myResult?.isCorrect === false && (
+            {!wasNoShow && myResult?.isCorrect === false && (
               <p className="text-center" style={{ fontWeight: 700, color: "var(--color-danger)" }}>
                 ❌ Not quite — that wasn't the answer.
+                {mode === "hard" && <> {myResult.points} pts</>}
               </p>
             )}
-            {myResult?.isCorrect === null && (
+            {!wasNoShow && myResult?.isCorrect === null && (
               <p className="text-center" style={{ fontWeight: 700, color: "var(--color-warning)" }}>
                 ⏳ Your answer is being reviewed by a MOD.
               </p>
