@@ -33,12 +33,16 @@ export default function HostSessionPage() {
   }
 
   async function loadPending() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("answers")
-      .select("*, profiles(username), questions(prompt, order_index)")
+      .select("*, profiles!user_id(username), questions(prompt, order_index)")
       .eq("session_id", sessionId)
       .is("is_correct", null)
       .order("created_at", { ascending: true });
+    if (error) {
+      console.error("loadPending failed:", error);
+      return;
+    }
     setPending((data as unknown as PendingAnswer[]) ?? []);
   }
 
