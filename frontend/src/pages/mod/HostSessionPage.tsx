@@ -6,7 +6,7 @@ import Timer from "../../components/Timer";
 import { supabase } from "../../lib/supabaseClient";
 import type { Answer, LeaderboardEntry, Question, TriviaSession } from "../../types";
 
-type PendingAnswer = Answer & { profiles: { username: string } | null };
+type PendingAnswer = Answer & { profiles: { username: string } | null; questions: { prompt: string; order_index: number } | null };
 
 export default function HostSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -33,16 +33,12 @@ export default function HostSessionPage() {
   }
 
   async function loadPending() {
-    if (!session || !currentQuestion || session.status !== "grading") {
-      setPending([]);
-      return;
-    }
     const { data } = await supabase
       .from("answers")
-      .select("*, profiles(username)")
+      .select("*, profiles(username), questions(prompt, order_index)")
       .eq("session_id", sessionId)
-      .eq("question_id", currentQuestion.id)
-      .is("is_correct", null);
+      .is("is_correct", null)
+      .order("created_at", { ascending: true });
     setPending((data as unknown as PendingAnswer[]) ?? []);
   }
 
@@ -300,14 +296,20 @@ export default function HostSessionPage() {
           </div>
         )}
 
-        {session.status === "grading" && pending.length > 0 && (
+        {pending.length > 0 && (
           <div className="card" style={{ marginTop: "16px" }}>
             <h3>Needs your review ({pending.length})</h3>
+            <p className="hint" style={{ marginTop: "-8px", marginBottom: "12px" }}>
+              These stay here until graded, even after you've moved on to later questions.
+            </p>
             <div className="stack">
               {pending.map((a) => (
                 <div key={a.id} className="row-between">
                   <span>
-                    <strong>{a.profiles?.username ?? "Unknown"}</strong> answered "{a.answer_text}"
+                    <strong>{a.profiles?.username ?? "Unknown"}</strong> answered "{a.answer_text}" on{" "}
+                    <em>
+                      Q{(a.questions?.order_index ?? 0) + 1}: {a.questions?.prompt ?? "Unknown question"}
+                    </em>
                   </span>
                   <div className="row">
                     <button className="btn btn-secondary btn-sm" onClick={() => handleGrade(a.id, true)}>
