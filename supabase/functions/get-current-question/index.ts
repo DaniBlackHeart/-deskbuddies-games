@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { session_id } = body;
+    const { session_id, spectator } = body;
     if (!session_id) return jsonResponse({ error: "session_id is required" }, 400);
 
     const admin = getAdminClient();
@@ -37,10 +37,13 @@ Deno.serve(async (req) => {
 
     if (!session) return jsonResponse({ error: "Session not found" }, 404);
 
-    // Make sure they're marked as a participant.
-    await admin
-      .from("session_participants")
-      .upsert({ session_id, user_id: user.id }, { onConflict: "session_id,user_id" });
+    // Spectators watch read-only and should never show up in the
+    // participant list, "who's answered," or standings.
+    if (!spectator) {
+      await admin
+        .from("session_participants")
+        .upsert({ session_id, user_id: user.id }, { onConflict: "session_id,user_id" });
+    }
 
     const leaderboard = await computeLeaderboard(admin, session_id);
 

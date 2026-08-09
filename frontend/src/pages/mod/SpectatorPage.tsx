@@ -59,7 +59,7 @@ export default function SpectatorPage() {
 
   async function hydrate() {
     const { data, error } = await supabase.functions.invoke("get-current-question", {
-      body: { session_id: sessionId },
+      body: { session_id: sessionId, spectator: true },
     });
     if (error) {
       console.error(error);
