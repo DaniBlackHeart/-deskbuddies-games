@@ -59,6 +59,7 @@ export type TriviaSession = {
   host_id: string;
   status: SessionStatus;
   mode: SessionMode;
+  spectator_id: string | null;
   current_question_index: number;
   current_question_started_at: string | null;
   join_code: string;

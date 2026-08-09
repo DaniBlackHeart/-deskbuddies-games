@@ -11,6 +11,7 @@ import ModDashboardPage from "./pages/mod/ModDashboardPage";
 import QuestionSetsPage from "./pages/mod/QuestionSetsPage";
 import QuestionSetEditorPage from "./pages/mod/QuestionSetEditorPage";
 import HostSessionPage from "./pages/mod/HostSessionPage";
+import SpectatorPage from "./pages/mod/SpectatorPage";
 
 export default function App() {
   return (
@@ -74,6 +75,14 @@ export default function App() {
             element={
               <ModRoute>
                 <HostSessionPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/spectate/:sessionId"
+            element={
+              <ModRoute>
+                <SpectatorPage />
               </ModRoute>
             }
           />

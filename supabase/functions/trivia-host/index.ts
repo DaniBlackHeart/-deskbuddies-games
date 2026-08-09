@@ -311,13 +311,66 @@ Deno.serve(async (req) => {
 
         await admin
           .from("trivia_sessions")
-          .update({ status: "ended", ended_at: new Date().toISOString() })
+          .update({ status: "ended", ended_at: new Date().toISOString(), spectator_id: null })
           .eq("id", session_id);
 
         const leaderboard = await computeLeaderboard(admin, session_id);
         await broadcast(admin, session_id, "session_ended", { leaderboard });
 
         return jsonResponse({ leaderboard });
+      }
+
+      case "claim_spectator": {
+        const { session_id } = body;
+        const { data: session } = await admin
+          .from("trivia_sessions")
+          .select("id, spectator_id")
+          .eq("id", session_id)
+          .single();
+        if (!session) return jsonResponse({ error: "Session not found" }, 404);
+
+        if (session.spectator_id === user.id) {
+          // Already theirs (e.g. page refresh) — treat as success, no-op.
+          return jsonResponse({ ok: true });
+        }
+
+        if (session.spectator_id) {
+          const { data: holder } = await admin
+            .from("profiles")
+            .select("username")
+            .eq("id", session.spectator_id)
+            .maybeSingle();
+          return jsonResponse(
+            { error: `Already being watched by ${holder?.username ?? "another mod"}.` },
+            409
+          );
+        }
+
+        // Atomic claim: only succeeds if still unclaimed at the moment of
+        // this update, so two mods clicking "Watch" at the same instant
+        // can't both win the seat.
+        const { data: claimed } = await admin
+          .from("trivia_sessions")
+          .update({ spectator_id: user.id })
+          .eq("id", session_id)
+          .is("spectator_id", null)
+          .select()
+          .maybeSingle();
+
+        if (!claimed) {
+          return jsonResponse({ error: "Someone just claimed this seat — try again." }, 409);
+        }
+
+        return jsonResponse({ ok: true });
+      }
+
+      case "release_spectator": {
+        const { session_id } = body;
+        // Any mod can release the seat, not just whoever holds it — avoids
+        // it getting permanently stuck if someone forgets to click "stop
+        // watching" (e.g. closes their laptop mid-stream).
+        await admin.from("trivia_sessions").update({ spectator_id: null }).eq("id", session_id);
+        return jsonResponse({ ok: true });
       }
 
       default:
