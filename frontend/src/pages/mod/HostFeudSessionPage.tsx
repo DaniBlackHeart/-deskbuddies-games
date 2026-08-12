@@ -154,6 +154,14 @@ export default function HostFeudSessionPage() {
     await callHost("set_line_order", { team, ordered_user_ids: ids });
   }
 
+  async function handleEndSession() {
+    const message =
+      session?.status === "lobby" ? "Cancel this session before it starts?" : "End the session for everyone?";
+    if (!confirm(message)) return;
+    await callHost("end_session");
+    loadSession();
+  }
+
   if (loading || !session) {
     return (
       <div className="center-screen">
@@ -178,6 +186,15 @@ export default function HostFeudSessionPage() {
           teamBScore={session.team_b_score}
           highlightTeam={round?.controlling_team ?? null}
         />
+
+        {session.status !== "ended" && (
+          <div className="row-between" style={{ margin: "12px 0" }}>
+            <span className="hint">{session.status === "lobby" ? "Not started yet" : `Status: ${session.status}`}</span>
+            <button className="btn btn-danger btn-sm" disabled={busy} onClick={handleEndSession}>
+              {session.status === "lobby" ? "Cancel session" : "End session"}
+            </button>
+          </div>
+        )}
 
         {session.status === "lobby" && renderLobby()}
         {session.status === "live" && renderLive()}
