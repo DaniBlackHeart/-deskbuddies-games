@@ -22,6 +22,8 @@ import {
   claimSessionLock,
   releaseSessionLock,
   forceReleaseSessionLock,
+  claimSpectatorSeat,
+  releaseSpectatorSeat,
   type FeudAnswer,
 } from "../_shared/utils.ts";
 
@@ -442,7 +444,10 @@ Deno.serve(async (req) => {
           ? session.fastmoney_total_points >= 200
           : null;
 
-        await admin.from("feud_sessions").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", session_id);
+        await admin
+          .from("feud_sessions")
+          .update({ status: "ended", ended_at: new Date().toISOString(), spectator_id: null })
+          .eq("id", session_id);
         await releaseSessionLock(admin, session_id);
         await broadcast(admin, session_id, "session_ended", {
           team_a_score: session.team_a_score,
@@ -451,6 +456,19 @@ Deno.serve(async (req) => {
           fastmoney_total_points: session.fastmoney_total_points,
           won_grand_prize: wonGrandPrize,
         });
+        return jsonResponse({ ok: true });
+      }
+
+      case "claim_spectator": {
+        const claimError = await claimSpectatorSeat(admin, { table: "feud_sessions", sessionId: session_id, userId: user.id });
+        if (claimError) return claimError;
+        return jsonResponse({ ok: true });
+      }
+
+      case "release_spectator": {
+        // Any mod can release the seat, not just whoever holds it — same
+        // reasoning as trivia-host's.
+        await releaseSpectatorSeat(admin, "feud_sessions", session_id);
         return jsonResponse({ ok: true });
       }
 

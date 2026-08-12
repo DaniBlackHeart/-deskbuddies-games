@@ -17,6 +17,7 @@ import SpectatorPage from "./pages/mod/SpectatorPage";
 import FeudSetsPage from "./pages/mod/FeudSetsPage";
 import FeudSetEditorPage from "./pages/mod/FeudSetEditorPage";
 import HostFeudSessionPage from "./pages/mod/HostFeudSessionPage";
+import FeudSpectatorPage from "./pages/mod/FeudSpectatorPage";
 
 export default function App() {
   return (
@@ -128,6 +129,14 @@ export default function App() {
             element={
               <ModRoute>
                 <HostFeudSessionPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/feud-spectate/:sessionId"
+            element={
+              <ModRoute>
+                <FeudSpectatorPage />
               </ModRoute>
             }
           />

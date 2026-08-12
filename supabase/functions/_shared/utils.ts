@@ -156,6 +156,58 @@ export async function forceReleaseSessionLock(admin: ReturnType<typeof getAdminC
   return data as { game: string; session_id: string; host_id: string; started_at: string } | null;
 }
 
+// --- Spectator seat (single-claim "who's currently watching") ---
+
+/**
+ * Atomically claims a single-seat spectator slot on a session row. Only one
+ * user can hold it at a time. The read-then-check below exists only to
+ * return a friendlier "taken by X" message in the common case — the actual
+ * atomicity comes from the conditional update's .is("spectator_id", null),
+ * which loses a genuine race cleanly instead of letting both callers win.
+ */
+export async function claimSpectatorSeat(
+  admin: ReturnType<typeof getAdminClient>,
+  opts: { table: string; sessionId: string; userId: string }
+): Promise<Response | null> {
+  const { data: session } = await admin
+    .from(opts.table)
+    .select("id, spectator_id")
+    .eq("id", opts.sessionId)
+    .single();
+  if (!session) return jsonResponse({ error: "Session not found" }, 404);
+
+  if (session.spectator_id === opts.userId) {
+    return null; // already theirs (e.g. page refresh) — treat as success
+  }
+
+  if (session.spectator_id) {
+    const { data: holder } = await admin
+      .from("profiles")
+      .select("username")
+      .eq("id", session.spectator_id)
+      .maybeSingle();
+    return jsonResponse({ error: `Already being watched by ${holder?.username ?? "another mod"}.` }, 409);
+  }
+
+  const { data: claimed } = await admin
+    .from(opts.table)
+    .update({ spectator_id: opts.userId })
+    .eq("id", opts.sessionId)
+    .is("spectator_id", null)
+    .select()
+    .maybeSingle();
+
+  if (!claimed) {
+    return jsonResponse({ error: "Someone just claimed this seat — try again." }, 409);
+  }
+  return null;
+}
+
+/** Releases a session's spectator seat. Any mod can call this, not just whoever holds it — avoids it getting permanently stuck. */
+export async function releaseSpectatorSeat(admin: ReturnType<typeof getAdminClient>, table: string, sessionId: string) {
+  await admin.from(table).update({ spectator_id: null }).eq("id", sessionId);
+}
+
 // --- Family Feud helpers ---
 
 export type FeudAnswer = { text: string; points: number; alt_answers?: string[] };

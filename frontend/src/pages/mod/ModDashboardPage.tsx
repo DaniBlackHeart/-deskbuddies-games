@@ -16,6 +16,8 @@ type ActiveFeudSession = {
   id: string;
   status: string;
   feud_sets: { name: string } | null;
+  spectator_id: string | null;
+  spectator: { username: string } | null;
 };
 
 export default function ModDashboardPage() {
@@ -35,7 +37,7 @@ export default function ModDashboardPage() {
 
     supabase
       .from("feud_sessions")
-      .select("id, status, feud_sets(name)")
+      .select("id, status, feud_sets(name), spectator_id, spectator:profiles!spectator_id(username)")
       .neq("status", "ended")
       .order("created_at", { ascending: false })
       .then(({ data }) => setActiveFeud((data as unknown as ActiveFeudSession[]) ?? []));
@@ -105,13 +107,25 @@ export default function ModDashboardPage() {
           <div className="card" style={{ marginBottom: "20px" }}>
             <h3>Family Feud in progress</h3>
             {activeFeud.map((s) => (
-              <div key={s.id} className="row-between" style={{ marginTop: "8px" }}>
-                <span>
-                  {s.feud_sets?.name} — <span className="badge badge-live">{s.status}</span>
-                </span>
-                <Link to={`/mod/feud-host/${s.id}`} className="btn btn-primary btn-sm">
-                  Go to host controls
-                </Link>
+              <div key={s.id} className="stack" style={{ marginTop: "8px" }}>
+                <div className="row-between">
+                  <span>
+                    {s.feud_sets?.name} — <span className="badge badge-live">{s.status}</span>
+                  </span>
+                  <div className="row">
+                    <Link to={`/mod/feud-spectate/${s.id}`} className="btn btn-secondary btn-sm">
+                      👀 Watch as spectator
+                    </Link>
+                    <Link to={`/mod/feud-host/${s.id}`} className="btn btn-primary btn-sm">
+                      Go to host controls
+                    </Link>
+                  </div>
+                </div>
+                {s.spectator && (
+                  <p className="hint" style={{ margin: 0 }}>
+                    Currently being spectated by <strong>{s.spectator.username}</strong>
+                  </p>
+                )}
               </div>
             ))}
           </div>

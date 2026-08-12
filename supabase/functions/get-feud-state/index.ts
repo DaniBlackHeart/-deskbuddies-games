@@ -134,6 +134,8 @@ Deno.serve(async (req) => {
         fastmoney_player1_id: session.fastmoney_player1_id,
         fastmoney_player2_id: session.fastmoney_player2_id,
         fastmoney_total_points: session.fastmoney_total_points,
+        fastmoney_p1_deadline_ms: session.fastmoney_p1_deadline ? new Date(session.fastmoney_p1_deadline).getTime() : null,
+        fastmoney_p2_deadline_ms: session.fastmoney_p2_deadline ? new Date(session.fastmoney_p2_deadline).getTime() : null,
       },
       my_team: myParticipant?.team ?? null,
       roster_a: rosterA ?? [],

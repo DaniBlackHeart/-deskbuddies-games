@@ -173,6 +173,7 @@ export type FeudSession = {
   fastmoney_player2_id: string | null;
   fastmoney_total_points: number;
   fastmoney_revealed_indices: number[];
+  spectator_id: string | null;
   join_code: string;
   created_at: string;
   started_at: string | null;
