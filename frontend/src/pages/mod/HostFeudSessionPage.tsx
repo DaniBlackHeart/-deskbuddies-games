@@ -36,6 +36,16 @@ type RevealedFm = {
   round_points: number;
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  lobby: "Not started yet",
+  live: "Live",
+  main_ended: "Main game over — set up Fast Money below",
+  fastmoney_setup: "Fast Money — ready to start",
+  fastmoney_p1: "Fast Money — Player 1 answering",
+  fastmoney_p2: "Fast Money — Player 2 answering",
+  fastmoney_reveal: "Fast Money — revealing answers",
+};
+
 export default function HostFeudSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
@@ -189,7 +199,7 @@ export default function HostFeudSessionPage() {
 
         {session.status !== "ended" && (
           <div className="row-between" style={{ margin: "12px 0" }}>
-            <span className="hint">{session.status === "lobby" ? "Not started yet" : `Status: ${session.status}`}</span>
+            <span className="hint">{STATUS_LABELS[session.status] ?? session.status}</span>
             <button className="btn btn-danger btn-sm" disabled={busy} onClick={handleEndSession}>
               {session.status === "lobby" ? "Cancel session" : "End session"}
             </button>
