@@ -24,6 +24,12 @@ export default function DashboardPage() {
             description="Live-hosted trivia with a mix of multiple choice and typed answers."
           />
           <GameCard
+            to="/feud/lobby"
+            emoji="🎙️"
+            title="Family Feud"
+            description="Face-off, steal the board, and go for the Fast Money grand prize."
+          />
+          <GameCard
             to="#"
             emoji="✨"
             title="More games soon"

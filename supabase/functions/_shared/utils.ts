@@ -108,6 +108,100 @@ export function typedAnswerMatches(submitted: string, accepted: string[]): boole
   return accepted.some((a) => normalizeAnswer(a) === normalizedSubmitted);
 }
 
+// --- Cross-game session exclusivity ---
+
+/**
+ * Atomically claims the single global "a session is running" lock, so at
+ * most one session — of ANY game — can be live at a time. Call this before
+ * creating a new session row; if it returns non-null, stop and return that
+ * response instead of creating the session.
+ */
+export async function claimSessionLock(
+  admin: ReturnType<typeof getAdminClient>,
+  opts: { game: string; sessionId: string; hostId: string }
+): Promise<Response | null> {
+  const { error } = await admin
+    .from("active_session_lock")
+    .insert({ lock_key: true, game: opts.game, session_id: opts.sessionId, host_id: opts.hostId });
+
+  if (!error) return null;
+
+  const { data: existing } = await admin.from("active_session_lock").select("game").maybeSingle();
+  return jsonResponse(
+    { error: `A ${existing?.game ?? "different"} session is already running. End it before starting a new one.` },
+    409
+  );
+}
+
+/** Releases the global session lock. Safe to call even if it's already gone. */
+export async function releaseSessionLock(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
+  await admin.from("active_session_lock").delete().eq("session_id", sessionId);
+}
+
+/**
+ * Force-clears the global session lock regardless of who holds it or what
+ * session it points to — the "it crashed / somebody forgot to end it"
+ * escape hatch, same reasoning as trivia-host's release_spectator (any mod
+ * can release it, not just whoever holds it, so it can't get permanently
+ * stuck). Returns the cleared row, if any, so the caller can tell the mod
+ * what just got released.
+ */
+export async function forceReleaseSessionLock(admin: ReturnType<typeof getAdminClient>) {
+  const { data } = await admin
+    .from("active_session_lock")
+    .delete()
+    .eq("lock_key", true)
+    .select()
+    .maybeSingle();
+  return data as { game: string; session_id: string; host_id: string; started_at: string } | null;
+}
+
+// --- Family Feud helpers ---
+
+export type FeudAnswer = { text: string; points: number; alt_answers?: string[] };
+
+/**
+ * Checks a submitted guess against a board's ranked answer list and returns
+ * the matched index, or null if it's not on the board. Skips indices already
+ * in `excludeIndices` (already-revealed or already-guessed slots) — repeating
+ * a used answer isn't a valid guess, same as the real show.
+ * Matches against both the answer's main text and any `alt_answers` a MOD
+ * pre-registered, using the same normalization as trivia's typed matching.
+ */
+export function matchFeudAnswer(
+  submitted: string,
+  answers: FeudAnswer[],
+  excludeIndices: number[] = []
+): number | null {
+  const normalizedSubmitted = normalizeAnswer(submitted);
+  if (!normalizedSubmitted) return null;
+  const excluded = new Set(excludeIndices);
+
+  for (let i = 0; i < answers.length; i++) {
+    if (excluded.has(i)) continue;
+    const candidates = [answers[i].text, ...(answers[i].alt_answers ?? [])];
+    if (candidates.some((c) => normalizeAnswer(c) === normalizedSubmitted)) {
+      return i;
+    }
+  }
+  return null;
+}
+
+/** Ranks answer indices ascending by points (least valuable first) — used for the facilitator's "lost the face-off" reveal. */
+export function feudReveaLeastToMostIndices(answers: FeudAnswer[]): number[] {
+  return answers
+    .map((_, i) => i)
+    .sort((a, b) => answers[a].points - answers[b].points);
+}
+
+/** Public-safe board shape: text/points hidden until the index is revealed. */
+export function toPublicFeudAnswers(answers: FeudAnswer[], revealedIndices: number[]) {
+  const revealed = new Set(revealedIndices);
+  return answers.map((a, i) =>
+    revealed.has(i) ? { text: a.text, points: a.points, revealed: true } : { revealed: false }
+  );
+}
+
 /** Builds a Discord CDN avatar URL, falling back to Discord's default embed avatar. */
 export function discordAvatarUrl(discordId: string, avatarHash: string | null, discriminator = "0") {
   if (avatarHash) {

@@ -7,11 +7,16 @@ import NotAMemberPage from "./pages/NotAMemberPage";
 import DashboardPage from "./pages/DashboardPage";
 import TriviaLobbyPage from "./pages/trivia/TriviaLobbyPage";
 import TriviaPlayPage from "./pages/trivia/TriviaPlayPage";
+import FeudLobbyPage from "./pages/feud/FeudLobbyPage";
+import FeudPlayPage from "./pages/feud/FeudPlayPage";
 import ModDashboardPage from "./pages/mod/ModDashboardPage";
 import QuestionSetsPage from "./pages/mod/QuestionSetsPage";
 import QuestionSetEditorPage from "./pages/mod/QuestionSetEditorPage";
 import HostSessionPage from "./pages/mod/HostSessionPage";
 import SpectatorPage from "./pages/mod/SpectatorPage";
+import FeudSetsPage from "./pages/mod/FeudSetsPage";
+import FeudSetEditorPage from "./pages/mod/FeudSetEditorPage";
+import HostFeudSessionPage from "./pages/mod/HostFeudSessionPage";
 
 export default function App() {
   return (
@@ -42,6 +47,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <TriviaPlayPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/feud/lobby"
+            element={
+              <ProtectedRoute>
+                <FeudLobbyPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/feud/play/:sessionId"
+            element={
+              <ProtectedRoute>
+                <FeudPlayPage />
               </ProtectedRoute>
             }
           />
@@ -83,6 +104,30 @@ export default function App() {
             element={
               <ModRoute>
                 <SpectatorPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/feud-sets"
+            element={
+              <ModRoute>
+                <FeudSetsPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/feud-sets/:setId"
+            element={
+              <ModRoute>
+                <FeudSetEditorPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/feud-host/:sessionId"
+            element={
+              <ModRoute>
+                <HostFeudSessionPage />
               </ModRoute>
             }
           />

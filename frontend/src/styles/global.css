@@ -285,3 +285,210 @@ button {
   background: var(--color-border);
   border-radius: var(--radius-pill);
 }
+
+/* ===========================================================
+   Family Feud — game-show flavor, built on the same tokens
+   (terracotta/sage/cream) so it still feels like DeskBuddies
+   Games, just turned up: big scoreboard, flip-reveal board,
+   a buzzer you can't miss.
+   =========================================================== */
+
+.feud-scoreboard {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+.feud-scoreboard__team {
+  flex: 1;
+  background: var(--color-surface-raised);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.feud-scoreboard__team--active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+.feud-scoreboard__name {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+}
+.feud-scoreboard__score {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 2.4rem;
+  line-height: 1;
+}
+.feud-scoreboard__vs {
+  align-self: center;
+  font-weight: 800;
+  color: var(--color-text-faint);
+  font-size: 0.85rem;
+}
+
+.feud-board {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+@media (min-width: 480px) {
+  .feud-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.feud-cell {
+  background: var(--color-text);
+  color: var(--color-text-on-primary);
+  border-radius: var(--radius-md);
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.25s ease, transform 0.2s ease;
+}
+.feud-cell__number {
+  width: 100%;
+  text-align: center;
+  color: var(--color-text-faint);
+  font-family: var(--font-heading);
+}
+.feud-cell--revealed {
+  background: var(--color-primary);
+  animation: feud-flip 0.35s ease;
+}
+.feud-cell__text {
+  text-align: left;
+  flex: 1;
+}
+.feud-cell__points {
+  background: var(--color-warning);
+  color: var(--color-text);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  font-size: 0.85rem;
+  margin-left: var(--space-2);
+}
+@keyframes feud-flip {
+  from {
+    transform: rotateX(90deg);
+    opacity: 0.3;
+  }
+  to {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+.feud-pot {
+  display: inline-block;
+  background: var(--color-warning-soft);
+  color: var(--color-text);
+  font-weight: 800;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+}
+
+.feud-strikes {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+  margin: var(--space-3) 0;
+}
+.feud-strike {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.3rem;
+  background: var(--color-bg-alt);
+  color: var(--color-text-faint);
+  border: 2px solid var(--color-border);
+}
+.feud-strike--hit {
+  background: var(--color-danger);
+  color: #fff;
+  border-color: var(--color-danger);
+  animation: feud-strike-pop 0.3s ease;
+}
+@keyframes feud-strike-pop {
+  0% {
+    transform: scale(1.6);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.buzzer-btn {
+  display: block;
+  width: 100%;
+  max-width: 260px;
+  aspect-ratio: 1;
+  margin: var(--space-5) auto;
+  border-radius: 50%;
+  border: none;
+  background: radial-gradient(circle at 35% 30%, var(--color-danger) 0%, #a8402f 100%);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.6rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: 0 8px 0 #8a3225, var(--shadow-lg);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  animation: feud-buzzer-pulse 1.6s ease-in-out infinite;
+}
+.buzzer-btn:active:not(:disabled) {
+  transform: translateY(6px);
+  box-shadow: 0 2px 0 #8a3225, var(--shadow-sm);
+}
+.buzzer-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  animation: none;
+  box-shadow: 0 8px 0 var(--color-border);
+  background: var(--color-text-faint);
+}
+@keyframes feud-buzzer-pulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 0 #8a3225, var(--shadow-lg);
+  }
+  50% {
+    box-shadow: 0 8px 0 #8a3225, var(--shadow-lg), 0 0 0 12px rgba(194, 89, 74, 0.15);
+  }
+}
+
+.feud-huddle {
+  background: var(--color-secondary-soft);
+  border: 2px dashed var(--color-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  text-align: center;
+}
+
+.feud-reveal-flash {
+  animation: feud-reveal-flash 0.6s ease;
+}
+@keyframes feud-reveal-flash {
+  0% {
+    background: var(--color-warning-soft);
+  }
+  100% {
+    background: transparent;
+  }
+}

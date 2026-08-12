@@ -14,6 +14,9 @@ import {
   computeLeaderboard,
   resolveWrongPenalty,
   resolveTimeoutPenalty,
+  claimSessionLock,
+  releaseSessionLock,
+  forceReleaseSessionLock,
 } from "../_shared/utils.ts";
 
 function randomJoinCode() {
@@ -59,20 +62,6 @@ Deno.serve(async (req) => {
         const { question_set_id, mode } = body;
         const resolvedMode = mode === "hard" ? "hard" : "chill";
 
-        const { data: existingActive } = await admin
-          .from("trivia_sessions")
-          .select("id")
-          .in("status", ["lobby", "live", "grading"])
-          .limit(1)
-          .maybeSingle();
-
-        if (existingActive) {
-          return jsonResponse(
-            { error: "A session is already running. End it before starting a new one." },
-            409
-          );
-        }
-
         const { count } = await admin
           .from("questions")
           .select("id", { count: "exact", head: true })
@@ -81,6 +70,12 @@ Deno.serve(async (req) => {
         if (!count || count === 0) {
           return jsonResponse({ error: "This question set has no questions yet" }, 400);
         }
+
+        // Pre-generate the id so the lock (which must exist first, to keep
+        // the claim atomic) can reference the session before it's created.
+        const sessionId = crypto.randomUUID();
+        const lockError = await claimSessionLock(admin, { game: "trivia", sessionId, hostId: user.id });
+        if (lockError) return lockError;
 
         let joinCode = randomJoinCode();
         for (let i = 0; i < 5; i++) {
@@ -96,6 +91,7 @@ Deno.serve(async (req) => {
         const { data: session, error } = await admin
           .from("trivia_sessions")
           .insert({
+            id: sessionId,
             question_set_id,
             host_id: user.id,
             status: "lobby",
@@ -106,7 +102,10 @@ Deno.serve(async (req) => {
           .select()
           .single();
 
-        if (error) return jsonResponse({ error: "Could not create session" }, 500);
+        if (error) {
+          await releaseSessionLock(admin, sessionId); // don't strand the lock if session creation failed
+          return jsonResponse({ error: "Could not create session" }, 500);
+        }
         return jsonResponse({ session });
       }
 
@@ -313,6 +312,7 @@ Deno.serve(async (req) => {
           .from("trivia_sessions")
           .update({ status: "ended", ended_at: new Date().toISOString(), spectator_id: null })
           .eq("id", session_id);
+        await releaseSessionLock(admin, session_id);
 
         const leaderboard = await computeLeaderboard(admin, session_id);
         await broadcast(admin, session_id, "session_ended", { leaderboard });
@@ -371,6 +371,16 @@ Deno.serve(async (req) => {
         // watching" (e.g. closes their laptop mid-stream).
         await admin.from("trivia_sessions").update({ spectator_id: null }).eq("id", session_id);
         return jsonResponse({ ok: true });
+      }
+
+      case "force_release_lock": {
+        // Same reasoning as release_spectator above, but for the cross-game
+        // "only one session anywhere" lock: if a session ended abnormally
+        // (crash, dropped connection) between marking itself ended and
+        // releasing the lock, nothing else can start until this runs. Any
+        // mod can call it, not just whoever was hosting.
+        const released = await forceReleaseSessionLock(admin);
+        return jsonResponse({ ok: true, released });
       }
 
       default:

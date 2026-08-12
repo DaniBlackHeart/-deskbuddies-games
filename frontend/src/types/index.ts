@@ -112,3 +112,140 @@ export type SessionEvent =
       is_correct: boolean;
       points_awarded: number;
     };
+
+// =========================================================
+// Family Feud
+// Keep in sync with supabase/migrations/0007_feud_game.sql
+// =========================================================
+
+export type FeudAnswer = { text: string; points: number; alt_answers?: string[] };
+
+export type FeudSet = {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  round_count?: number;
+  fastmoney_count?: number;
+};
+
+export type FeudRoundQuestion = {
+  id: string;
+  feud_set_id: string;
+  order_index: number;
+  prompt: string;
+  answers: FeudAnswer[];
+};
+
+export type FeudFastMoneyQuestion = {
+  id: string;
+  feud_set_id: string;
+  order_index: number; // 0-4
+  prompt: string;
+  answers: FeudAnswer[];
+};
+
+export type Team = "A" | "B";
+
+export type FeudSessionStatus =
+  | "lobby"
+  | "live"
+  | "main_ended"
+  | "fastmoney_setup"
+  | "fastmoney_p1"
+  | "fastmoney_p2"
+  | "fastmoney_reveal"
+  | "ended";
+
+export type FeudSession = {
+  id: string;
+  feud_set_id: string;
+  host_id: string;
+  status: FeudSessionStatus;
+  team_a_name: string;
+  team_b_name: string;
+  team_a_score: number;
+  team_b_score: number;
+  current_round_index: number;
+  fastmoney_team: Team | null;
+  fastmoney_player1_id: string | null;
+  fastmoney_player2_id: string | null;
+  fastmoney_total_points: number;
+  fastmoney_revealed_indices: number[];
+  join_code: string;
+  created_at: string;
+  started_at: string | null;
+  ended_at: string | null;
+};
+
+export type FeudParticipant = {
+  user_id: string;
+  line_position: number;
+  team?: Team;
+  profiles: { username: string; avatar_url: string | null } | null;
+};
+
+export type FeudRoundStatus = "faceoff" | "faceoff_decision" | "board" | "steal" | "lost_reveal" | "complete";
+
+// Public-safe board slot — text/points only present once revealed.
+export type PublicBoardSlot = { revealed: false } | { revealed: true; text: string; points: number };
+
+export type PublicFeudRound = {
+  round_index: number;
+  status: FeudRoundStatus;
+  prompt: string;
+  board: PublicBoardSlot[];
+  total_answers: number;
+  pair_index: number;
+  face_off_active_a_user_id: string | null;
+  face_off_active_b_user_id: string | null;
+  face_off_buzz_user_id: string | null;
+  face_off_singleton_user_id: string | null;
+  face_off_deadline_ms: number | null;
+  face_off_decision_user_id: string | null;
+  controlling_team: Team | null;
+  opposing_team: Team | null;
+  current_turn_user_id: string | null;
+  current_turn_deadline_ms: number | null;
+  strikes: number;
+  points_pot: number;
+  reveal_count: number;
+  outcome: "cleared" | "stolen" | "defended" | "lost_no_control" | null;
+  awarded_to_team: Team | null;
+};
+
+// --- Realtime broadcast payload shapes (feud-session-{id} channel) ---
+
+export type FeudSessionEvent =
+  | { type: "game_started" }
+  | { type: "round_started"; round_index: number; prompt: string; answer_count: number; active_a: { user_id: string; username: string }; active_b: { user_id: string; username: string } }
+  | { type: "buzz_locked"; winner_user_id: string; deadline_ms: number }
+  | { type: "faceoff_correct"; user_id: string; team: Team; index: number; text: string; points: number }
+  | { type: "faceoff_miss"; missed_user_id: string; next_user_id: string; deadline_ms: number }
+  | { type: "faceoff_next_pair"; pair_index: number; active_a: { user_id: string; username: string }; active_b: { user_id: string; username: string } }
+  | { type: "faceoff_all_missed" }
+  | { type: "board_started"; controlling_team: Team; current_turn_user_id: string; deadline_ms: number }
+  | { type: "board_correct"; index: number; text: string; points: number; points_pot: number; next_turn_user_id: string; deadline_ms: number }
+  | { type: "board_strike"; strikes: number; next_turn_user_id: string; deadline_ms: number }
+  | { type: "board_cleared"; index: number; text: string; points: number; points_pot: number; awarded_to_team: Team }
+  | { type: "steal_started"; opposing_team: Team; points_pot: number; deadline_ms: number }
+  | { type: "round_complete"; outcome: "stolen" | "defended"; awarded_to_team: Team; points_pot: number; full_board: { text: string; points: number }[] }
+  | { type: "lost_reveal_answer"; index: number; text: string; points: number; revealed_count: number; total: number; done: boolean }
+  | { type: "main_game_ended"; team_a_score: number; team_b_score: number }
+  | { type: "fastmoney_setup"; team: Team; player1: { user_id: string; username: string }; player2: { user_id: string; username: string } }
+  | { type: "fastmoney_player_started"; player_slot: 1 | 2; deadline_ms: number }
+  | { type: "fastmoney_reveal_ready" }
+  | {
+      type: "fastmoney_answer_revealed";
+      question_index: number;
+      prompt: string;
+      player1_answer: string | null;
+      player1_points: number;
+      player2_answer: string | null;
+      player2_points: number;
+      round_points: number;
+      running_total: number;
+      revealed_count: number;
+    }
+  | { type: "session_ended"; team_a_score: number; team_b_score: number; fastmoney_team: Team | null; fastmoney_total_points: number; won_grand_prize: boolean | null };
