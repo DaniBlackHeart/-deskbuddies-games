@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import QuestionImportModal from "../../components/QuestionImportModal";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { ParsedQuestion } from "../../utils/questionParser";
 import type { Question, QuestionSet, QuestionType } from "../../types";
 
@@ -150,12 +150,14 @@ export default function QuestionSetEditorPage() {
   async function handleStartSession() {
     if (questions.length === 0) return;
     setLaunching(true);
-    const { data, error } = await supabase.functions.invoke("trivia-host", {
-      body: { action: "create_session", question_set_id: setId, mode: sessionMode },
+    const { data, error } = await invokeFunction("trivia-host", {
+      action: "create_session",
+      question_set_id: setId,
+      mode: sessionMode,
     });
     setLaunching(false);
-    if (error || data?.error) {
-      alert(data?.error ?? "Could not create a session.");
+    if (error) {
+      alert(error);
       return;
     }
     navigate(`/mod/host/${data.session.id}`);

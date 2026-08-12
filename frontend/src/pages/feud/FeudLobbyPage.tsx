@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import type { FeudParticipant, FeudSession, Team } from "../../types";
 
@@ -71,12 +71,10 @@ export default function FeudLobbyPage() {
   async function handleJoinTeam(team: Team) {
     if (!session) return;
     setBusy(true);
-    const { data, error } = await supabase.functions.invoke("feud-play", {
-      body: { action: "join_team", session_id: session.id, team },
-    });
+    const { error } = await invokeFunction("feud-play", { action: "join_team", session_id: session.id, team });
     setBusy(false);
-    if (error || data?.error) {
-      alert(data?.error ?? "Could not join that team.");
+    if (error) {
+      alert(error);
     }
   }
 

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import Leaderboard from "../../components/Leaderboard";
 import Timer from "../../components/Timer";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { Answer, LeaderboardEntry, Question, TriviaSession } from "../../types";
 
 type PendingAnswer = Answer & { profiles: { username: string } | null; questions: { prompt: string; order_index: number } | null };
@@ -137,12 +137,10 @@ export default function HostSessionPage() {
 
   async function callHost(action: string, extra: Record<string, unknown> = {}) {
     setBusy(true);
-    const { data, error } = await supabase.functions.invoke("trivia-host", {
-      body: { action, session_id: sessionId, ...extra },
-    });
+    const { data, error } = await invokeFunction("trivia-host", { action, session_id: sessionId, ...extra });
     setBusy(false);
-    if (error || data?.error) {
-      alert(data?.error ?? "Something went wrong.");
+    if (error) {
+      alert(error);
       return null;
     }
     return data;

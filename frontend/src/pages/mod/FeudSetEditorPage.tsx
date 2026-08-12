@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { FeudAnswer, FeudFastMoneyQuestion, FeudRoundQuestion, FeudSet } from "../../types";
 
 type AnswerDraft = { text: string; points: number; alt: string };
@@ -210,12 +210,10 @@ export default function FeudSetEditorPage() {
   async function handleStartSession() {
     if (roundQuestions.length === 0) return;
     setLaunching(true);
-    const { data, error } = await supabase.functions.invoke("feud-host", {
-      body: { action: "create_session", feud_set_id: setId },
-    });
+    const { data, error } = await invokeFunction("feud-host", { action: "create_session", feud_set_id: setId });
     setLaunching(false);
-    if (error || data?.error) {
-      alert(data?.error ?? "Could not create a session.");
+    if (error) {
+      alert(error);
       return;
     }
     navigate(`/mod/feud-host/${data.session.id}`);

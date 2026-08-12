@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import TeamScoreboard from "../../components/TeamScoreboard";
 import Timer from "../../components/Timer";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { FeudAnswer, FeudFastMoneyQuestion, FeudParticipant, FeudRoundQuestion, FeudSession, Team } from "../../types";
 
 type RoundRow = {
@@ -135,10 +135,11 @@ export default function HostFeudSessionPage() {
 
   async function callHost(action: string, extra: Record<string, unknown> = {}) {
     setBusy(true);
-    const { data, error } = await supabase.functions.invoke("feud-host", { body: { action, session_id: sessionId, ...extra } });
+    const { data, error } = await invokeFunction("feud-host", { action, session_id: sessionId, ...extra });
     setBusy(false);
-    if (error || data?.error) {
-      alert(data?.error ?? "Something went wrong.");
+    if (error) {
+      alert(error);
+      return null;
     }
     return data;
   }

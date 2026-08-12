@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase, invokeFunction } from "../../lib/supabaseClient";
 
 type ActiveSession = {
   id: string;
@@ -52,12 +52,10 @@ export default function ModDashboardPage() {
     }
     setClearingLock(true);
     setLockResult(null);
-    const { data, error } = await supabase.functions.invoke("trivia-host", {
-      body: { action: "force_release_lock" },
-    });
+    const { data, error } = await invokeFunction("trivia-host", { action: "force_release_lock" });
     setClearingLock(false);
-    if (error || data?.error) {
-      setLockResult(data?.error ?? "Could not clear the lock.");
+    if (error) {
+      setLockResult(error);
       return;
     }
     setLockResult(
