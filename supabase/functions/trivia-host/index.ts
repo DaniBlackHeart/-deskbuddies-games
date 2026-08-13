@@ -67,7 +67,8 @@ Deno.serve(async (req) => {
         const { count } = await admin
           .from("questions")
           .select("id", { count: "exact", head: true })
-          .eq("question_set_id", question_set_id);
+          .eq("question_set_id", question_set_id)
+          .is("archived_at", null);
 
         if (!count || count === 0) {
           return jsonResponse({ error: "This question set has no questions yet" }, 400);
@@ -150,6 +151,7 @@ Deno.serve(async (req) => {
           .from("questions")
           .select("*")
           .eq("question_set_id", session.question_set_id)
+          .is("archived_at", null)
           .order("order_index", { ascending: true });
 
         const nextIndex = session.current_question_index + 1;
@@ -197,6 +199,7 @@ Deno.serve(async (req) => {
           .select("*")
           .eq("question_set_id", session.question_set_id)
           .eq("order_index", session.current_question_index)
+          .is("archived_at", null)
           .single();
 
         await admin.from("trivia_sessions").update({ status: "grading" }).eq("id", session_id);

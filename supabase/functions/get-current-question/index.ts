@@ -60,12 +60,14 @@ Deno.serve(async (req) => {
       .select("id, type, prompt, choices, points, penalty_points, time_limit_seconds, order_index")
       .eq("question_set_id", session.question_set_id)
       .eq("order_index", session.current_question_index)
+      .is("archived_at", null)
       .single();
 
     const { count: totalQuestions } = await admin
       .from("questions")
       .select("id", { count: "exact", head: true })
-      .eq("question_set_id", session.question_set_id);
+      .eq("question_set_id", session.question_set_id)
+      .is("archived_at", null);
 
     const { data: existingAnswer } = await admin
       .from("answers")

@@ -92,6 +92,7 @@ export default function HostSessionPage() {
         .from("questions")
         .select("*")
         .eq("question_set_id", sessionData.question_set_id)
+        .is("archived_at", null)
         .order("order_index", { ascending: true });
       setQuestions(qs ?? []);
     }

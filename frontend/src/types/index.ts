@@ -19,6 +19,7 @@ export type QuestionSet = {
   description: string | null;
   created_by: string;
   created_at: string;
+  archived_at: string | null;
   question_count?: number;
 };
 
@@ -34,6 +35,7 @@ export type Question = {
   points: number;
   penalty_points: number | null; // deduction if wrong; null = half of points, rounded
   time_limit_seconds: number;
+  archived_at: string | null;
 };
 
 // Public-safe question shape sent to players during a live question —

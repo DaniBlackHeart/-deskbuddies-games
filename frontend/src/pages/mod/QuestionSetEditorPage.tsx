@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import QuestionImportModal from "../../components/QuestionImportModal";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
+import { deleteQuestion, restoreQuestion } from "../../lib/archiveOrDelete";
 import type { ParsedQuestion } from "../../utils/questionParser";
 import type { Question, QuestionSet, QuestionType } from "../../types";
 
@@ -23,6 +24,8 @@ export default function QuestionSetEditorPage() {
 
   const [set, setSet] = useState<QuestionSet | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [archivedQuestions, setArchivedQuestions] = useState<Question[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showManualForm, setShowManualForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -31,6 +34,8 @@ export default function QuestionSetEditorPage() {
   const [launching, setLaunching] = useState(false);
   const [sessionMode, setSessionMode] = useState<"chill" | "hard">("chill");
   const [formError, setFormError] = useState<string | null>(null);
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -43,7 +48,8 @@ export default function QuestionSetEditorPage() {
         .order("order_index", { ascending: true }),
     ]);
     setSet(setData);
-    setQuestions(questionsData ?? []);
+    setQuestions((questionsData ?? []).filter((q) => !q.archived_at));
+    setArchivedQuestions((questionsData ?? []).filter((q) => q.archived_at));
     setLoading(false);
   }
 
@@ -143,7 +149,29 @@ export default function QuestionSetEditorPage() {
 
   async function handleDelete(questionId: string) {
     if (!confirm("Delete this question?")) return;
-    await supabase.from("questions").delete().eq("id", questionId);
+    if (!setId) return;
+
+    setDeleteBusyId(questionId);
+    const result = await deleteQuestion({ id: questionId, question_set_id: setId });
+    setDeleteBusyId(null);
+
+    if (result.outcome === "error" || result.outcome === "blocked") {
+      setDeleteMessage(result.message);
+    } else if (result.outcome === "archived") {
+      setDeleteMessage(
+        "That question has already been answered in a past session, so it's been archived instead of deleted — past scores are still safe. You can restore it from \"Show archived\" below."
+      );
+    } else {
+      setDeleteMessage(null);
+    }
+    loadData();
+  }
+
+  async function handleRestore(questionId: string) {
+    if (!setId) return;
+    setDeleteBusyId(questionId);
+    await restoreQuestion({ id: questionId, question_set_id: setId });
+    setDeleteBusyId(null);
     loadData();
   }
 
@@ -355,6 +383,14 @@ export default function QuestionSetEditorPage() {
           </div>
         )}
 
+        {deleteMessage && (
+          <div className="card card--tight" style={{ marginBottom: "16px" }}>
+            <p className="hint" style={{ margin: 0 }}>
+              {deleteMessage}
+            </p>
+          </div>
+        )}
+
         <div className="stack">
           {questions.map((q, i) => (
             <div key={q.id} className="card card--tight">
@@ -366,8 +402,12 @@ export default function QuestionSetEditorPage() {
                   <span className="badge badge-neutral">
                     {q.type === "multiple_choice" ? "Multiple choice" : "Typed"}
                   </span>
-                  <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(q.id)}>
-                    Delete
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    disabled={deleteBusyId === q.id}
+                    onClick={() => handleDelete(q.id)}
+                  >
+                    {deleteBusyId === q.id ? <span className="spinner" /> : "Delete"}
                   </button>
                 </div>
               </div>
@@ -386,6 +426,36 @@ export default function QuestionSetEditorPage() {
             </div>
           )}
         </div>
+
+        {archivedQuestions.length > 0 && (
+          <div style={{ marginTop: "24px" }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowArchived((s) => !s)}>
+              {showArchived ? "Hide" : "Show"} archived ({archivedQuestions.length})
+            </button>
+
+            {showArchived && (
+              <div className="stack" style={{ marginTop: "12px" }}>
+                {archivedQuestions.map((q) => (
+                  <div key={q.id} className="card card--tight" style={{ opacity: 0.7 }}>
+                    <div className="row-between">
+                      <strong>{q.prompt}</strong>
+                      <div className="row">
+                        <span className="badge badge-neutral">Archived</span>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          disabled={deleteBusyId === q.id}
+                          onClick={() => handleRestore(q.id)}
+                        >
+                          {deleteBusyId === q.id ? <span className="spinner" /> : "Restore"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {showImport && (
