@@ -351,18 +351,37 @@ export default function HostFeudSessionPage() {
   }
 
   function renderMainEnded() {
-    const roster = fmTeamChoice === "A" ? rosterA : rosterB;
+    // Fast Money is only for the team that actually won the main game — a
+    // tie is the one case where the host genuinely has to pick.
+    const winningTeam: Team | null =
+      session!.team_a_score === session!.team_b_score ? null : session!.team_a_score > session!.team_b_score ? "A" : "B";
+    const effectiveTeam: Team = winningTeam ?? fmTeamChoice;
+    const roster = effectiveTeam === "A" ? rosterA : rosterB;
+
     return (
       <div className="card">
         <h3>Pick your Fast Money team</h3>
-        <div className="row">
-          <button className={`btn btn-sm ${fmTeamChoice === "A" ? "btn-primary" : "btn-secondary"}`} onClick={() => setFmTeamChoice("A")}>
-            {session!.team_a_name} ({session!.team_a_score})
-          </button>
-          <button className={`btn btn-sm ${fmTeamChoice === "B" ? "btn-primary" : "btn-secondary"}`} onClick={() => setFmTeamChoice("B")}>
-            {session!.team_b_name} ({session!.team_b_score})
-          </button>
-        </div>
+
+        {winningTeam ? (
+          <p className="text-muted">
+            <strong>{effectiveTeam === "A" ? session!.team_a_name : session!.team_b_name}</strong> won the main game (
+            {session!.team_a_score}–{session!.team_b_score}) and plays Fast Money.
+          </p>
+        ) : (
+          <>
+            <p className="text-muted">
+              It's a tie ({session!.team_a_score}–{session!.team_b_score}) — pick which team plays Fast Money.
+            </p>
+            <div className="row">
+              <button className={`btn btn-sm ${fmTeamChoice === "A" ? "btn-primary" : "btn-secondary"}`} onClick={() => setFmTeamChoice("A")}>
+                {session!.team_a_name} ({session!.team_a_score})
+              </button>
+              <button className={`btn btn-sm ${fmTeamChoice === "B" ? "btn-primary" : "btn-secondary"}`} onClick={() => setFmTeamChoice("B")}>
+                {session!.team_b_name} ({session!.team_b_score})
+              </button>
+            </div>
+          </>
+        )}
 
         <div className="row" style={{ marginTop: "12px" }}>
           <div className="field" style={{ flex: 1 }}>
@@ -393,7 +412,7 @@ export default function HostFeudSessionPage() {
           className="btn btn-primary btn-block"
           style={{ marginTop: "12px" }}
           disabled={!fmPlayer1 || !fmPlayer2 || fmPlayer1 === fmPlayer2 || fmQuestions.length < 5 || busy}
-          onClick={() => callHost("select_fastmoney_players", { team: fmTeamChoice, player1_id: fmPlayer1, player2_id: fmPlayer2 })}
+          onClick={() => callHost("select_fastmoney_players", { team: effectiveTeam, player1_id: fmPlayer1, player2_id: fmPlayer2 })}
         >
           Set Fast Money players
         </button>

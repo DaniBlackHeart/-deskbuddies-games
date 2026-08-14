@@ -310,10 +310,19 @@ Deno.serve(async (req) => {
 
       case "select_fastmoney_players": {
         const { team, player1_id, player2_id } = body as { team: "A" | "B"; player1_id: string; player2_id: string };
-        const { data: session } = await admin.from("feud_sessions").select("status").eq("id", session_id).single();
+        const { data: session } = await admin.from("feud_sessions").select("status, team_a_score, team_b_score").eq("id", session_id).single();
         if (!session) return jsonResponse({ error: "Session not found" }, 404);
         if (session.status !== "main_ended") return jsonResponse({ error: "Pick Fast Money players after the main game ends" }, 409);
         if (player1_id === player2_id) return jsonResponse({ error: "Pick two different players" }, 400);
+
+        // Fast Money is only for the team that won the main game — a tie is
+        // the one case where either team is a valid choice.
+        if (session.team_a_score !== session.team_b_score) {
+          const winningTeam = session.team_a_score > session.team_b_score ? "A" : "B";
+          if (team !== winningTeam) {
+            return jsonResponse({ error: "Only the team that won the main game can play Fast Money" }, 400);
+          }
+        }
 
         const { data: members } = await admin
           .from("feud_participants")
