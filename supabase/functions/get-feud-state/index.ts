@@ -121,6 +121,18 @@ Deno.serve(async (req) => {
       }));
     }
 
+    // Same "was Fast Money fully revealed" check as end_session, so a
+    // reconnect after the game ended still gets the right game-over sound.
+    let completed = false;
+    if (session.status === "ended") {
+      const { count: totalFastMoneyQuestions } = await admin
+        .from("feud_fastmoney_questions")
+        .select("id", { count: "exact", head: true })
+        .eq("feud_set_id", session.feud_set_id);
+      const revealedCount = (session.fastmoney_revealed_indices ?? []).length;
+      completed = (totalFastMoneyQuestions ?? 0) > 0 && revealedCount >= (totalFastMoneyQuestions ?? 0);
+    }
+
     return jsonResponse({
       session: {
         id: session.id,
@@ -143,6 +155,7 @@ Deno.serve(async (req) => {
       round,
       fast_money: fastMoney,
       fast_money_revealed: fastMoneyRevealed,
+      completed,
     });
   } catch (err) {
     console.error("get-feud-state crashed", err);

@@ -48,7 +48,15 @@ Deno.serve(async (req) => {
     const leaderboard = await computeLeaderboard(admin, session_id);
 
     if (session.status === "ended") {
-      return jsonResponse({ status: "ended", leaderboard, mode: session.mode });
+      // Same "was the whole set actually finished" check as end_session, so
+      // a reconnect after the fact still gets the right results-screen sound.
+      const { count: totalQuestions } = await admin
+        .from("questions")
+        .select("id", { count: "exact", head: true })
+        .eq("question_set_id", session.question_set_id)
+        .is("archived_at", null);
+      const completed = (totalQuestions ?? 0) > 0 && session.current_question_index + 1 >= (totalQuestions ?? 0);
+      return jsonResponse({ status: "ended", leaderboard, mode: session.mode, completed });
     }
 
     if (session.current_question_index < 0 || !session.current_question_started_at) {

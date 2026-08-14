@@ -313,6 +313,15 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Session isn't running" }, 409);
         }
 
+        // Distinguish "the whole set was finished" from "a MOD cut it short"
+        // so the frontend can play the right sound on the results screen.
+        const { count: totalQuestions } = await admin
+          .from("questions")
+          .select("id", { count: "exact", head: true })
+          .eq("question_set_id", session.question_set_id)
+          .is("archived_at", null);
+        const completed = (totalQuestions ?? 0) > 0 && session.current_question_index + 1 >= (totalQuestions ?? 0);
+
         await admin
           .from("trivia_sessions")
           .update({ status: "ended", ended_at: new Date().toISOString(), spectator_id: null })
@@ -320,9 +329,9 @@ Deno.serve(async (req) => {
         await releaseSessionLock(admin, session_id);
 
         const leaderboard = await computeLeaderboard(admin, session_id);
-        await broadcast(admin, session_id, "session_ended", { leaderboard });
+        await broadcast(admin, session_id, "session_ended", { leaderboard, completed });
 
-        return jsonResponse({ leaderboard });
+        return jsonResponse({ leaderboard, completed });
       }
 
       case "claim_spectator": {
