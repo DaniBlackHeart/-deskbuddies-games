@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { sounds } from "../lib/sounds";
 
 type BuzzerProps = {
   onBuzz: () => Promise<void> | void;
@@ -18,6 +19,7 @@ export default function Buzzer({ onBuzz, disabled, label = "BUZZ IN" }: BuzzerPr
   async function handlePress() {
     if (disabled || pressed) return;
     setPressed(true);
+    sounds.buzzer(); // play immediately — don't wait on the network round-trip
     await onBuzz();
   }
 

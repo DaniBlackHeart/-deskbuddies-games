@@ -8,6 +8,7 @@ import TeamScoreboard from "../../components/TeamScoreboard";
 import TypedAnswerBox from "../../components/TypedAnswerBox";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
+import { sounds } from "../../lib/sounds";
 import type { FeudParticipant, FeudSessionEvent, PublicFeudRound, Team } from "../../types";
 
 type FastMoneyRevealedEntry = {
@@ -91,31 +92,45 @@ export default function FeudPlayPage() {
         showFlash(`Round ${payload.round_index + 1} — face-off!`);
         hydrate();
       })
-      .on("broadcast", { event: "buzz_locked" }, () => hydrate())
+      .on("broadcast", { event: "buzz_locked" }, ({ payload }: { payload: FeudSessionEvent & { type: "buzz_locked" } }) => {
+        // Skip for whoever actually pressed — Buzzer.tsx already played the
+        // sound for them the instant they tapped, with zero network delay.
+        if (payload.winner_user_id !== profile?.id) sounds.buzzer();
+        hydrate();
+      })
       .on("broadcast", { event: "faceoff_correct" }, ({ payload }: { payload: FeudSessionEvent & { type: "faceoff_correct" } }) => {
         showFlash(`✅ "${payload.text}" — ${payload.points} pts!`);
+        sounds.correct();
+        sounds.boardReveal();
         hydrate();
       })
       .on("broadcast", { event: "faceoff_miss" }, () => {
         showFlash("❌ Not on the board!");
+        sounds.wrong();
         hydrate();
       })
       .on("broadcast", { event: "faceoff_next_pair" }, () => hydrate())
       .on("broadcast", { event: "faceoff_all_missed" }, () => {
         showFlash("😬 Nobody took control!");
+        sounds.wrong();
         hydrate();
       })
       .on("broadcast", { event: "board_started" }, () => hydrate())
       .on("broadcast", { event: "board_correct" }, ({ payload }: { payload: FeudSessionEvent & { type: "board_correct" } }) => {
         showFlash(`✅ "${payload.text}" — ${payload.points} pts!`);
+        sounds.correct();
+        sounds.boardReveal();
         hydrate();
       })
       .on("broadcast", { event: "board_strike" }, () => {
         showFlash("❌ STRIKE!");
+        sounds.wrong();
         hydrate();
       })
       .on("broadcast", { event: "board_cleared" }, () => {
         showFlash("🎉 Board cleared!");
+        sounds.correct();
+        sounds.boardReveal();
         hydrate();
       })
       .on("broadcast", { event: "steal_started" }, () => {
@@ -125,14 +140,23 @@ export default function FeudPlayPage() {
       })
       .on("broadcast", { event: "round_complete" }, ({ payload }: { payload: FeudSessionEvent & { type: "round_complete" } }) => {
         showFlash(payload.outcome === "stolen" ? "🕵️ Stolen!" : "🛡️ Defended!");
+        if (payload.outcome === "stolen") sounds.correct();
+        else sounds.wrong();
+        sounds.boardReveal();
         hydrate();
       })
-      .on("broadcast", { event: "lost_reveal_answer" }, () => hydrate())
+      .on("broadcast", { event: "lost_reveal_answer" }, () => {
+        sounds.boardReveal();
+        hydrate();
+      })
       .on("broadcast", { event: "main_game_ended" }, () => hydrate())
       .on("broadcast", { event: "fastmoney_setup" }, () => hydrate())
       .on("broadcast", { event: "fastmoney_player_started" }, () => hydrate())
       .on("broadcast", { event: "fastmoney_reveal_ready" }, () => hydrate())
-      .on("broadcast", { event: "fastmoney_answer_revealed" }, () => hydrate())
+      .on("broadcast", { event: "fastmoney_answer_revealed" }, () => {
+        sounds.boardReveal();
+        hydrate();
+      })
       .on("broadcast", { event: "game_started" }, () => hydrate())
       .on("broadcast", { event: "session_ended" }, () => hydrate())
       .subscribe();
@@ -140,7 +164,7 @@ export default function FeudPlayPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [sessionId, hydrate, showFlash]);
+  }, [sessionId, hydrate, showFlash, profile?.id]);
 
   // Huddle chat — ephemeral, client-to-client broadcast only (nothing persisted,
   // nothing scored). Scoped per round so it clears itself out naturally.
@@ -157,6 +181,21 @@ export default function FeudPlayPage() {
       supabase.removeChannel(channel);
     };
   }, [sessionId, state?.round?.status, state?.round?.round_index]);
+
+  // Winner/loser sound when the game ends — once per session, based on
+  // whether my_team matches the team with the higher main-game score. A tie
+  // gets neither (there's no clear outcome to react to).
+  const playedEndSoundRef = useRef(false);
+  useEffect(() => {
+    if (!state || playedEndSoundRef.current) return;
+    if (state.session.status !== "ended" || !state.my_team) return;
+    const { team_a_score, team_b_score } = state.session;
+    if (team_a_score === team_b_score) return;
+    playedEndSoundRef.current = true;
+    const winningTeam: Team = team_a_score > team_b_score ? "A" : "B";
+    if (state.my_team === winningTeam) sounds.winner();
+    else sounds.loser();
+  }, [state]);
 
   function sendHuddleMessage() {
     if (!huddleInput.trim() || !sessionId || !state?.round) return;

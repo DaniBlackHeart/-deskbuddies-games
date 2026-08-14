@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { sounds } from "../lib/sounds";
 
 type TimerProps = {
   deadline: number; // epoch ms
@@ -23,6 +24,15 @@ export default function Timer({ deadline, onExpire }: TimerProps) {
 
   const seconds = Math.max(0, Math.ceil(remainingMs / 1000));
   const isUrgent = seconds <= 5;
+
+  // Fires once per second as `seconds` ticks down through the urgent zone
+  // (not once per 200ms poll — `seconds` only changes on whole-second
+  // boundaries, so this naturally lands one tick per second).
+  useEffect(() => {
+    if (seconds > 0 && seconds <= 5) {
+      sounds.tick();
+    }
+  }, [seconds]);
 
   return (
     <div

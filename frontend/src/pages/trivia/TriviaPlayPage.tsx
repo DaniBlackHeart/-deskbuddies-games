@@ -5,6 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import Timer from "../../components/Timer";
 import Leaderboard from "../../components/Leaderboard";
 import AnswerInput from "../../components/AnswerInput";
+import { sounds } from "../../lib/sounds";
 import type { LeaderboardEntry, PublicQuestion, SessionEvent } from "../../types";
 
 type Phase = "loading" | "waiting" | "question" | "ended";
@@ -132,6 +133,31 @@ export default function TriviaPlayPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
+
+  // Correct/wrong sound — fires once per question, right as the reveal
+  // (correct answer + standings) appears. A typed answer still pending a
+  // MOD's manual grade has isCorrect === null and gets no sound yet.
+  const playedResultForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!revealed || !question || wasNoShow) return;
+    if (myResult == null || myResult.isCorrect === null) return;
+    if (playedResultForRef.current === question.id) return;
+    playedResultForRef.current = question.id;
+    if (myResult.isCorrect) sounds.correct();
+    else sounds.wrong();
+  }, [revealed, myResult, question, wasNoShow]);
+
+  // Winner/loser sound on the final results screen — top 3 get the winner
+  // sound, everyone else gets the loser sound.
+  const playedEndSoundRef = useRef(false);
+  useEffect(() => {
+    if (phase !== "ended" || playedEndSoundRef.current) return;
+    const mine = leaderboard.find((e) => e.user_id === profile?.id);
+    if (!mine) return; // didn't play / no scored answers — no sound either way
+    playedEndSoundRef.current = true;
+    if (mine.rank <= 3) sounds.winner();
+    else sounds.loser();
+  }, [phase, leaderboard, profile?.id]);
 
   async function handleSubmit(payload: { choiceIndex?: number; answerText?: string }) {
     if (!question || !sessionId) return;

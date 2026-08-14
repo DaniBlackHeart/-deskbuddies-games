@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute, ModRoute } from "./components/ProtectedRoute";
+import SoundToggle from "./components/SoundToggle";
 
 import LoginPage from "./pages/LoginPage";
 import NotAMemberPage from "./pages/NotAMemberPage";
@@ -23,6 +24,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <SoundToggle />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/not-a-member" element={<NotAMemberPage />} />
