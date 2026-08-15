@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
             .update({ face_off_singleton_user_id: otherUser, face_off_deadline: deadline, updated_at: new Date().toISOString() })
             .eq("id", round.id);
 
-          await broadcast(admin, session_id, "faceoff_miss", { missed_user_id: expectedUser, next_user_id: otherUser, deadline_ms: new Date(deadline).getTime() });
+          await broadcast(admin, session_id, "faceoff_miss", { missed_user_id: expectedUser, next_user_id: otherUser, deadline_ms: new Date(deadline).getTime(), timed_out: isTimeout });
           return jsonResponse({ correct: false, next_user_id: otherUser });
         }
 
@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
             .from("feud_rounds")
             .update({ status: "lost_reveal", face_off_deadline: null, updated_at: new Date().toISOString() })
             .eq("id", round.id);
-          await broadcast(admin, session_id, "faceoff_all_missed", {});
+          await broadcast(admin, session_id, "faceoff_all_missed", { timed_out: isTimeout });
           return jsonResponse({ correct: false, round_lost: true });
         }
 
@@ -362,6 +362,7 @@ Deno.serve(async (req) => {
             opposing_team: round.opposing_team,
             points_pot: round.points_pot,
             deadline_ms: new Date(stealDeadline).getTime(),
+            timed_out: isTimeout,
           });
           return jsonResponse({ correct: false, strikes: newStrikes, steal: true });
         }
@@ -376,7 +377,7 @@ Deno.serve(async (req) => {
           .update({ strikes: newStrikes, current_turn_user_id: nextTurn, current_turn_deadline: deadline, updated_at: new Date().toISOString() })
           .eq("id", round.id);
 
-        await broadcast(admin, session_id, "board_strike", { strikes: newStrikes, next_turn_user_id: nextTurn, deadline_ms: new Date(deadline).getTime() });
+        await broadcast(admin, session_id, "board_strike", { strikes: newStrikes, next_turn_user_id: nextTurn, deadline_ms: new Date(deadline).getTime(), timed_out: isTimeout });
         return jsonResponse({ correct: false, strikes: newStrikes });
       }
 
@@ -427,6 +428,7 @@ Deno.serve(async (req) => {
           awarded_to_team: awardedTo,
           points_pot: round.points_pot,
           full_board: answers.map((a) => ({ text: a.text, points: a.points })),
+          timed_out: isTimeout,
         });
         return jsonResponse({ stolen: matchedIndex !== null, awarded_to_team: awardedTo });
       }

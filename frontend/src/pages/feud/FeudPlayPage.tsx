@@ -105,18 +105,20 @@ export default function FeudPlayPage() {
         sounds.boardReveal();
         hydrate();
       })
-      .on("broadcast", { event: "faceoff_miss" }, () => {
+      .on("broadcast", { event: "faceoff_miss" }, ({ payload }: { payload: FeudSessionEvent & { type: "faceoff_miss" } }) => {
         showFlash("❌ Not on the board!");
-        sounds.wrong();
+        if (payload.timed_out) sounds.noAnswer();
+        else sounds.wrong();
         hydrate();
       })
       .on("broadcast", { event: "faceoff_next_pair" }, () => {
         sounds.questionFlash();
         hydrate();
       })
-      .on("broadcast", { event: "faceoff_all_missed" }, () => {
+      .on("broadcast", { event: "faceoff_all_missed" }, ({ payload }: { payload: FeudSessionEvent & { type: "faceoff_all_missed" } }) => {
         showFlash("😬 Nobody took control!");
-        sounds.wrong();
+        if (payload.timed_out) sounds.noAnswer();
+        else sounds.wrong();
         hydrate();
       })
       .on("broadcast", { event: "board_started" }, () => {
@@ -129,9 +131,10 @@ export default function FeudPlayPage() {
         sounds.boardReveal();
         hydrate();
       })
-      .on("broadcast", { event: "board_strike" }, () => {
+      .on("broadcast", { event: "board_strike" }, ({ payload }: { payload: FeudSessionEvent & { type: "board_strike" } }) => {
         showFlash("❌ STRIKE!");
-        sounds.wrong();
+        if (payload.timed_out) sounds.noAnswer();
+        else sounds.wrong();
         hydrate();
       })
       .on("broadcast", { event: "board_cleared" }, () => {
@@ -140,14 +143,17 @@ export default function FeudPlayPage() {
         sounds.boardReveal();
         hydrate();
       })
-      .on("broadcast", { event: "steal_started" }, () => {
+      .on("broadcast", { event: "steal_started" }, ({ payload }: { payload: FeudSessionEvent & { type: "steal_started" } }) => {
         showFlash("🔁 Three strikes — steal time!");
+        if (payload.timed_out) sounds.noAnswer();
+        else sounds.wrong();
         setHuddle([]);
         hydrate();
       })
       .on("broadcast", { event: "round_complete" }, ({ payload }: { payload: FeudSessionEvent & { type: "round_complete" } }) => {
         showFlash(payload.outcome === "stolen" ? "🕵️ Stolen!" : "🛡️ Defended!");
         if (payload.outcome === "stolen") sounds.correct();
+        else if (payload.timed_out) sounds.noAnswer();
         else sounds.wrong();
         sounds.boardReveal();
         hydrate();
@@ -160,8 +166,11 @@ export default function FeudPlayPage() {
       .on("broadcast", { event: "fastmoney_setup" }, () => hydrate())
       .on("broadcast", { event: "fastmoney_player_started" }, () => hydrate())
       .on("broadcast", { event: "fastmoney_reveal_ready" }, () => hydrate())
-      .on("broadcast", { event: "fastmoney_answer_revealed" }, () => {
-        sounds.boardReveal();
+      .on("broadcast", { event: "fastmoney_answer_revealed" }, ({ payload }: { payload: FeudSessionEvent & { type: "fastmoney_answer_revealed" } }) => {
+        // If either player blanked on this one, that's the more useful cue
+        // to hear than the generic reveal ding.
+        if (payload.player1_answer === null || payload.player2_answer === null) sounds.noAnswer();
+        else sounds.boardReveal();
         hydrate();
       })
       .on("broadcast", { event: "game_started" }, () => hydrate())

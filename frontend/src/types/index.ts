@@ -225,15 +225,15 @@ export type FeudSessionEvent =
   | { type: "round_started"; round_index: number; prompt: string; answer_count: number; active_a: { user_id: string; username: string }; active_b: { user_id: string; username: string } }
   | { type: "buzz_locked"; winner_user_id: string; deadline_ms: number }
   | { type: "faceoff_correct"; user_id: string; team: Team; index: number; text: string; points: number }
-  | { type: "faceoff_miss"; missed_user_id: string; next_user_id: string; deadline_ms: number }
+  | { type: "faceoff_miss"; missed_user_id: string; next_user_id: string; deadline_ms: number; timed_out: boolean }
   | { type: "faceoff_next_pair"; pair_index: number; active_a: { user_id: string; username: string }; active_b: { user_id: string; username: string } }
-  | { type: "faceoff_all_missed" }
+  | { type: "faceoff_all_missed"; timed_out: boolean }
   | { type: "board_started"; controlling_team: Team; current_turn_user_id: string; deadline_ms: number }
   | { type: "board_correct"; index: number; text: string; points: number; points_pot: number; next_turn_user_id: string; deadline_ms: number }
-  | { type: "board_strike"; strikes: number; next_turn_user_id: string; deadline_ms: number }
+  | { type: "board_strike"; strikes: number; next_turn_user_id: string; deadline_ms: number; timed_out: boolean }
   | { type: "board_cleared"; index: number; text: string; points: number; points_pot: number; awarded_to_team: Team }
-  | { type: "steal_started"; opposing_team: Team; points_pot: number; deadline_ms: number }
-  | { type: "round_complete"; outcome: "stolen" | "defended"; awarded_to_team: Team; points_pot: number; full_board: { text: string; points: number }[] }
+  | { type: "steal_started"; opposing_team: Team; points_pot: number; deadline_ms: number; timed_out: boolean }
+  | { type: "round_complete"; outcome: "stolen" | "defended"; awarded_to_team: Team; points_pot: number; full_board: { text: string; points: number }[]; timed_out: boolean }
   | { type: "lost_reveal_answer"; index: number; text: string; points: number; revealed_count: number; total: number; done: boolean }
   | { type: "main_game_ended"; team_a_score: number; team_b_score: number }
   | { type: "fastmoney_setup"; team: Team; player1: { user_id: string; username: string }; player2: { user_id: string; username: string } }
