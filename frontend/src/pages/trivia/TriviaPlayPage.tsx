@@ -173,16 +173,24 @@ export default function TriviaPlayPage() {
   // "ended early" intro, then top 3 get the winner sound, everyone else
   // gets the loser sound.
   const playedEndSoundRef = useRef(false);
+  const latestEndDataRef = useRef({ leaderboard, myId: profile?.id });
+  latestEndDataRef.current = { leaderboard, myId: profile?.id };
   useEffect(() => {
     if (phase !== "ended" || playedEndSoundRef.current) return;
-    const mine = leaderboard.find((e) => e.user_id === profile?.id);
-    if (!mine) return; // didn't play / no scored answers — no sound either way
     playedEndSoundRef.current = true;
+    // The intro (finished vs. cut short) always plays. The winner/loser
+    // follow-up only plays if we can actually tell — read from a ref
+    // rather than closing over `leaderboard` directly, since this runs
+    // after playSessionEnd's delay and the leaderboard may have arrived
+    // after this effect fired.
     sounds.playSessionEnd(sessionCompleted, () => {
+      const { leaderboard: lb, myId } = latestEndDataRef.current;
+      const mine = lb.find((e) => e.user_id === myId);
+      if (!mine) return; // no scored answers — no personal outcome to announce
       if (mine.rank <= 3) sounds.winner();
       else sounds.loser();
     });
-  }, [phase, leaderboard, profile?.id, sessionCompleted]);
+  }, [phase, sessionCompleted]);
 
   async function handleSubmit(payload: { choiceIndex?: number; answerText?: string }) {
     if (!question || !sessionId) return;

@@ -203,15 +203,24 @@ export default function FeudPlayPage() {
   // winning team gets the winner sound, the other team gets the loser
   // sound. A tie gets neither (there's no clear outcome to react to).
   const playedEndSoundRef = useRef(false);
+  const latestStateRef = useRef(state);
+  latestStateRef.current = state;
   useEffect(() => {
     if (!state || playedEndSoundRef.current) return;
-    if (state.session.status !== "ended" || !state.my_team) return;
-    const { team_a_score, team_b_score } = state.session;
-    if (team_a_score === team_b_score) return;
+    if (state.session.status !== "ended") return;
     playedEndSoundRef.current = true;
-    const winningTeam: Team = team_a_score > team_b_score ? "A" : "B";
+    // The intro (finished vs. cut short) always plays. The winner/loser
+    // follow-up only plays if there's an actual team assigned and an actual
+    // winner — read from a ref rather than closing over `state` directly,
+    // since this runs after playSessionEnd's delay and state may have
+    // moved on by then.
     sounds.playSessionEnd(state.completed, () => {
-      if (state.my_team === winningTeam) sounds.winner();
+      const s = latestStateRef.current;
+      if (!s || !s.my_team) return;
+      const { team_a_score, team_b_score } = s.session;
+      if (team_a_score === team_b_score) return; // tie — no personal outcome to announce
+      const winningTeam: Team = team_a_score > team_b_score ? "A" : "B";
+      if (s.my_team === winningTeam) sounds.winner();
       else sounds.loser();
     });
   }, [state]);
