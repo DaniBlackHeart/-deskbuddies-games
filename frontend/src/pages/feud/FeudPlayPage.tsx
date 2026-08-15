@@ -38,6 +38,7 @@ type FeudState = {
   round: PublicFeudRound | null;
   fast_money: { my_slot: 1 | 2; answered_indices: number[] } | null;
   fast_money_revealed: FastMoneyRevealedEntry[];
+  completed: boolean;
 };
 
 const FASTMONEY_QUESTION_COUNT = 5;
@@ -109,13 +110,19 @@ export default function FeudPlayPage() {
         sounds.wrong();
         hydrate();
       })
-      .on("broadcast", { event: "faceoff_next_pair" }, () => hydrate())
+      .on("broadcast", { event: "faceoff_next_pair" }, () => {
+        sounds.questionFlash();
+        hydrate();
+      })
       .on("broadcast", { event: "faceoff_all_missed" }, () => {
         showFlash("😬 Nobody took control!");
         sounds.wrong();
         hydrate();
       })
-      .on("broadcast", { event: "board_started" }, () => hydrate())
+      .on("broadcast", { event: "board_started" }, () => {
+        sounds.questionFlash();
+        hydrate();
+      })
       .on("broadcast", { event: "board_correct" }, ({ payload }: { payload: FeudSessionEvent & { type: "board_correct" } }) => {
         showFlash(`✅ "${payload.text}" — ${payload.points} pts!`);
         sounds.correct();
@@ -182,9 +189,10 @@ export default function FeudPlayPage() {
     };
   }, [sessionId, state?.round?.status, state?.round?.round_index]);
 
-  // Winner/loser sound when the game ends — once per session, based on
-  // whether my_team matches the team with the higher main-game score. A tie
-  // gets neither (there's no clear outcome to react to).
+  // Session-end sound when the game ends — once per session. A "set
+  // finished" or "ended early" intro plays first, then whoever's on the
+  // winning team gets the winner sound, the other team gets the loser
+  // sound. A tie gets neither (there's no clear outcome to react to).
   const playedEndSoundRef = useRef(false);
   useEffect(() => {
     if (!state || playedEndSoundRef.current) return;
@@ -193,8 +201,10 @@ export default function FeudPlayPage() {
     if (team_a_score === team_b_score) return;
     playedEndSoundRef.current = true;
     const winningTeam: Team = team_a_score > team_b_score ? "A" : "B";
-    if (state.my_team === winningTeam) sounds.winner();
-    else sounds.loser();
+    sounds.playSessionEnd(state.completed, () => {
+      if (state.my_team === winningTeam) sounds.winner();
+      else sounds.loser();
+    });
   }, [state]);
 
   function sendHuddleMessage() {

@@ -5,7 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import Timer from "../../components/Timer";
 import Leaderboard from "../../components/Leaderboard";
 import AnswerInput from "../../components/AnswerInput";
-import { sounds } from "../../lib/sounds";
+import { lobbyMusic, sounds } from "../../lib/sounds";
 import type { LeaderboardEntry, PublicQuestion, SessionEvent } from "../../types";
 
 type Phase = "loading" | "waiting" | "question" | "ended";
@@ -32,6 +32,7 @@ export default function TriviaPlayPage() {
   const [timeExpired, setTimeExpired] = useState(false);
   const [mode, setMode] = useState<"chill" | "hard">("chill");
   const [wasNoShow, setWasNoShow] = useState(false);
+  const [sessionCompleted, setSessionCompleted] = useState(false);
   const questionStartRef = useRef<number>(0);
   const currentQuestionIdRef = useRef<string | null>(null);
 
@@ -46,6 +47,7 @@ export default function TriviaPlayPage() {
     setMode(data.mode === "hard" ? "hard" : "chill");
     if (data.status === "ended") {
       setLeaderboard(data.leaderboard ?? []);
+      setSessionCompleted(Boolean(data.completed));
       setPhase("ended");
       return;
     }
@@ -101,6 +103,7 @@ export default function TriviaPlayPage() {
         setSubmitError(null);
         setTimeExpired(false);
         setPhase("question");
+        sounds.questionFlash();
       })
       .on("broadcast", { event: "question_ended" }, ({ payload }: { payload: SessionEvent & { type: "question_ended" } }) => {
         setRevealed({ correctChoice: payload.correct_choice, acceptedAnswers: payload.accepted_answers });
@@ -121,9 +124,11 @@ export default function TriviaPlayPage() {
       })
       .on("broadcast", { event: "session_ended" }, ({ payload }: { payload: SessionEvent & { type: "session_ended" } }) => {
         setLeaderboard(payload.leaderboard);
+        setSessionCompleted(payload.completed);
         setPhase("ended");
       })
-      .on("broadcast", { event: "lobby_update" }, () => {
+      .on("broadcast", { event: "lobby_update" }, ({ payload }: { payload: SessionEvent & { type: "lobby_update" } }) => {
+        if (payload.started) sounds.sessionStart();
         hydrate();
       })
       .subscribe();
@@ -134,30 +139,50 @@ export default function TriviaPlayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  // Correct/wrong sound — fires once per question, right as the reveal
-  // (correct answer + standings) appears. A typed answer still pending a
-  // MOD's manual grade has isCorrect === null and gets no sound yet.
+  // Lobby BGM — plays only while sitting on the "waiting for the host"
+  // screen, stops the instant the first question starts (or on unmount).
+  useEffect(() => {
+    if (phase === "waiting") {
+      lobbyMusic.start();
+    } else {
+      lobbyMusic.stop();
+    }
+    return () => lobbyMusic.stop();
+  }, [phase]);
+
+  // Correct/wrong/no-answer sound — fires once per question, right as the
+  // reveal (correct answer + standings) appears. A typed answer still
+  // pending a MOD's manual grade has isCorrect === null and gets no sound
+  // until it's actually graded.
   const playedResultForRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!revealed || !question || wasNoShow) return;
-    if (myResult == null || myResult.isCorrect === null) return;
+    if (!revealed || !question) return;
     if (playedResultForRef.current === question.id) return;
+    if (wasNoShow || myResult == null) {
+      playedResultForRef.current = question.id;
+      sounds.noAnswer();
+      return;
+    }
+    if (myResult.isCorrect === null) return; // pending manual grade — no sound yet
     playedResultForRef.current = question.id;
     if (myResult.isCorrect) sounds.correct();
     else sounds.wrong();
   }, [revealed, myResult, question, wasNoShow]);
 
-  // Winner/loser sound on the final results screen — top 3 get the winner
-  // sound, everyone else gets the loser sound.
+  // Session-end sound on the final results screen — a "set finished" or
+  // "ended early" intro, then top 3 get the winner sound, everyone else
+  // gets the loser sound.
   const playedEndSoundRef = useRef(false);
   useEffect(() => {
     if (phase !== "ended" || playedEndSoundRef.current) return;
     const mine = leaderboard.find((e) => e.user_id === profile?.id);
     if (!mine) return; // didn't play / no scored answers — no sound either way
     playedEndSoundRef.current = true;
-    if (mine.rank <= 3) sounds.winner();
-    else sounds.loser();
-  }, [phase, leaderboard, profile?.id]);
+    sounds.playSessionEnd(sessionCompleted, () => {
+      if (mine.rank <= 3) sounds.winner();
+      else sounds.loser();
+    });
+  }, [phase, leaderboard, profile?.id, sessionCompleted]);
 
   async function handleSubmit(payload: { choiceIndex?: number; answerText?: string }) {
     if (!question || !sessionId) return;

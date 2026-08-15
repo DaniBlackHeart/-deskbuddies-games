@@ -95,7 +95,7 @@ export type LeaderboardEntry = {
 // --- Realtime broadcast payload shapes (trivia-session-{id} channel) ---
 
 export type SessionEvent =
-  | { type: "lobby_update"; participant_count: number }
+  | { type: "lobby_update"; started: true }
   | { type: "question_started"; question: PublicQuestion; deadline_ms: number }
   | {
       type: "question_ended";
@@ -106,7 +106,7 @@ export type SessionEvent =
       pending_manual_grades: number;
     }
   | { type: "leaderboard_update"; leaderboard: LeaderboardEntry[] }
-  | { type: "session_ended"; leaderboard: LeaderboardEntry[] }
+  | { type: "session_ended"; leaderboard: LeaderboardEntry[]; completed: boolean }
   | {
       type: "answer_graded";
       user_id: string;
@@ -251,4 +251,4 @@ export type FeudSessionEvent =
       running_total: number;
       revealed_count: number;
     }
-  | { type: "session_ended"; team_a_score: number; team_b_score: number; fastmoney_team: Team | null; fastmoney_total_points: number; won_grand_prize: boolean | null };
+  | { type: "session_ended"; team_a_score: number; team_b_score: number; fastmoney_team: Team | null; fastmoney_total_points: number; won_grand_prize: boolean | null; completed: boolean };

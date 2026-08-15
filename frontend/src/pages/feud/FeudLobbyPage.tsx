@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
+import { lobbyMusic, sounds } from "../../lib/sounds";
 import type { FeudParticipant, FeudSession, Team } from "../../types";
 
 type OpenSession = Pick<FeudSession, "id" | "status" | "team_a_name" | "team_b_name" | "feud_set_id"> & {
@@ -52,6 +53,7 @@ export default function FeudLobbyPage() {
     if (!session) return;
     loadRosters(session.id);
     if (session.status !== "lobby") {
+      sounds.sessionStart();
       navigate(`/feud/play/${session.id}`);
       return;
     }
@@ -64,6 +66,18 @@ export default function FeudLobbyPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, session?.status]);
+
+  // Lobby BGM — plays only while a session exists and is genuinely still in
+  // "lobby" (team-pick) status; stops the moment the host starts the game.
+  useEffect(() => {
+    if (session && session.status === "lobby") {
+      lobbyMusic.start();
+    } else {
+      lobbyMusic.stop();
+    }
+    return () => lobbyMusic.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.status]);
 
   const myTeam: Team | null =
     rosterA.some((p) => p.user_id === profile?.id) ? "A" : rosterB.some((p) => p.user_id === profile?.id) ? "B" : null;

@@ -2,17 +2,18 @@
 // -----------------------------------------------------------------------
 // Every effect is synthesized on the fly with the Web Audio API instead of
 // loading audio files. No files to host, no licensing to worry about, and
-// nothing to add to the bundle. Respects a mute preference in
-// localStorage so it persists across sessions and games.
+// nothing to add to the bundle. Respects a volume preference in
+// localStorage (0 = muted) so it persists across sessions and games.
 
-const MUTE_KEY = "deskbuddies_sound_muted";
+const VOLUME_KEY = "deskbuddies_sound_volume"; // "0".."100"
+const DEFAULT_VOLUME = 70;
 
 type ToneStep = {
   freq: number;
   start: number; // seconds from the effect's start
   duration: number; // seconds
   type?: OscillatorType;
-  gain?: number; // peak gain, 0-1
+  gain?: number; // peak gain, 0-1, before the volume setting is applied
 };
 
 let ctx: AudioContext | null = null;
@@ -30,27 +31,47 @@ function getContext(): AudioContext | null {
  * autoplay policy doesn't block sound that's later triggered by a realtime
  * event rather than a direct click. Safe to call repeatedly.
  */
-export function unlockAudio() {
+export async function unlockAudio(): Promise<boolean> {
   const c = getContext();
-  if (c && c.state === "suspended") c.resume().catch(() => {});
+  if (!c) return false;
+  if (c.state === "suspended") {
+    try {
+      await c.resume();
+    } catch {
+      // Still blocked — the caller can retry on the next gesture.
+    }
+  }
+  return c.state === "running";
 }
 
-export function isMuted(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(MUTE_KEY) === "1";
+/** True once the AudioContext is actually running (i.e. sound can play). */
+export function isAudioUnlocked(): boolean {
+  return ctx?.state === "running";
 }
 
-export function setMuted(muted: boolean) {
+/** 0-100. Defaults to 70 the first time someone opens the app. */
+export function getVolume(): number {
+  if (typeof window === "undefined") return DEFAULT_VOLUME;
+  const raw = window.localStorage.getItem(VOLUME_KEY);
+  if (raw === null) return DEFAULT_VOLUME;
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : DEFAULT_VOLUME;
+}
+
+export function setVolume(volume: number) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
+  const clamped = Math.min(100, Math.max(0, Math.round(volume)));
+  window.localStorage.setItem(VOLUME_KEY, String(clamped));
 }
 
 function playTones(steps: ToneStep[]) {
-  if (isMuted()) return;
+  const volume = getVolume();
+  if (volume === 0) return;
   const c = getContext();
   if (!c) return;
   if (c.state === "suspended") c.resume().catch(() => {});
   const now = c.currentTime;
+  const scale = volume / 100;
 
   for (const step of steps) {
     const osc = c.createOscillator();
@@ -58,7 +79,7 @@ function playTones(steps: ToneStep[]) {
     osc.type = step.type ?? "sine";
     osc.frequency.value = step.freq;
 
-    const peak = step.gain ?? 0.2;
+    const peak = (step.gain ?? 0.2) * scale;
     const t0 = now + step.start;
     const t1 = t0 + step.duration;
 
@@ -113,6 +134,46 @@ export const sounds = {
     ]);
   },
 
+  /** Quick 3-note "here we go" riser — the host starts the session/game. */
+  sessionStart() {
+    playTones([
+      { freq: 349.23, start: 0, duration: 0.12, type: "triangle", gain: 0.16 }, // F4
+      { freq: 440, start: 0.1, duration: 0.12, type: "triangle", gain: 0.16 }, // A4
+      { freq: 523.25, start: 0.2, duration: 0.24, type: "triangle", gain: 0.2 }, // C5
+    ]);
+  },
+
+  /** Single crisp pop — a new question or prompt appears on screen. */
+  questionFlash() {
+    playTones([{ freq: 987.77, start: 0, duration: 0.1, type: "triangle", gain: 0.16 }]);
+  },
+
+  /** Gentle descending "womp" — didn't type or choose an answer in time. */
+  noAnswer() {
+    playTones([
+      { freq: 293.66, start: 0, duration: 0.16, type: "triangle", gain: 0.12 }, // D4
+      { freq: 233.08, start: 0.13, duration: 0.24, type: "triangle", gain: 0.12 }, // Bb3
+    ]);
+  },
+
+  /** Neutral wrap-up cadence — a MOD ended the session early. */
+  sessionEndedByMod() {
+    playTones([
+      { freq: 440, start: 0, duration: 0.16, gain: 0.16 }, // A4
+      { freq: 349.23, start: 0.14, duration: 0.3, gain: 0.16 }, // F4
+    ]);
+  },
+
+  /** Fuller ascending fanfare — the whole set/game was completed. */
+  setFinished() {
+    playTones([
+      { freq: 392, start: 0, duration: 0.14, type: "triangle", gain: 0.18 }, // G4
+      { freq: 493.88, start: 0.13, duration: 0.14, type: "triangle", gain: 0.18 }, // B4
+      { freq: 587.33, start: 0.26, duration: 0.14, type: "triangle", gain: 0.18 }, // D5
+      { freq: 783.99, start: 0.39, duration: 0.4, type: "triangle", gain: 0.22 }, // G5
+    ]);
+  },
+
   /** Triumphant rising arpeggio — you won. */
   winner() {
     playTones([
@@ -130,5 +191,53 @@ export const sounds = {
       { freq: 329.63, start: 0.18, duration: 0.2, type: "triangle", gain: 0.14 },
       { freq: 261.63, start: 0.36, duration: 0.34, type: "triangle", gain: 0.14 },
     ]);
+  },
+
+  /**
+   * Plays the right "how did this end" intro (finished vs. cut short), then
+   * calls `then` once it's had time to land — meant to be followed by
+   * `winner()`/`loser()` so the two don't overlap.
+   */
+  playSessionEnd(completed: boolean, then: () => void) {
+    if (completed) {
+      sounds.setFinished();
+      setTimeout(then, 850);
+    } else {
+      sounds.sessionEndedByMod();
+      setTimeout(then, 550);
+    }
+  },
+};
+
+// ---- Lobby background music ----
+// A quiet, looping ambient pattern for the "waiting for the host to start"
+// screen — not a discrete cue, just something pleasant in the background.
+// Scheduled as one note at a time with setTimeout rather than a real audio
+// loop file, consistent with everything else here being synthesized.
+const LOBBY_MELODY = [392.0, 440.0, 523.25, 440.0, 392.0, 349.23, 392.0, 440.0]; // G4 A4 C5 A4 G4 F4 G4 A4
+const LOBBY_NOTE_MS = 600;
+
+let lobbyMusicTimer: ReturnType<typeof setTimeout> | null = null;
+let lobbyMusicStep = 0;
+
+function scheduleLobbyNote() {
+  const freq = LOBBY_MELODY[lobbyMusicStep % LOBBY_MELODY.length];
+  lobbyMusicStep += 1;
+  playTones([{ freq, start: 0, duration: LOBBY_NOTE_MS / 1000 - 0.08, type: "sine", gain: 0.05 }]);
+  lobbyMusicTimer = setTimeout(scheduleLobbyNote, LOBBY_NOTE_MS);
+}
+
+export const lobbyMusic = {
+  /** Idempotent — calling start() while already running does nothing. */
+  start() {
+    if (lobbyMusicTimer) return;
+    lobbyMusicStep = 0;
+    scheduleLobbyNote();
+  },
+  stop() {
+    if (lobbyMusicTimer) {
+      clearTimeout(lobbyMusicTimer);
+      lobbyMusicTimer = null;
+    }
   },
 };
