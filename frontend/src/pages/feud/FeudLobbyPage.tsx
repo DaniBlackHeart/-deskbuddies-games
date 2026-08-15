@@ -14,6 +14,7 @@ export default function FeudLobbyPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [session, setSession] = useState<OpenSession | null | undefined>(undefined);
+  const [joined, setJoined] = useState(false);
   const [rosterA, setRosterA] = useState<FeudParticipant[]>([]);
   const [rosterB, setRosterB] = useState<FeudParticipant[]>([]);
   const [busy, setBusy] = useState(false);
@@ -67,20 +68,31 @@ export default function FeudLobbyPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, session?.status]);
 
-  // Lobby BGM — plays only while a session exists and is genuinely still in
-  // "lobby" (team-pick) status; stops the moment the host starts the game.
   useEffect(() => {
-    if (session && session.status === "lobby") {
+    setJoined(false);
+  }, [session?.id]);
+
+  // Lobby BGM — plays only once you've actually clicked in (matching
+  // Trivia's "waiting" screen, which only starts once you're past its own
+  // join button), and only while the session is genuinely still "lobby".
+  useEffect(() => {
+    if (session && session.status === "lobby" && joined) {
       lobbyMusic.start();
     } else {
       lobbyMusic.stop();
     }
     return () => lobbyMusic.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.status]);
+  }, [session?.status, joined]);
 
   const myTeam: Team | null =
     rosterA.some((p) => p.user_id === profile?.id) ? "A" : rosterB.some((p) => p.user_id === profile?.id) ? "B" : null;
+
+  // Already on a roster (e.g. navigated away and back) — skip the join
+  // gate, don't make them click through it again.
+  useEffect(() => {
+    if (myTeam) setJoined(true);
+  }, [myTeam]);
 
   async function handleJoinTeam(team: Team) {
     if (!session) return;
@@ -113,7 +125,18 @@ export default function FeudLobbyPage() {
             </>
           )}
 
-          {session && (
+          {session && !joined && (
+            <>
+              <p className="text-muted">
+                A session is about to start: <strong>{session.feud_sets?.name}</strong>
+              </p>
+              <button className="btn btn-primary btn-block" onClick={() => setJoined(true)}>
+                Join Family Feud
+              </button>
+            </>
+          )}
+
+          {session && joined && (
             <>
               <p className="text-muted">
                 Lobby is open for <strong>{session.feud_sets?.name}</strong> — pick a team below.
