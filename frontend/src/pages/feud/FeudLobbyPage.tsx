@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
@@ -14,10 +14,13 @@ export default function FeudLobbyPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [session, setSession] = useState<OpenSession | null | undefined>(undefined);
+  const [justEnded, setJustEnded] = useState(false);
   const [joined, setJoined] = useState(false);
   const [rosterA, setRosterA] = useState<FeudParticipant[]>([]);
   const [rosterB, setRosterB] = useState<FeudParticipant[]>([]);
   const [busy, setBusy] = useState(false);
+  const sessionRef = useRef<OpenSession | null | undefined>(session);
+  sessionRef.current = session;
 
   async function loadOpenSession() {
     const { data } = await supabase
@@ -27,7 +30,9 @@ export default function FeudLobbyPage() {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    setSession((data as unknown as OpenSession) ?? null);
+    const found = (data as unknown as OpenSession) ?? null;
+    if (found) setJustEnded(false);
+    setSession(found);
   }
 
   async function loadRosters(sessionId: string) {
@@ -43,7 +48,21 @@ export default function FeudLobbyPage() {
     loadOpenSession();
     const channel = supabase
       .channel("feud-sessions-watch")
-      .on("postgres_changes", { event: "*", schema: "public", table: "feud_sessions" }, () => loadOpenSession())
+      .on("postgres_changes", { event: "*", schema: "public", table: "feud_sessions" }, (payload) => {
+        const row = (payload.new ?? payload.old) as { id?: string; status?: string } | null;
+        const current = sessionRef.current;
+        // The session we're actively looking at just got cancelled — say so
+        // and play the sound, instead of silently falling back to
+        // loadOpenSession(), which filters out "ended" rows and would
+        // otherwise just go quiet with no explanation.
+        if (current && row?.id === current.id && row?.status === "ended") {
+          sounds.sessionEndedByMod();
+          setSession(null);
+          setJustEnded(true);
+          return;
+        }
+        loadOpenSession();
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -117,7 +136,9 @@ export default function FeudLobbyPage() {
           {session === null && (
             <>
               <p className="text-muted">
-                No Family Feud game happening right now. Keep an eye on Discord for the next announcement!
+                {justEnded
+                  ? "This session was cancelled by the mod."
+                  : "No Family Feud game happening right now. Keep an eye on Discord for the next announcement!"}
               </p>
               <button className="btn btn-secondary" onClick={() => navigate("/")}>
                 Back to games
