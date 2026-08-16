@@ -503,7 +503,7 @@ button {
 .uno-card {
   --uno-blue: #5b7c99;
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 64px;
@@ -606,16 +606,24 @@ button {
 }
 
 .uno-hand {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: var(--space-2);
-  overflow-x: auto;
+  max-width: 540px;
+  margin: 0 auto;
   padding: var(--space-3) var(--space-2);
-  justify-content: flex-start;
 }
-@media (min-width: 560px) {
-  .uno-hand {
-    justify-content: center;
-  }
+/* Cards in the hand grid fill their column and scale together, rather
+   than using the fixed pixel sizes .uno-card ships with elsewhere (the
+   discard pile, draw pile, spectator view) — otherwise 7 fixed-64px
+   columns simply don't fit a phone screen. */
+.uno-hand .uno-card {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 64 / 92;
+}
+.uno-hand .uno-card__value {
+  font-size: clamp(0.85rem, 5vw, 1.5rem);
 }
 
 .uno-roster {
