@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 
@@ -20,12 +20,22 @@ type ActiveFeudSession = {
   spectator: { username: string } | null;
 };
 
+type ActiveUnoSession = {
+  id: string;
+  status: string;
+  spectator_id: string | null;
+  spectator: { username: string } | null;
+};
+
 export default function ModDashboardPage() {
+  const navigate = useNavigate();
   const [active, setActive] = useState<ActiveSession[]>([]);
   const [activeFeud, setActiveFeud] = useState<ActiveFeudSession[]>([]);
+  const [activeUno, setActiveUno] = useState<ActiveUnoSession[]>([]);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [clearingLock, setClearingLock] = useState(false);
   const [lockResult, setLockResult] = useState<string | null>(null);
+  const [startingUno, setStartingUno] = useState(false);
 
   useEffect(() => {
     supabase
@@ -41,7 +51,25 @@ export default function ModDashboardPage() {
       .neq("status", "ended")
       .order("created_at", { ascending: false })
       .then(({ data }) => setActiveFeud((data as unknown as ActiveFeudSession[]) ?? []));
+
+    supabase
+      .from("uno_sessions")
+      .select("id, status, spectator_id, spectator:profiles!spectator_id(username)")
+      .neq("status", "ended")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setActiveUno((data as unknown as ActiveUnoSession[]) ?? []));
   }, []);
+
+  async function handleStartUno() {
+    setStartingUno(true);
+    const { data, error } = await invokeFunction("uno-host", { action: "create_session" });
+    setStartingUno(false);
+    if (error) {
+      alert(error);
+      return;
+    }
+    navigate(`/mod/uno-host/${data.session.id}`);
+  }
 
   async function handleForceReleaseLock() {
     if (
@@ -72,7 +100,7 @@ export default function ModDashboardPage() {
       <AppHeader />
       <div className="container">
         <h1>🛠️ MOD Dashboard</h1>
-        <p className="text-muted">Manage question sets and run Trivia Night.</p>
+        <p className="text-muted">Manage question sets and run Trivia Night, Family Feud, and UNO.</p>
 
         {active.length > 0 && (
           <div className="card" style={{ marginBottom: "20px" }}>
@@ -131,6 +159,34 @@ export default function ModDashboardPage() {
           </div>
         )}
 
+        {activeUno.length > 0 && (
+          <div className="card" style={{ marginBottom: "20px" }}>
+            <h3>UNO in progress</h3>
+            {activeUno.map((s) => (
+              <div key={s.id} className="stack" style={{ marginTop: "8px" }}>
+                <div className="row-between">
+                  <span>
+                    <span className="badge badge-live">{s.status}</span>
+                  </span>
+                  <div className="row">
+                    <Link to={`/mod/uno-spectate/${s.id}`} className="btn btn-secondary btn-sm">
+                      👀 Watch as spectator
+                    </Link>
+                    <Link to={`/mod/uno-host/${s.id}`} className="btn btn-primary btn-sm">
+                      Go to host controls
+                    </Link>
+                  </div>
+                </div>
+                {s.spectator && (
+                  <p className="hint" style={{ margin: 0 }}>
+                    Currently being spectated by <strong>{s.spectator.username}</strong>
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <div
           style={{
             display: "grid",
@@ -156,6 +212,21 @@ export default function ModDashboardPage() {
               </p>
             </div>
           </Link>
+          {/* UNO has no MOD-authored content — unlike the two cards above,
+              which link to a set-editor, this one starts a session
+              directly (uno-host's create_session needs nothing but who's
+              hosting). */}
+          <div
+            className="card"
+            style={{ cursor: startingUno ? "wait" : "pointer", opacity: startingUno ? 0.7 : 1 }}
+            onClick={() => !startingUno && handleStartUno()}
+          >
+            <div style={{ fontSize: "2rem" }}>🎴</div>
+            <h3 style={{ marginTop: "12px" }}>UNO</h3>
+            <p className="text-muted" style={{ marginBottom: 0 }}>
+              {startingUno ? "Starting a new game…" : "Start a new UNO game — deals as soon as everyone's in."}
+            </p>
+          </div>
         </div>
 
         <p className="text-muted" style={{ marginTop: "28px" }}>

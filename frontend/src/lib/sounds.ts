@@ -134,6 +134,19 @@ export const sounds = {
     ]);
   },
 
+  /** Soft paper-flick — a card being drawn from the pile. */
+  cardDraw() {
+    playTones([
+      { freq: 320, start: 0, duration: 0.05, type: "triangle", gain: 0.12 },
+      { freq: 260, start: 0.04, duration: 0.09, type: "triangle", gain: 0.1 },
+    ]);
+  },
+
+  /** Crisp single snap — a card landing face-up on the discard pile. */
+  cardReveal() {
+    playTones([{ freq: 720, start: 0, duration: 0.07, type: "triangle", gain: 0.15 }]);
+  },
+
   /** Quick 3-note "here we go" riser — the host starts the session/game. */
   sessionStart() {
     playTones([

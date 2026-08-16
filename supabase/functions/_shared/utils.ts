@@ -266,6 +266,120 @@ export function discordAvatarUrl(discordId: string, avatarHash: string | null, d
   return `https://cdn.discordapp.com/embed/avatars/${fallbackIndex}.png`;
 }
 
+// --- UNO helpers ---
+
+export type UnoColor = "red" | "yellow" | "green" | "blue";
+export type UnoCard = {
+  color: UnoColor | "wild";
+  value: "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "skip" | "reverse" | "draw2" | "wild" | "wild4";
+};
+
+const UNO_COLORS: UnoColor[] = ["red", "yellow", "green", "blue"];
+const UNO_ACTION_VALUES = ["skip", "reverse", "draw2"] as const;
+
+/** Builds the standard 108-card UNO deck, unshuffled. */
+export function buildUnoDeck(): UnoCard[] {
+  const deck: UnoCard[] = [];
+  for (const color of UNO_COLORS) {
+    deck.push({ color, value: "0" });
+    for (let n = 1; n <= 9; n++) {
+      deck.push({ color, value: String(n) as UnoCard["value"] });
+      deck.push({ color, value: String(n) as UnoCard["value"] });
+    }
+    for (const action of UNO_ACTION_VALUES) {
+      deck.push({ color, value: action });
+      deck.push({ color, value: action });
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    deck.push({ color: "wild", value: "wild" });
+    deck.push({ color: "wild", value: "wild4" });
+  }
+  return deck;
+}
+
+/** Fisher-Yates. Returns a new array — never mutates the input. */
+export function shuffle<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+export function isUnoActionCard(card: UnoCard): boolean {
+  return (UNO_ACTION_VALUES as readonly string[]).includes(card.value);
+}
+export function isUnoWildCard(card: UnoCard): boolean {
+  return card.color === "wild";
+}
+export function isUnoNumberCard(card: UnoCard): boolean {
+  return !isUnoActionCard(card) && !isUnoWildCard(card);
+}
+
+/**
+ * Legal-play check for a normal turn (not a jump-in — see
+ * isUnoJumpInMatch for that). `pendingDrawType` restricts you to
+ * matching draw cards only, per the stacking house rule. A non-wild card
+ * is legal if it matches the active color OR the discard top's value
+ * (e.g. a blue 7 on a red 7), so this needs the actual discard top, not
+ * just the active color.
+ */
+export function isUnoLegalPlayAgainst(
+  card: UnoCard,
+  discardTop: UnoCard,
+  currentColor: UnoColor,
+  pendingDrawType: "draw_two" | "draw_four" | null
+): boolean {
+  if (pendingDrawType === "draw_two") return card.value === "draw2";
+  if (pendingDrawType === "draw_four") return card.value === "wild4";
+  if (isUnoWildCard(card)) return true;
+  return card.color === currentColor || card.value === discardTop.value;
+}
+
+/** Jump-in (house rule): legal any time, out of turn, only on an EXACT color+value match. */
+export function isUnoJumpInMatch(card: UnoCard, discardTop: UnoCard): boolean {
+  return card.color === discardTop.color && card.value === discardTop.value;
+}
+
+/**
+ * Next seat index in `direction`, wrapping around `totalSeats`. Pass
+ * `steps: 2` for a Skip (or a Reverse in a 2-player game, which the
+ * official rules treat as a Skip).
+ */
+export function nextUnoSeat(currentSeat: number, direction: 1 | -1, totalSeats: number, steps = 1): number {
+  return (((currentSeat + direction * steps) % totalSeats) + totalSeats) % totalSeats;
+}
+
+/**
+ * Draws `count` cards from the draw pile, reshuffling the discard pile
+ * (minus whatever's passed as the current top, which stays put) back
+ * into a fresh draw pile if it runs out mid-draw. Returns the drawn
+ * cards plus the piles' new state — caller is responsible for persisting
+ * both `draw_pile` and `discard_pile` after calling this.
+ */
+export function drawUnoCards(
+  drawPile: UnoCard[],
+  discardPile: UnoCard[],
+  count: number
+): { drawn: UnoCard[]; newDrawPile: UnoCard[]; newDiscardPile: UnoCard[] } {
+  let pile = [...drawPile];
+  let discard = [...discardPile];
+  const drawn: UnoCard[] = [];
+
+  for (let i = 0; i < count; i++) {
+    if (pile.length === 0) {
+      if (discard.length === 0) break; // both piles genuinely empty — stop early rather than loop forever
+      pile = shuffle(discard);
+      discard = [];
+    }
+    drawn.push(pile.pop()!);
+  }
+
+  return { drawn, newDrawPile: pile, newDiscardPile: discard };
+}
+
 /** Computes a session's leaderboard by summing points_awarded per participant. */
 export async function computeLeaderboard(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
   const { data: participants } = await admin

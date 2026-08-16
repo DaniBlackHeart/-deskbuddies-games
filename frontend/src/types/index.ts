@@ -252,3 +252,70 @@ export type FeudSessionEvent =
       revealed_count: number;
     }
   | { type: "session_ended"; team_a_score: number; team_b_score: number; fastmoney_team: Team | null; fastmoney_total_points: number; won_grand_prize: boolean | null; completed: boolean };
+
+// =========================================================
+// UNO
+// Keep in sync with supabase/migrations/0011_uno.sql
+// =========================================================
+
+export type UnoColor = "red" | "yellow" | "green" | "blue";
+export type UnoCardValue = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "skip" | "reverse" | "draw2" | "wild" | "wild4";
+export type UnoCard = { color: UnoColor | "wild"; value: UnoCardValue };
+
+export type UnoSessionStatus = "lobby" | "live" | "ended";
+export type UnoPendingDrawType = "draw_two" | "draw_four" | null;
+
+// Shape returned by get-uno-state — NOT the raw table row (the raw
+// uno_sessions row has no draw_pile/discard_pile at all; those live in
+// uno_deck_state, which the frontend never queries directly — see
+// 0011_uno.sql for why).
+export type UnoSessionPublic = {
+  id: string;
+  status: UnoSessionStatus;
+  direction: 1 | -1;
+  current_turn_user_id: string | null;
+  current_color: UnoColor | null;
+  drawn_this_turn: boolean;
+  discard_top: UnoCard | null;
+  draw_pile_count: number;
+  pending_draw: number;
+  pending_draw_type: UnoPendingDrawType;
+  pending_draw_from_user_id: string | null;
+  state_version: number;
+  winner_id: string | null;
+};
+
+export type UnoParticipant = {
+  user_id: string;
+  seat_order: number;
+  hand_count: number;
+  has_called_uno: boolean;
+  finished_at: string | null;
+  finish_rank: number | null;
+  profiles: { username: string; avatar_url: string | null } | null;
+};
+
+// --- Realtime broadcast payload shapes (uno-session-{id} channel) ---
+
+export type UnoSessionEvent =
+  | { type: "game_started"; starter: UnoCard; current_turn_user_id: string }
+  | {
+      type: "card_played";
+      user_id: string;
+      card: UnoCard;
+      jump_in: boolean;
+      effect: UnoCardValue;
+      next_turn_user_id: string;
+      current_color: UnoColor;
+      pending_draw: number;
+      pending_draw_type: UnoPendingDrawType;
+      hand_count: number;
+      called_uno: boolean;
+    }
+  | { type: "card_drawn"; user_id: string; count: number; forced: false; next_turn_user_id: string }
+  | { type: "forced_draw"; user_id: string; count: number; forced: true; next_turn_user_id: string }
+  | { type: "turn_passed"; user_id: string; next_turn_user_id: string }
+  | { type: "uno_caught"; caught_user_id: string; caught_by_user_id: string; penalty: number }
+  | { type: "challenge_resolved"; success: boolean; accused_user_id: string; penalty_to: string; penalty: number }
+  | { type: "game_ended"; winner_user_id: string; card: UnoCard }
+  | { type: "session_ended" };

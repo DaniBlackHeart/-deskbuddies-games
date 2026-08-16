@@ -30,6 +30,12 @@ export default function DashboardPage() {
             description="Face-off, steal the board, and go for the Fast Money grand prize."
           />
           <GameCard
+            to="/uno/lobby"
+            emoji="🎴"
+            title="UNO"
+            description="Draw stacking, jump-in, and the Wild Draw Four challenge — up to 10 players."
+          />
+          <GameCard
             to="#"
             emoji="✨"
             title="More games soon"

@@ -10,6 +10,8 @@ import TriviaLobbyPage from "./pages/trivia/TriviaLobbyPage";
 import TriviaPlayPage from "./pages/trivia/TriviaPlayPage";
 import FeudLobbyPage from "./pages/feud/FeudLobbyPage";
 import FeudPlayPage from "./pages/feud/FeudPlayPage";
+import UnoLobbyPage from "./pages/uno/UnoLobbyPage";
+import UnoPlayPage from "./pages/uno/UnoPlayPage";
 import ModDashboardPage from "./pages/mod/ModDashboardPage";
 import QuestionSetsPage from "./pages/mod/QuestionSetsPage";
 import QuestionSetEditorPage from "./pages/mod/QuestionSetEditorPage";
@@ -19,6 +21,8 @@ import FeudSetsPage from "./pages/mod/FeudSetsPage";
 import FeudSetEditorPage from "./pages/mod/FeudSetEditorPage";
 import HostFeudSessionPage from "./pages/mod/HostFeudSessionPage";
 import FeudSpectatorPage from "./pages/mod/FeudSpectatorPage";
+import HostUnoSessionPage from "./pages/mod/HostUnoSessionPage";
+import UnoSpectatorPage from "./pages/mod/UnoSpectatorPage";
 
 export default function App() {
   return (
@@ -66,6 +70,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <FeudPlayPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/uno/lobby"
+            element={
+              <ProtectedRoute>
+                <UnoLobbyPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/uno/play/:sessionId"
+            element={
+              <ProtectedRoute>
+                <UnoPlayPage />
               </ProtectedRoute>
             }
           />
@@ -139,6 +159,22 @@ export default function App() {
             element={
               <ModRoute>
                 <FeudSpectatorPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/uno-host/:sessionId"
+            element={
+              <ModRoute>
+                <HostUnoSessionPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/uno-spectate/:sessionId"
+            element={
+              <ModRoute>
+                <UnoSpectatorPage />
               </ModRoute>
             }
           />

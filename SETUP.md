@@ -63,6 +63,12 @@ You should now have: **Client ID**, **Client Secret**, **Bot Token**,
    supabase functions deploy trivia-host
    supabase functions deploy trivia-answer
    supabase functions deploy get-current-question
+   supabase functions deploy feud-host
+   supabase functions deploy feud-play
+   supabase functions deploy get-feud-state
+   supabase functions deploy uno-host
+   supabase functions deploy uno-play
+   supabase functions deploy get-uno-state
    ```
 4. Set the Edge Function secrets (these are only ever read server-side):
    ```bash
@@ -140,6 +146,27 @@ In Vercel:
 Only one session can be "open" at a time from the member side (the Trivia Night
 tab shows whatever the most recent non-ended session is) — so start one, run it
 to completion (or end it), before starting the next.
+
+---
+
+## 6. Running your first UNO game
+
+UNO has no MOD-authored content to set up — there's nothing to "write" ahead of
+time, unlike Trivia's question sets. Starting a game is one click:
+
+1. Sign in as a MOD → **🛠️ MOD Dashboard** → click the **🎴 UNO** tile. This
+   creates the session and drops you straight into the host control panel.
+2. Tell your members in Discord — they go to the **UNO** tile on the dashboard
+   and hit **Join UNO**. 2–10 players.
+3. Once everyone's in, reorder with ↑↓ if you want a specific deal order, then
+   **▶ Start game**. From here players run the game themselves from their own
+   screens — turns, draws, challenges, all of it — there's nothing left to
+   click in the host panel except **End game** if you need to cut it short.
+4. The game ends itself the instant someone empties their hand — everyone sees
+   the final standings automatically.
+
+Same cross-game session lock as Trivia/Feud applies here too — only one
+session across any game can be open at once.
 
 ---
 
