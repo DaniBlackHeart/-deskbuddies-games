@@ -1,13 +1,16 @@
 # DeskBuddies Games
 
 A web app for the **DeskBuddies** Discord server — a home for the games you and your
-MODs come up with. Three so far:
+MODs come up with. Four so far:
 
 - **Trivia Night** — live-hosted, mixing multiple-choice and typed questions.
 - **Family Feud** — live-hosted, face-off / board / steal / Fast Money, fully
   remote (everyone on their own device).
 - **UNO** — live-hosted, full ruleset including draw-stacking, jump-in, the
   7-0 house rule, and the Wild Draw Four challenge. 2–10 players.
+- **Impostor WHO?** — everyone gets a secret word and its category except
+  one random Impostor, who only sees the category as their one clue. Two
+  rounds of typed clues, then a multiple-choice vote on who's faking it.
 
 Members sign in with Discord and must be a member of the DeskBuddies server. MODs
 (auto-detected from a Discord role) get extra controls to write questions and host
@@ -45,21 +48,31 @@ supabase/
     readable by anyone at all — it lives in a table with RLS enabled and
     zero client-facing policies, the same "defense in depth" pattern used
     for the cross-game session lock.
-- **Question sets**: MODs build Trivia's and Feud's ahead of time — one
-  question at a time, or by pasting a whole batch via the import tool
-  (Trivia only, so far — Feud's set editor doesn't have bulk import yet).
-  UNO has no equivalent — it's the standard deck, so a MOD starts a game
-  directly from the MOD Dashboard with nothing to author first.
-- **No shared `games` table.** Trivia, Feud, and UNO keep fully separate,
-  parallel tables rather than a unified `games`/`sessions` schema. What *is*
-  shared is a small `active_session_lock` table that enforces "only one live
-  session, across any game, at a time" — every game's `create_session` claims
-  it atomically, same pattern as claiming a spectator seat. This was an open
-  question after Trivia shipped alone; it's been decided, not just deferred —
-  three games in, the actual duplication between them still hasn't justified
-  a schema merge, and every game so far is the same shape (everyone-plays-
-  together, host-driven, one session at a time). Worth revisiting only if
-  that stops being true.
+  - Impostor WHO?: three separate secrets, three separate anti-cheat
+    boundaries. WHO the Impostor is and WHAT the secret word is live in a
+    table with zero client-facing policies (same "defense in depth" idea as
+    UNO's draw pile) until the reveal deliberately exposes them at game
+    end. Each player's own card (their word, or the Impostor's
+    category-only clue) is "read own row only," same as UNO's hands. And
+    votes are "read own row only" too, so nobody can watch the tally build
+    by peeking at other players' rows — only the resolution broadcast
+    reveals the aggregate count once voting closes.
+- **Question sets**: MODs build Trivia's, Feud's, and Impostor WHO?'s ahead
+  of time — one item at a time, or by pasting a whole batch via each game's
+  import tool (Trivia and Impostor WHO? support bulk import; Feud's set
+  editor doesn't yet). UNO has no equivalent — it's the standard deck, so a
+  MOD starts a game directly from the MOD Dashboard with nothing to author
+  first.
+- **No shared `games` table.** Trivia, Feud, UNO, and Impostor WHO? keep
+  fully separate, parallel tables rather than a unified `games`/`sessions`
+  schema. What *is* shared is a small `active_session_lock` table that
+  enforces "only one live session, across any game, at a time" — every
+  game's `create_session` claims it atomically, same pattern as claiming a
+  spectator seat. This was an open question after Trivia shipped alone;
+  it's been decided, not just deferred — four games in, the actual
+  duplication between them still hasn't justified a schema merge, and every
+  game so far is the same shape (everyone-plays-together, host-driven, one
+  session at a time). Worth revisiting only if that stops being true.
 
 ## Local development
 

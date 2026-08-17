@@ -27,11 +27,20 @@ type ActiveUnoSession = {
   spectator: { username: string } | null;
 };
 
+type ActiveImpostorSession = {
+  id: string;
+  status: string;
+  category_name: string;
+  spectator_id: string | null;
+  spectator: { username: string } | null;
+};
+
 export default function ModDashboardPage() {
   const navigate = useNavigate();
   const [active, setActive] = useState<ActiveSession[]>([]);
   const [activeFeud, setActiveFeud] = useState<ActiveFeudSession[]>([]);
   const [activeUno, setActiveUno] = useState<ActiveUnoSession[]>([]);
+  const [activeImpostor, setActiveImpostor] = useState<ActiveImpostorSession[]>([]);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [clearingLock, setClearingLock] = useState(false);
   const [lockResult, setLockResult] = useState<string | null>(null);
@@ -58,6 +67,13 @@ export default function ModDashboardPage() {
       .neq("status", "ended")
       .order("created_at", { ascending: false })
       .then(({ data }) => setActiveUno((data as unknown as ActiveUnoSession[]) ?? []));
+
+    supabase
+      .from("impostor_sessions")
+      .select("id, status, category_name, spectator_id, spectator:profiles!spectator_id(username)")
+      .neq("status", "ended")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setActiveImpostor((data as unknown as ActiveImpostorSession[]) ?? []));
   }, []);
 
   async function handleStartUno() {
@@ -100,7 +116,7 @@ export default function ModDashboardPage() {
       <AppHeader />
       <div className="container">
         <h1>🛠️ MOD Dashboard</h1>
-        <p className="text-muted">Manage question sets and run Trivia Night, Family Feud, and UNO.</p>
+        <p className="text-muted">Manage question sets and run Trivia Night, Family Feud, UNO, and Impostor WHO?.</p>
 
         {active.length > 0 && (
           <div className="card" style={{ marginBottom: "20px" }}>
@@ -187,6 +203,34 @@ export default function ModDashboardPage() {
           </div>
         )}
 
+        {activeImpostor.length > 0 && (
+          <div className="card" style={{ marginBottom: "20px" }}>
+            <h3>Impostor WHO? in progress</h3>
+            {activeImpostor.map((s) => (
+              <div key={s.id} className="stack" style={{ marginTop: "8px" }}>
+                <div className="row-between">
+                  <span>
+                    {s.category_name} — <span className="badge badge-live">{s.status}</span>
+                  </span>
+                  <div className="row">
+                    <Link to={`/mod/impostor-spectate/${s.id}`} className="btn btn-secondary btn-sm">
+                      👀 Watch as spectator
+                    </Link>
+                    <Link to={`/mod/impostor-host/${s.id}`} className="btn btn-primary btn-sm">
+                      Go to host controls
+                    </Link>
+                  </div>
+                </div>
+                {s.spectator && (
+                  <p className="hint" style={{ margin: 0 }}>
+                    Currently being spectated by <strong>{s.spectator.username}</strong>
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <div
           style={{
             display: "grid",
@@ -227,6 +271,15 @@ export default function ModDashboardPage() {
               {startingUno ? "Starting a new game…" : "Start a new UNO game — deals as soon as everyone's in."}
             </p>
           </div>
+          <Link to="/mod/impostor-categories" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="card">
+              <div style={{ fontSize: "2rem" }}>🕵️</div>
+              <h3 style={{ marginTop: "12px" }}>Impostor WHO?</h3>
+              <p className="text-muted" style={{ marginBottom: 0 }}>
+                Manage categories and words, then start a session from inside one.
+              </p>
+            </div>
+          </Link>
         </div>
 
         <p className="text-muted" style={{ marginTop: "28px" }}>

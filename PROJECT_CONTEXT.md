@@ -11,9 +11,11 @@
 > it, download the result, and re-upload it to Project Knowledge. Claude
 > can't write back to Project Knowledge on its own.
 
-Last reconciled: 2026-08-16, adding the UNO build (full ruleset: official +
-draw-stacking, jump-in, 7-0, Wild Draw Four challenge; 2–10 players) on top
-of the 2026-08-14 reconciliation described below.
+Last reconciled: 2026-08-17, adding the Impostor WHO? build (secret-word
+social deduction game: everyone gets a word + category except one random
+Impostor, who only sees the category as their clue; 2 rounds of typed clues
+before a multiple-choice vote, repeating once if inconclusive) on top of the
+2026-08-16 UNO reconciliation described below.
 
 ---
 
@@ -21,16 +23,23 @@ of the 2026-08-14 reconciliation described below.
 
 A web app for the **DeskBuddies** Discord server. Members sign in with
 Discord and must be a verified member of the server. MODs (auto-detected via
-a Discord role) get extra controls. Three games exist now:
+a Discord role) get extra controls. Four games exist now:
 
 - **Trivia Night** — live-hosted, multiple-choice + typed questions.
 - **Family Feud** — live-hosted, face-off / board / steal / Fast Money,
   fully remote (everyone on their own device).
 - **UNO** — live-hosted, full ruleset (official + draw-stacking, jump-in,
-  7-0 house rule, Wild Draw Four challenge), 2–10 players. Unlike the other
-  two, UNO has no MOD-authored content — no equivalent of a "set" — so a
-  MOD starts a game directly from the MOD Dashboard rather than from a
-  set-editor's "Start session" button.
+  7-0 house rule, Wild Draw Four challenge), 2–10 players. No MOD-authored
+  content — a MOD starts a game directly from the MOD Dashboard.
+- **Impostor WHO?** — live-hosted social deduction. Everyone gets a card
+  with the secret word + its category; one random player (the Impostor)
+  only sees the category as their bluffing clue. Turn-based typed clues
+  (2 rounds), then a multiple-choice accusation vote; repeats once with a
+  fresh random starter if inconclusive, Impostor wins by default if it's
+  still inconclusive after that. Has MOD-authored content (categories +
+  word pools, like Trivia's question sets) — a MOD opens a category and
+  starts the session from there, same pattern as Trivia/Feud, not UNO's
+  "start directly from the dashboard."
 
 ## 2. Stack
 
@@ -44,22 +53,28 @@ one-offs) · React Context + local state only, no Redux/Zustand · `oxlint`.
 ```
 frontend/
   src/
-    pages/trivia/, pages/feud/, pages/uno/    game-specific pages
+    pages/trivia/, pages/feud/, pages/uno/, pages/impostor/    game-specific pages
     pages/mod/                       MOD-only pages (question sets, hosting, spectator, dashboard)
     components/                      shared, game-agnostic UI (GameCard, Timer, Leaderboard,
-                                      Buzzer, FeudBoard, TeamScoreboard, TypedAnswerBox, UnoCardView, ...)
+                                      Buzzer, FeudBoard, TeamScoreboard, TypedAnswerBox, UnoCardView,
+                                      ImpostorCardView, ImpostorClueBoard, ...)
     lib/                             archiveOrDelete.ts, unoRules.ts (client-side legality hinting,
                                       mirrors the server check — never authoritative), supabaseClient.ts
                                       (invokeFunction helper), sounds.ts
+    utils/                           questionParser.ts, impostorParser.ts (both: JSON-or-text-template
+                                      paste parsers, feeding each game's import modal)
     styles/tokens.css, global.css
 supabase/
-  migrations/                        numbered SQL files, currently up to 0011
+  migrations/                        numbered SQL files, currently up to 0012
   functions/
-    _shared/utils.ts                 shared helpers (see §6) — includes UNO's deck/shuffle/legality helpers
+    _shared/utils.ts                 shared helpers (see §6) — includes UNO's deck/shuffle/legality
+                                      helpers, reused as-is by Impostor for seat rotation (nextUnoSeat
+                                      is plain modular arithmetic, nothing UNO-specific about it)
     verify-membership/               Discord membership + MOD role check
     trivia-host/, trivia-answer/, get-current-question/
     feud-host/, feud-play/, get-feud-state/
     uno-host/, uno-play/, get-uno-state/
+    impostor-host/, impostor-play/, get-impostor-state/
 ```
 
 ## 4. Auth & security model (don't break this)
@@ -97,7 +112,23 @@ supabase/
   piles into their own `uno_deck_state` table with RLS enabled and zero
   policies at all — same "defense in depth" shape as `active_session_lock`.
   Worth remembering for any future game with a comparable "everyone can see
-  *some* of this row, nobody can see the rest of it" shape.
+  *some* of this row, nobody can see the rest of it" shape. Impostor WHO?
+  hit the exact same shape a third time (see below) and reused the identical
+  fix without needing to rediscover it.
+- **Impostor WHO? has three separate secrets, not one** — worth being
+  deliberate about since it's easy to only catch the obvious one. (1) WHO
+  the Impostor is, and (2) WHAT the secret word is, both live in
+  `impostor_secrets` — zero client-facing policies, same "defense in depth"
+  shape as `uno_deck_state`/`active_session_lock`, only ever touched by the
+  service role, and only ever exposed once the game legitimately ends (via
+  `impostor_sessions.revealed_impostor_user_id`/`revealed_secret_word`,
+  which stay null until then — safe to put on the normally-member-readable
+  session row for the same reason `uno_sessions.winner_id` is). (3) WHO
+  VOTED FOR WHOM is a *third*, easy-to-miss secret: `impostor_votes` is
+  "read own row only" (mirrors `feud_fastmoney_answers`), specifically so
+  nobody can watch the accusation tally build in real time by querying
+  other players' vote rows — only the server-computed aggregate, broadcast
+  once voting closes, reveals counts.
 - DB writes to session/answer/question tables happen only via the
   service-role key inside Edge Functions — no insert/update RLS policy
   exists for the `authenticated` role on those tables, by design.
@@ -111,13 +142,18 @@ supabase/
 
 This was the open question flagged in the original project instructions —
 it's been talked through and decided, not just deferred by accident. UNO
-shipping as a third game without needing to revisit this is a second real
-confirmation, not just a restated intention.
+shipping as a third game without needing to revisit this was a second real
+confirmation; Impostor WHO? shipping as a fourth — with yet another
+different shape again (it has MOD content like Trivia/Feud, but a
+completely different session state machine with no equivalent in either) —
+is a third.
 
-**Conclusion:** Trivia, Feud, and UNO keep fully separate, parallel tables
-(`trivia_sessions`/`session_participants`/`answers` vs.
+**Conclusion:** Trivia, Feud, UNO, and Impostor WHO? keep fully separate,
+parallel tables (`trivia_sessions`/`session_participants`/`answers` vs.
 `feud_sessions`/`feud_participants`/`feud_rounds`/`feud_fastmoney_answers`
-vs. `uno_sessions`/`uno_participants`/`uno_hands`/`uno_deck_state`).
+vs. `uno_sessions`/`uno_participants`/`uno_hands`/`uno_deck_state` vs.
+`impostor_sessions`/`impostor_participants`/`impostor_cards`/
+`impostor_secrets`/`impostor_clues`/`impostor_votes`).
 **No merge.** Instead, a small standalone `active_session_lock` table
 (migration `0008`) enforces one rule across the whole catalogue: **only one
 live session, across any game, at a time.** Each game's `create_session`
@@ -125,10 +161,10 @@ claims the lock atomically before creating its session row (same pattern as
 the spectator-seat claim); `end_session` releases it; a MOD-only
 `force_release_lock` action exists as a break-glass escape hatch, wired to a
 "Force-clear stuck session lock" button in `ModDashboardPage.tsx`'s
-Troubleshooting section. UNO's `uno-host`/`uno-play` call the exact same
-shared lock helpers (`claimSessionLock`/`releaseSessionLock`/
-`forceReleaseSessionLock` in `_shared/utils.ts`) — nothing UNO-specific was
-needed there.
+Troubleshooting section. UNO's and Impostor's host/play functions all call
+the exact same shared lock helpers (`claimSessionLock`/`releaseSessionLock`/
+`forceReleaseSessionLock` in `_shared/utils.ts`) — nothing game-specific was
+needed there, twice in a row now.
 
 **Why not the bigger merge:** the actual requirement (one atomic yes/no
 check) was much smaller than a full `game_sessions`/`game_participants`
@@ -170,6 +206,7 @@ no reason to copy a known-dead pattern into a new table.
 | 0009 | Feud spectator mode (`feud_sessions.spectator_id`) | confirmed |
 | 0010 | Archive-not-delete for `question_sets`/`questions` (`archived_at` columns, partial unique index on active rows so `order_index` can be reused after an archive) | confirmed |
 | 0011 | UNO schema (`uno_sessions`, `uno_participants`, `uno_hands`, `uno_deck_state`) | confirmed — full file in Project Knowledge |
+| 0012 | Impostor WHO? schema (`impostor_categories`, `impostor_words`, `impostor_sessions`, `impostor_secrets`, `impostor_cards`, `impostor_participants`, `impostor_clues`, `impostor_votes`) | confirmed — full file in Project Knowledge |
 
 **Caveat:** only 0001 is present verbatim in Project Knowledge. Everything
 else is reconstructed from chat summaries that described *what* a migration
@@ -177,7 +214,66 @@ did without always reproducing the SQL or confirming the exact filename. If
 you have the real `supabase/migrations/` folder, upload it and I'll replace
 this table with the real thing.
 
-## 7. Known bugs fixed (recurring patterns worth remembering)
+## 6a. Impostor WHO? — game-design decisions (read this before "fixing" the win condition)
+
+The build request specified the overall shape (2 rounds of clues, vote,
+repeat once if inconclusive, Impostor wins by default if still
+inconclusive) but left a few mechanics genuinely ambiguous. These were
+decided during the build rather than asked about, and are centralized in
+one place (`resolveVote` in `impostor-play/index.ts`) specifically so
+they're easy to revisit if they're not what was actually wanted:
+
+- **Vote resolution is plurality, not majority.** Whoever gets the single
+  most votes is "accused" — they don't need more than half. A tie at the
+  top means no accusation was reached.
+- **A *wrong* plurality accusation after the first vote is NOT an instant
+  Impostor win.** It's treated exactly like a tie/no-consensus: the group
+  didn't determine the Impostor, so round-set 2 starts. Only running out of
+  rounds (an inconclusive or wrong *second* vote) hands the win to the
+  Impostor. This was the most consequential interpretive call in the whole
+  build — the spec's literal wording ("if unable to determine... more
+  rounds... if still can't, Impostor wins") never actually describes what
+  happens on a *wrong but confident* guess, only on failing to reach one.
+  If the intent was actually "a wrong guess costs the game immediately, no
+  second chance," that's a small, contained change to `resolveVote`.
+- **No self-voting.** Server-enforced, not just hidden in the UI.
+- **Turn order:** seats are shuffled once at `start_game` (same idea as
+  UNO's deal order). Each round-SET (not each round) picks one fresh random
+  *non-Impostor* starter — round 2 of a set deliberately repeats the SAME
+  starter as round 1, rather than continuing the rotation, so the board
+  ends up with exactly 2 clues per player before every vote. Round-set 2 (if
+  it happens) gets an independently-chosen new starter, per the spec's
+  "instead of continuing from the previous one."
+- **The Impostor's clue is the category name** — nothing more. Re-reading
+  "every member gets a card with a secret word category... [the Impostor]
+  only gets... a clue for the secret word" as: crew's card = category +
+  word, Impostor's card = category only (no separate MOD-authored "hint"
+  field was added to `impostor_words` for this — the category itself
+  serves as the one clue, which also cleanly explains why the MOD picks the
+  category but the word is random within it).
+- **Card reveal is click-to-flip, starting face-down** — not in the
+  original spec, added because "every member gets a card" reads like a
+  physical-card metaphor, and starting hidden avoids an accidental
+  shoulder-surf reveal before everyone's ready. Same component shape as
+  UNO's face-down back.
+
+## 6b. A real bug caught during review, worth knowing about
+
+`create_session`'s `random_category` option originally joined
+`impostor_categories` to `impostor_words` with `!inner(id)` to find
+categories that have at least one active word. That's wrong: an inner join
+returns one row *per matching word*, so a category with 5 words would
+appear 5 times in the result set, silently skewing "random" category
+selection toward whichever category happens to have the most words instead
+of picking uniformly. Fixed by checking each category's word count
+separately (an N+1 query, but N is a handful of MOD-authored categories on
+a rarely-called action, so clarity won over the extra round trips — same
+trade-off `archiveOrDelete.ts`'s renumbering loop already makes elsewhere
+in this codebase). Caught during self-review before shipping, not by Dani —
+flagging in case a similar `!inner`-for-existence-check pattern shows up
+again in a future game.
+
+
 
 - **Host control dead-end state** — a live session with no question started
   yet had no actionable button. Fixed by making every host status always
@@ -246,23 +342,28 @@ this table with the real thing.
 ## 8. Feature parity + cleanup flagged, not all resolved
 
 - **Bulk paste-import for question sets** — Trivia has it
-  (`QuestionSetsPage`'s import/paste with a "Show example" toggle); Feud's
-  `FeudSetEditorPage` does not have an equivalent yet. Not applicable to
-  UNO — it has no MOD-authored content at all.
-- **Spectator mode** — now on all three games (Trivia via 0006, Feud via
-  0009, UNO via 0011), same masking rule every time: the spectator sees
-  exactly what a player would see, never anything that would let them
-  cheat if they later played (for UNO: no hands, same as `get-uno-state`
-  returns for anyone not seated).
+  (`QuestionSetsPage`'s import/paste with a "Show example" toggle); Impostor
+  WHO? has it too (`ImpostorImportModal`, both words-only and whole
+  categories-with-words); Feud's `FeudSetEditorPage` is now the one game
+  left without it. Not applicable to UNO — no MOD-authored content at all.
+- **Spectator mode** — now on all four games (Trivia via 0006, Feud via
+  0009, UNO via 0011, Impostor WHO? via 0012), same masking rule every
+  time: the spectator sees exactly what a player would see, never anything
+  that would let them cheat if they later played (Impostor: no card, no
+  vote — same `is_playing: false` shape `get-impostor-state` already
+  returns for anyone not seated, no special-casing needed, same as UNO).
 - Small duplication flagged but not necessarily cleaned up: `randomJoinCode()`
-  copy-pasted between `trivia-host`/`feud-host` (UNO doesn't have this
+  copy-pasted between `trivia-host`/`feud-host` (UNO/Impostor don't have this
   problem — no `join_code` at all, see §5); a `broadcast()` helper
-  duplicated in three places, now four (`uno-play` has its own copy too).
+  duplicated across `uno-play`/`impostor-host`/`impostor-play` now too.
 - **Real correctness bug, not just style:** Feud's Fast Money duplicate-
   answer check reimplements text normalization inline instead of importing
   the shared `normalizeAnswer`, missing accent-stripping. Worth fixing.
-- `ModDashboardPage`'s subtitle previously only mentioned Trivia Night —
-  **fixed** as part of the UNO build; it now mentions all three games.
+- `ModDashboardPage`'s subtitle: fixed during the UNO build to mention all
+  three games at the time; **fixed again** during the Impostor build to
+  mention all four. Worth a quick grep for a hardcoded game list/count
+  anywhere else in the frontend if a 5th game ever gets added — this is the
+  second time it's silently gone stale.
 - **UNO: Wild Draw Four challenge + stacking, combined** — a deliberate
   scope cut, not a bug, but worth knowing before it comes up in
   playtesting. If a second +4 gets stacked on top of the first, a challenge
@@ -274,6 +375,10 @@ this table with the real thing.
   of who-played-what-when, which felt like a lot of extra state for an edge
   case of an edge case. Revisit only if it actually comes up and feels
   wrong at the table.
+- **Impostor WHO?: the vote-resolution interpretive calls in §6a** are the
+  single highest-risk-of-being-wrong part of this build — flagged there in
+  detail rather than repeated here, but worth a second read if Dani reports
+  the game "feels off" after playtesting.
 
 ## 9. Deferred / declined features
 

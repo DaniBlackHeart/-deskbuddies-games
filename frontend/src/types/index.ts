@@ -319,3 +319,104 @@ export type UnoSessionEvent =
   | { type: "challenge_resolved"; success: boolean; accused_user_id: string; penalty_to: string; penalty: number }
   | { type: "game_ended"; winner_user_id: string; card: UnoCard }
   | { type: "session_ended" };
+
+// =========================================================
+// Impostor WHO?
+// Keep in sync with supabase/migrations/0012_impostor.sql
+// =========================================================
+
+export type ImpostorSessionStatus = "lobby" | "clue_giving" | "voting" | "ended";
+export type ImpostorWinner = "crew" | "impostor";
+
+export type ImpostorCategory = {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  archived_at: string | null;
+  word_count?: number;
+};
+
+export type ImpostorWord = {
+  id: string;
+  category_id: string;
+  word: string;
+  created_at: string;
+  archived_at: string | null;
+};
+
+// Shape returned by get-impostor-state — NOT the raw table row. Mirrors
+// get-uno-state: the raw impostor_sessions row is actually safe to read
+// directly (revealed_* stay null until a real outcome), but this shape is
+// what every page actually renders against.
+export type ImpostorSessionPublic = {
+  id: string;
+  status: ImpostorSessionStatus;
+  category_name: string;
+  round_number: number;
+  turn_index: number;
+  round_set_starter_user_id: string | null;
+  current_turn_user_id: string | null;
+  clue_deadline_ms: number | null;
+  vote_round: 1 | 2 | null;
+  vote_deadline_ms: number | null;
+  winner: ImpostorWinner | null;
+  completed: boolean;
+  revealed_impostor_user_id: string | null;
+  revealed_secret_word: string | null;
+  state_version: number;
+};
+
+export type ImpostorParticipant = {
+  user_id: string;
+  seat_order: number;
+  profiles: { username: string; avatar_url: string | null } | null;
+};
+
+// A player's own card — never anyone else's (impostor_cards RLS is "read
+// own row only"). `word` is null for the impostor.
+export type ImpostorCard = {
+  is_impostor: boolean;
+  word: string | null;
+  category_name: string;
+};
+
+// One entry on the public clue board.
+export type ImpostorClue = {
+  round_number: number;
+  user_id: string;
+  clue_text: string;
+  timed_out: boolean;
+};
+
+// Final tally for a resolved vote round — broadcast only, not persisted
+// beyond the event (the game either moves on to a fresh round-set or ends,
+// so there's nothing later that needs to re-read an old tally).
+export type ImpostorVoteTally = { user_id: string; count: number };
+
+// --- Realtime broadcast payload shapes (impostor-session-{id} channel) ---
+
+export type ImpostorSessionEvent =
+  | { type: "game_started"; round_number: 1; starter_user_id: string; category_name: string }
+  | {
+      type: "clue_submitted";
+      round_number: number;
+      user_id: string;
+      clue_text: string;
+      timed_out: boolean;
+      next_turn_user_id: string | null; // null when this clue completed round 2 of a set (voting starts next)
+      clue_deadline_ms: number | null;
+    }
+  | { type: "voting_started"; vote_round: 1 | 2; deadline_ms: number }
+  | { type: "vote_cast"; voted_count: number; total_count: number } // never includes who voted for whom
+  | {
+      type: "vote_resolved";
+      vote_round: 1 | 2;
+      tally: ImpostorVoteTally[];
+      accused_user_id: string | null; // null if the vote was a tie/no plurality
+      outcome: "continue" | "crew_win" | "impostor_win";
+    }
+  | { type: "next_round_set_started"; round_number: 3; starter_user_id: string }
+  | { type: "game_ended"; winner: ImpostorWinner; impostor_user_id: string; secret_word: string }
+  | { type: "session_ended" };

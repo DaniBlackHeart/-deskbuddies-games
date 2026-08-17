@@ -36,12 +36,10 @@ export default function DashboardPage() {
             description="Draw stacking, jump-in, and the Wild Draw Four challenge — up to 10 players."
           />
           <GameCard
-            to="#"
-            emoji="✨"
-            title="More games soon"
-            description="The mods are cooking up what's next."
-            disabled
-            badge="Coming soon"
+            to="/impostor/lobby"
+            emoji="🕵️"
+            title="Impostor WHO?"
+            description="Everyone gets a secret word except one Impostor. Give clues, then vote them out."
           />
         </div>
       </div>

@@ -206,6 +206,27 @@ export const sounds = {
     ]);
   },
 
+  /** Soft two-note tap — a clue lands on the Impostor WHO? board. */
+  clueChime() {
+    playTones([
+      { freq: 587.33, start: 0, duration: 0.06, type: "triangle", gain: 0.13 },
+      { freq: 698.46, start: 0.05, duration: 0.1, type: "triangle", gain: 0.13 },
+    ]);
+  },
+
+  /** Quick low click — a vote gets locked in (deliberately understated, no result leaked). */
+  voteLock() {
+    playTones([{ freq: 349.23, start: 0, duration: 0.06, type: "square", gain: 0.1 }]);
+  },
+
+  /** Tense low rumble-into-rise — building up to an accusation reveal. */
+  suspenseReveal() {
+    playTones([
+      { freq: 196, start: 0, duration: 0.3, type: "sawtooth", gain: 0.08 },
+      { freq: 246.94, start: 0.26, duration: 0.22, type: "sawtooth", gain: 0.1 },
+    ]);
+  },
+
   /**
    * Plays the right "how did this end" intro (finished vs. cut short), then
    * calls `then` once it's had time to land — meant to be followed by

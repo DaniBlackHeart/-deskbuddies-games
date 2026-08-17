@@ -153,3 +153,45 @@ export async function restoreQuestionSet(setId: string): Promise<ArchiveOrDelete
   }
   return { outcome: "restored" };
 }
+
+// =========================================================
+// Impostor WHO? — impostor_categories
+// Simpler than question_sets: impostor_words has no FK back to sessions
+// at all (a session only ever copies a word's text into impostor_secrets/
+// impostor_cards, never references the row), so words always hard-delete
+// cleanly — no archive dance needed for them, just a plain
+// `supabase.from("impostor_words").delete()` at the call site.
+// impostor_categories DOES get referenced by impostor_sessions.category_id
+// though, so a category used in a past game hits the same FK RESTRICT as
+// question_sets and needs the same archive fallback.
+// =========================================================
+export async function deleteImpostorCategory(categoryId: string): Promise<ArchiveOrDeleteResult> {
+  const { error: deleteError } = await supabase.from("impostor_categories").delete().eq("id", categoryId);
+
+  if (!deleteError) return { outcome: "deleted" };
+
+  if (deleteError.code !== FOREIGN_KEY_VIOLATION) {
+    console.error("impostor_category delete failed", deleteError);
+    return { outcome: "error", message: "Something went wrong deleting that category. Please try again." };
+  }
+
+  const { error: archiveError } = await supabase
+    .from("impostor_categories")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", categoryId);
+
+  if (archiveError) {
+    console.error("impostor_category archive failed", archiveError);
+    return { outcome: "error", message: "Couldn't archive that category either. Please try again." };
+  }
+  return { outcome: "archived" };
+}
+
+export async function restoreImpostorCategory(categoryId: string): Promise<ArchiveOrDeleteResult> {
+  const { error } = await supabase.from("impostor_categories").update({ archived_at: null }).eq("id", categoryId);
+  if (error) {
+    console.error("impostor_category restore failed", error);
+    return { outcome: "error", message: "Couldn't restore that category. Please try again." };
+  }
+  return { outcome: "restored" };
+}

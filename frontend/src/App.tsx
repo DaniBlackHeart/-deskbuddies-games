@@ -23,6 +23,12 @@ import HostFeudSessionPage from "./pages/mod/HostFeudSessionPage";
 import FeudSpectatorPage from "./pages/mod/FeudSpectatorPage";
 import HostUnoSessionPage from "./pages/mod/HostUnoSessionPage";
 import UnoSpectatorPage from "./pages/mod/UnoSpectatorPage";
+import ImpostorLobbyPage from "./pages/impostor/ImpostorLobbyPage";
+import ImpostorPlayPage from "./pages/impostor/ImpostorPlayPage";
+import ImpostorCategoriesPage from "./pages/mod/ImpostorCategoriesPage";
+import ImpostorCategoryEditorPage from "./pages/mod/ImpostorCategoryEditorPage";
+import HostImpostorSessionPage from "./pages/mod/HostImpostorSessionPage";
+import ImpostorSpectatorPage from "./pages/mod/ImpostorSpectatorPage";
 
 export default function App() {
   return (
@@ -86,6 +92,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <UnoPlayPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/impostor/lobby"
+            element={
+              <ProtectedRoute>
+                <ImpostorLobbyPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/impostor/play/:sessionId"
+            element={
+              <ProtectedRoute>
+                <ImpostorPlayPage />
               </ProtectedRoute>
             }
           />
@@ -175,6 +197,38 @@ export default function App() {
             element={
               <ModRoute>
                 <UnoSpectatorPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/impostor-categories"
+            element={
+              <ModRoute>
+                <ImpostorCategoriesPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/impostor-categories/:categoryId"
+            element={
+              <ModRoute>
+                <ImpostorCategoryEditorPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/impostor-host/:sessionId"
+            element={
+              <ModRoute>
+                <HostImpostorSessionPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/impostor-spectate/:sessionId"
+            element={
+              <ModRoute>
+                <ImpostorSpectatorPage />
               </ModRoute>
             }
           />

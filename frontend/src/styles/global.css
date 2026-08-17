@@ -702,3 +702,152 @@ button {
 .uno-color-swatch--blue {
   background: #5b7c99;
 }
+
+/* Impostor WHO? — the card face reuses the same "flip a physical card"
+   metaphor as UNO's face-down back, but the two states it can show once
+   revealed (crew vs. impostor) lean on the existing danger/primary tokens
+   rather than adding new ones: crew's card is calm (surface + primary
+   accent), the impostor's is deliberately unsettling (danger-tinted). */
+.impostor-card {
+  width: 100%;
+  max-width: 320px;
+  min-height: 180px;
+  margin: 0 auto;
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 3px solid var(--color-surface-raised);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-2);
+}
+.impostor-card--back {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-text) 0px,
+    var(--color-text) 6px,
+    #4a3d30 6px,
+    #4a3d30 12px
+  );
+  border-color: var(--color-border);
+  cursor: pointer;
+  color: var(--color-text-on-primary);
+  transition: transform 0.12s ease;
+}
+.impostor-card--back:hover {
+  transform: translateY(-3px);
+}
+.impostor-card__back-icon {
+  font-size: 2.5rem;
+}
+.impostor-card__back-label {
+  font-weight: 700;
+  opacity: 0.9;
+}
+.impostor-card--crew {
+  background: var(--color-surface-raised);
+  border-color: var(--color-primary);
+}
+.impostor-card--impostor {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
+}
+.impostor-card__eyebrow {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.impostor-card--impostor .impostor-card__eyebrow {
+  color: var(--color-danger);
+}
+.impostor-card__word {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.impostor-card__word--impostor {
+  color: var(--color-danger);
+  letter-spacing: 0.15em;
+}
+.impostor-card__hint {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* The public clue board — the whole point of this game's UI, so it's
+   pinned near the top of the play screen with each round visually
+   grouped and separated. */
+.impostor-board {
+  margin-bottom: var(--space-4);
+}
+.impostor-board__round + .impostor-board__round {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-border);
+}
+.impostor-board__round-label {
+  margin: 0;
+  font-weight: 800;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
+}
+.impostor-board__clue {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+/* Voting phase — a grid of tappable suspect cards, deliberately styled
+   like a multiple-choice question (echoes Trivia's choice buttons) so the
+   interaction pattern feels familiar even though this is a different
+   game. */
+.impostor-vote-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+.impostor-vote-option {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface-raised);
+  cursor: pointer;
+  font-weight: 700;
+  text-align: center;
+  transition: transform 0.1s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.impostor-vote-option:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+.impostor-vote-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.impostor-vote-option--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+.impostor-vote-option--accused {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.impostor-reveal {
+  text-align: center;
+  padding: var(--space-5);
+}
+.impostor-reveal__word {
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: var(--space-2) 0;
+}
