@@ -79,7 +79,7 @@ You should now also have: **Client ID**, **Client Secret** (from App B).
    haven't already.
 2. **SQL Editor** → paste the contents of `supabase/migrations/0001_init.sql`
    → Run, then repeat in order for every later migration file
-   (`0002` ... currently up to `0012`). (Or, if you use the Supabase CLI:
+   (`0002` ... currently up to `0013`). (Or, if you use the Supabase CLI:
    `supabase link --project-ref <ref>` then `supabase db push` — but see the
    note below if you're picking up an existing project that already had
    migrations pasted manually.)
@@ -242,11 +242,14 @@ as Trivia's question sets.
 
 1. Sign in as a MOD → **🛠️ MOD Dashboard** → **🕵️ Impostor WHO?** tile → this
    takes you to **Impostor Categories**.
-2. **+ New category** → name it (e.g. "Animals") → add words one at a time,
-   or click **📋 Import words** to paste a batch. You can also import whole
-   categories at once from the categories list with **📋 Import categories**
-   (a JSON array, or a simple `Category: Name` text template — see the
-   in-app example).
+2. **+ New category** → name it (e.g. "Animals") → add words one at a time
+   (each word has an optional **clue** field — this is what the Impostor
+   sees, so it's worth filling in; if left blank they'll just see the
+   category name instead), or click **📋 Import words** to paste a batch
+   (supports `Word | Clue` per line, or JSON). You can also import whole
+   categories at once from the categories list with **📋 Import
+   categories** (a JSON array, or a simple `Category: Name` text template
+   — see the in-app example).
 3. Open a category and click **▶ Start a session with this category** — this
    creates the session and takes you to the host control panel. (Don't care
    which category? Use **🎲 Start with random category** on the categories

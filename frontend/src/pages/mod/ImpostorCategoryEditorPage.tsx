@@ -4,6 +4,7 @@ import AppHeader from "../../components/AppHeader";
 import ImpostorImportModal from "../../components/ImpostorImportModal";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { ImpostorCategory, ImpostorWord } from "../../types";
+import type { ParsedWord } from "../../utils/impostorParser";
 
 export default function ImpostorCategoryEditorPage() {
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -15,11 +16,16 @@ export default function ImpostorCategoryEditorPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [loading, setLoading] = useState(true);
   const [newWord, setNewWord] = useState("");
+  const [newClue, setNewClue] = useState("");
   const [saving, setSaving] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  // Local drafts for the inline clue editors, keyed by word id — lets a MOD
+  // type without a round trip on every keystroke; "Save" only appears once
+  // the draft actually differs from what's stored.
+  const [clueDrafts, setClueDrafts] = useState<Record<string, string>>({});
 
   async function loadData() {
     setLoading(true);
@@ -28,8 +34,10 @@ export default function ImpostorCategoryEditorPage() {
       supabase.from("impostor_words").select("*").eq("category_id", categoryId).order("created_at", { ascending: true }),
     ]);
     setCategory(categoryData);
-    setWords((wordsData ?? []).filter((w) => !w.archived_at));
+    const active = (wordsData ?? []).filter((w) => !w.archived_at);
+    setWords(active);
     setArchivedWords((wordsData ?? []).filter((w) => w.archived_at));
+    setClueDrafts(Object.fromEntries(active.map((w) => [w.id, w.clue ?? ""])));
     setLoading(false);
   }
 
@@ -46,19 +54,30 @@ export default function ImpostorCategoryEditorPage() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("impostor_words").insert({ category_id: categoryId, word: trimmed });
+    const { error } = await supabase
+      .from("impostor_words")
+      .insert({ category_id: categoryId, word: trimmed, clue: newClue.trim() || null });
     setSaving(false);
     if (error) {
       setFormError("Could not save that word. Try again.");
       return;
     }
     setNewWord("");
+    setNewClue("");
     loadData();
   }
 
-  async function handleBulkImport(newWords: string[]) {
-    await supabase.from("impostor_words").insert(newWords.map((word) => ({ category_id: categoryId, word })));
+  async function handleBulkImport(newWords: ParsedWord[]) {
+    await supabase.from("impostor_words").insert(newWords.map((w) => ({ category_id: categoryId, word: w.word, clue: w.clue })));
     setShowImport(false);
+    loadData();
+  }
+
+  async function handleSaveClue(wordId: string) {
+    setBusyId(wordId);
+    const draft = clueDrafts[wordId]?.trim() ?? "";
+    await supabase.from("impostor_words").update({ clue: draft || null }).eq("id", wordId);
+    setBusyId(null);
     loadData();
   }
 
@@ -99,6 +118,8 @@ export default function ImpostorCategoryEditorPage() {
     navigate(`/mod/impostor-host/${data.session.id}`);
   }
 
+  const wordsMissingClues = words.filter((w) => !w.clue).length;
+
   if (loading) {
     return (
       <div className="center-screen">
@@ -128,55 +149,105 @@ export default function ImpostorCategoryEditorPage() {
             Add at least one word before starting a session — the secret word is picked at random from this list each game.
           </p>
         )}
+        {words.length > 0 && wordsMissingClues > 0 && (
+          <p className="hint" style={{ marginTop: "4px" }}>
+            {wordsMissingClues} word{wordsMissingClues === 1 ? "" : "s"} without a clue — if picked, the Impostor will just see
+            "{category?.name}" (the category) instead.
+          </p>
+        )}
 
-        <div className="row" style={{ margin: "16px 0" }}>
-          <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-            <input
-              type="text"
-              placeholder="Add a word, e.g. Elephant"
-              value={newWord}
-              onChange={(e) => setNewWord(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddWord()}
-            />
+        <div className="card card--tight" style={{ margin: "16px 0" }}>
+          <div className="row" style={{ alignItems: "flex-start" }}>
+            <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+              <label>Word</label>
+              <input
+                type="text"
+                placeholder="e.g. Elephant"
+                value={newWord}
+                onChange={(e) => setNewWord(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddWord()}
+              />
+            </div>
+            <div className="field" style={{ flex: 2, marginBottom: 0 }}>
+              <label>Clue for the Impostor (optional)</label>
+              <input
+                type="text"
+                placeholder="e.g. Large gray mammal with a trunk"
+                value={newClue}
+                onChange={(e) => setNewClue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddWord()}
+              />
+            </div>
           </div>
-          <button className="btn btn-secondary" onClick={handleAddWord} disabled={saving}>
-            {saving ? <span className="spinner" /> : "+ Add"}
-          </button>
-          <button className="btn btn-secondary" onClick={() => setShowImport(true)}>
-            📋 Import words
-          </button>
+          <div className="row">
+            <button className="btn btn-secondary" onClick={handleAddWord} disabled={saving}>
+              {saving ? <span className="spinner" /> : "+ Add word"}
+            </button>
+            <button className="btn btn-secondary" onClick={() => setShowImport(true)}>
+              📋 Import words
+            </button>
+          </div>
+          {formError && <p className="error-text">{formError}</p>}
         </div>
-        {formError && <p className="error-text">{formError}</p>}
 
         {words.length === 0 ? (
           <div className="card text-center">
             <p className="text-muted">No words yet — add one above or import a batch.</p>
           </div>
         ) : (
-          <div className="row" style={{ flexWrap: "wrap", gap: "8px" }}>
-            {words.map((w) => (
-              <div key={w.id} className="badge badge-neutral" style={{ padding: "6px 10px", gap: "8px" }}>
-                {w.word}
-                <button
-                  className="btn btn-ghost btn-sm"
-                  style={{ padding: "0 0 0 6px" }}
-                  disabled={busyId === w.id}
-                  onClick={() => handleArchiveWord(w.id)}
-                  title="Archive (hide from the random pool without deleting)"
-                >
-                  📥
-                </button>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  style={{ padding: "0 0 0 2px", color: "var(--color-danger)" }}
-                  disabled={busyId === w.id}
-                  onClick={() => handleDeleteWord(w.id)}
-                  title="Delete for good"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
+          <div className="stack">
+            {words.map((w) => {
+              const draft = clueDrafts[w.id] ?? "";
+              const dirty = draft.trim() !== (w.clue ?? "");
+              return (
+                <div key={w.id} className="card card--tight">
+                  <div className="row-between" style={{ alignItems: "flex-start" }}>
+                    <strong style={{ minWidth: "100px" }}>{w.word}</strong>
+                    <div className="row" style={{ flex: 1, marginLeft: "12px" }}>
+                      <input
+                        type="text"
+                        placeholder="No clue yet — the category name will be used instead"
+                        value={draft}
+                        onChange={(e) => setClueDrafts((d) => ({ ...d, [w.id]: e.target.value }))}
+                        onKeyDown={(e) => e.key === "Enter" && dirty && handleSaveClue(w.id)}
+                        style={{
+                          width: "100%",
+                          padding: "8px 10px",
+                          borderRadius: "var(--radius-sm)",
+                          border: "1.5px solid var(--color-border)",
+                          background: "var(--color-surface-raised)",
+                          fontSize: "0.9rem",
+                        }}
+                      />
+                      {dirty && (
+                        <button className="btn btn-secondary btn-sm" disabled={busyId === w.id} onClick={() => handleSaveClue(w.id)}>
+                          {busyId === w.id ? <span className="spinner" /> : "Save"}
+                        </button>
+                      )}
+                    </div>
+                    <div className="row" style={{ marginLeft: "8px" }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        disabled={busyId === w.id}
+                        onClick={() => handleArchiveWord(w.id)}
+                        title="Archive (hide from the random pool without deleting)"
+                      >
+                        📥
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ color: "var(--color-danger)" }}
+                        disabled={busyId === w.id}
+                        onClick={() => handleDeleteWord(w.id)}
+                        title="Delete for good"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -186,18 +257,15 @@ export default function ImpostorCategoryEditorPage() {
               {showArchived ? "Hide" : "Show"} archived words ({archivedWords.length})
             </button>
             {showArchived && (
-              <div className="row" style={{ flexWrap: "wrap", gap: "8px", marginTop: "12px" }}>
+              <div className="stack" style={{ marginTop: "12px" }}>
                 {archivedWords.map((w) => (
-                  <div key={w.id} className="badge badge-neutral" style={{ padding: "6px 10px", gap: "8px", opacity: 0.7 }}>
-                    {w.word}
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      style={{ padding: "0 0 0 6px" }}
-                      disabled={busyId === w.id}
-                      onClick={() => handleRestoreWord(w.id)}
-                      title="Restore to the active pool"
-                    >
-                      ↩️
+                  <div key={w.id} className="card card--tight row-between" style={{ opacity: 0.7 }}>
+                    <span>
+                      <strong>{w.word}</strong>
+                      {w.clue && <span className="text-muted"> — {w.clue}</span>}
+                    </span>
+                    <button className="btn btn-secondary btn-sm" disabled={busyId === w.id} onClick={() => handleRestoreWord(w.id)}>
+                      {busyId === w.id ? <span className="spinner" /> : "Restore"}
                     </button>
                   </div>
                 ))}

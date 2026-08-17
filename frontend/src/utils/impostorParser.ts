@@ -3,26 +3,35 @@
 //
 // 1) Word-only import (used inside a category editor, adding words to
 //    the category already open):
-//    - JSON array of strings: ["Elephant", "Giraffe", "Zebra"]
-//    - Plain text, one word per line
+//    - JSON array of strings and/or { "word": "...", "clue": "..." } objects
+//    - Plain text, one word per line, with an optional clue after a pipe:
+//      Elephant | Large gray mammal with a trunk
+//      Giraffe
 //
 // 2) Bulk category+words import (used from the categories list, creating
 //    whole new categories in one paste):
 //    - JSON array of objects:
-//      [{ "name": "Animals", "description": "...", "words": ["Elephant", "Giraffe"] }]
+//      [{ "name": "Animals", "description": "...", "words": [
+//          "Zebra", { "word": "Elephant", "clue": "Has a trunk" }
+//      ] }]
 //    - Plain text template, blank-line-separated blocks:
 //      Category: Animals
 //      Description: Creatures great and small
-//      - Elephant
+//      - Elephant | Large gray mammal with a trunk
 //      - Giraffe
 //      - Zebra
+//
+// The clue is what the Impostor sees as their one hint about the secret
+// word (falls back to the category name at game time if left blank) — see
+// 0013_impostor_word_clues.sql.
 
-export type ParseResult = { words: string[]; errors: string[] };
+export type ParsedWord = { word: string; clue: string | null };
+export type ParseResult = { words: ParsedWord[]; errors: string[] };
 
-export const WORD_LIST_EXAMPLE = `Elephant
-Giraffe
+export const WORD_LIST_EXAMPLE = `Elephant | Large gray mammal with a trunk
+Giraffe | Tallest land animal
 Zebra
-Penguin
+Penguin | Flightless bird that loves the cold
 Kangaroo`;
 
 export function parseWordListInput(raw: string): ParseResult {
@@ -33,9 +42,9 @@ export function parseWordListInput(raw: string): ParseResult {
     try {
       const data = JSON.parse(trimmed);
       if (!Array.isArray(data)) return { words: [], errors: ["Expected a JSON array of words."] };
-      const words = data.map((w) => String(w).trim()).filter(Boolean);
+      const words = data.map(parseJsonWordEntry).filter((w): w is ParsedWord => w !== null && w.word.length > 0);
       if (words.length === 0) return { words: [], errors: ["That array has no usable words in it."] };
-      return { words: dedupe(words), errors: [] };
+      return { words: dedupeWords(words), errors: [] };
     } catch (e) {
       return { words: [], errors: [`Invalid JSON: ${(e as Error).message}`] };
     }
@@ -44,34 +53,57 @@ export function parseWordListInput(raw: string): ParseResult {
   const words = trimmed
     .split("\n")
     .map((line) => line.replace(/^[-•*]\s*/, "").trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map(parseWordLine);
   if (words.length === 0) return { words: [], errors: ["No words found — one per line."] };
-  return { words: dedupe(words), errors: [] };
+  return { words: dedupeWords(words), errors: [] };
 }
 
-function dedupe(words: string[]): string[] {
+function parseJsonWordEntry(item: unknown): ParsedWord | null {
+  if (typeof item === "string") {
+    return { word: item.trim(), clue: null };
+  }
+  if (item && typeof item === "object" && "word" in item) {
+    const obj = item as { word: unknown; clue?: unknown };
+    const word = String(obj.word ?? "").trim();
+    const clue = obj.clue ? String(obj.clue).trim() : null;
+    return { word, clue: clue || null };
+  }
+  return null;
+}
+
+// "Word | Clue text" — clue is everything after the first pipe, optional.
+function parseWordLine(line: string): ParsedWord {
+  const pipeIndex = line.indexOf("|");
+  if (pipeIndex === -1) return { word: line.trim(), clue: null };
+  const word = line.slice(0, pipeIndex).trim();
+  const clue = line.slice(pipeIndex + 1).trim();
+  return { word, clue: clue || null };
+}
+
+function dedupeWords(words: ParsedWord[]): ParsedWord[] {
   const seen = new Set<string>();
-  const out: string[] = [];
+  const out: ParsedWord[] = [];
   for (const w of words) {
-    const key = w.toLowerCase();
-    if (seen.has(key)) continue;
+    const key = w.word.toLowerCase();
+    if (!w.word || seen.has(key)) continue;
     seen.add(key);
     out.push(w);
   }
   return out;
 }
 
-export type ParsedCategory = { name: string; description: string | null; words: string[] };
+export type ParsedCategory = { name: string; description: string | null; words: ParsedWord[] };
 export type CategoryParseResult = { categories: ParsedCategory[]; errors: string[] };
 
 export const CATEGORY_IMPORT_EXAMPLE = `Category: Animals
 Description: Creatures great and small
-- Elephant
-- Giraffe
+- Elephant | Large gray mammal with a trunk
+- Giraffe | Tallest land animal
 - Zebra
 
 Category: Movies
-- Titanic
+- Titanic | A ship that famously doesn't finish its voyage
 - Jaws
 - Inception`;
 
@@ -107,7 +139,9 @@ function parseCategoryJson(trimmed: string): CategoryParseResult {
       errors.push(`${label} ("${item.name}"): needs a non-empty "words" array`);
       return;
     }
-    const words = dedupe(item.words.map((w: unknown) => String(w).trim()).filter(Boolean));
+    const words = dedupeWords(
+      item.words.map(parseJsonWordEntry).filter((w: ParsedWord | null): w is ParsedWord => w !== null && w.word.length > 0)
+    );
     if (words.length === 0) {
       errors.push(`${label} ("${item.name}"): no usable words`);
       return;
@@ -142,11 +176,12 @@ function parseCategoryTemplate(trimmed: string): CategoryParseResult {
     const descLine = lines.find((l) => /^description:/i.test(l));
     const description = descLine ? descLine.replace(/^description:/i, "").trim() || null : null;
 
-    const words = dedupe(
+    const words = dedupeWords(
       lines
         .filter((l) => l !== nameLine && l !== descLine)
         .map((l) => l.replace(/^[-•*]\s*/, "").trim())
         .filter(Boolean)
+        .map(parseWordLine)
     );
 
     if (words.length === 0) {

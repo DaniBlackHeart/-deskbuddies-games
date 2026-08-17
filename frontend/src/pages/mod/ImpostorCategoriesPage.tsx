@@ -98,7 +98,7 @@ export default function ImpostorCategoriesPage() {
         .select()
         .single();
       if (error || !catRow) continue;
-      await supabase.from("impostor_words").insert(cat.words.map((word) => ({ category_id: catRow.id, word })));
+      await supabase.from("impostor_words").insert(cat.words.map((w) => ({ category_id: catRow.id, word: w.word, clue: w.clue })));
     }
     setShowImport(false);
     loadCategories();

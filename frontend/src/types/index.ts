@@ -342,6 +342,7 @@ export type ImpostorWord = {
   id: string;
   category_id: string;
   word: string;
+  clue: string | null;
   created_at: string;
   archived_at: string | null;
 };
@@ -375,11 +376,14 @@ export type ImpostorParticipant = {
 };
 
 // A player's own card — never anyone else's (impostor_cards RLS is "read
-// own row only"). `word` is null for the impostor.
+// own row only"). `word` is null for the impostor; `clue` is only ever set
+// for the impostor's row (their word-specific clue, or the category name
+// as a fallback if the word has none — resolved server-side at start_game).
 export type ImpostorCard = {
   is_impostor: boolean;
   word: string | null;
   category_name: string;
+  clue: string | null;
 };
 
 // One entry on the public clue board.

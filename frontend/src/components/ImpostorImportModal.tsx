@@ -5,12 +5,13 @@ import {
   WORD_LIST_EXAMPLE,
   CATEGORY_IMPORT_EXAMPLE,
   type ParsedCategory,
+  type ParsedWord,
 } from "../utils/impostorParser";
 
 type WordsModalProps = {
   mode: "words";
   onCancel: () => void;
-  onConfirm: (words: string[]) => Promise<void>;
+  onConfirm: (words: ParsedWord[]) => Promise<void>;
 };
 
 type CategoriesModalProps = {
@@ -28,7 +29,7 @@ type ImpostorImportModalProps = WordsModalProps | CategoriesModalProps;
 export default function ImpostorImportModal(props: ImpostorImportModalProps) {
   const { mode, onCancel } = props;
   const [raw, setRaw] = useState("");
-  const [parsedWords, setParsedWords] = useState<string[] | null>(null);
+  const [parsedWords, setParsedWords] = useState<ParsedWord[] | null>(null);
   const [parsedCategories, setParsedCategories] = useState<ParsedCategory[] | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
@@ -79,8 +80,8 @@ export default function ImpostorImportModal(props: ImpostorImportModalProps) {
         <h2>{mode === "words" ? "Import words" : "Import categories"}</h2>
         <p className="text-muted">
           {mode === "words"
-            ? "Paste a JSON array of words, or one word per line."
-            : "Paste a JSON array of categories, or use the simple text template."}{" "}
+            ? "Paste a JSON array of words, or one word per line. Add \" | a clue\" after a word to give the Impostor a hint about it — optional, but recommended."
+            : "Paste a JSON array of categories, or use the simple text template. Add \" | a clue\" after a word for the Impostor's hint — optional."}{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setShowExample((s) => !s)} style={{ padding: 0 }}>
             {showExample ? "Hide example" : "Show example"}
           </button>
@@ -136,11 +137,14 @@ export default function ImpostorImportModal(props: ImpostorImportModalProps) {
             <p style={{ fontWeight: 700 }}>
               Ready to import {parsedWords.length} word{parsedWords.length > 1 ? "s" : ""}:
             </p>
-            <div className="row" style={{ flexWrap: "wrap", gap: "6px" }}>
+            <div className="stack">
               {parsedWords.map((w, i) => (
-                <span key={i} className="badge badge-neutral">
-                  {w}
-                </span>
+                <div key={i} className="row-between" style={{ fontSize: "0.9rem" }}>
+                  <strong>{w.word}</strong>
+                  <span className="text-muted" style={{ textAlign: "right", marginLeft: "12px" }}>
+                    {w.clue ?? <em>no clue — will use the category name</em>}
+                  </span>
+                </div>
               ))}
             </div>
           </div>
@@ -160,9 +164,16 @@ export default function ImpostorImportModal(props: ImpostorImportModalProps) {
                       {c.description}
                     </p>
                   )}
-                  <p className="hint" style={{ marginTop: "4px" }}>
-                    {c.words.length} word{c.words.length > 1 ? "s" : ""}: {c.words.join(", ")}
-                  </p>
+                  <div className="stack" style={{ marginTop: "6px" }}>
+                    {c.words.map((w, wi) => (
+                      <div key={wi} className="row-between" style={{ fontSize: "0.85rem" }}>
+                        <span>{w.word}</span>
+                        <span className="hint" style={{ textAlign: "right", marginLeft: "12px" }}>
+                          {w.clue ?? "no clue"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -181,3 +192,4 @@ export default function ImpostorImportModal(props: ImpostorImportModalProps) {
     </div>
   );
 }
+

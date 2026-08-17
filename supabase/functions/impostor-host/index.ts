@@ -145,13 +145,19 @@ Deno.serve(async (req) => {
 
         const { data: words } = await admin
           .from("impostor_words")
-          .select("word")
+          .select("word, clue")
           .eq("category_id", session.category_id)
           .is("archived_at", null);
         if (!words || words.length === 0) {
           return jsonResponse({ error: "This category has no active words — add some before starting" }, 400);
         }
-        const secretWord = words[Math.floor(Math.random() * words.length)].word;
+        const pickedWord = words[Math.floor(Math.random() * words.length)];
+        const secretWord = pickedWord.word;
+        // The Impostor's clue is about the WORD, not the category — that's
+        // the whole point (see 0013_impostor_word_clues.sql). Fall back to
+        // the category name only if this particular word was never given
+        // one, so an un-clued word doesn't leave the Impostor with nothing.
+        const impostorClue = pickedWord.clue?.trim() || session.category_name;
 
         // Shuffle into seats (same idea as UNO's deal order) and pick the
         // impostor + this round-set's starter from the shuffled roster.
@@ -175,6 +181,7 @@ Deno.serve(async (req) => {
                 is_impostor: userId === impostorUserId,
                 word: userId === impostorUserId ? null : secretWord,
                 category_name: session.category_name,
+                clue: userId === impostorUserId ? impostorClue : null,
               },
               { onConflict: "session_id,user_id" }
             )

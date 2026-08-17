@@ -46,11 +46,11 @@ Deno.serve(async (req) => {
 
     const isPlaying = (roster ?? []).some((p) => p.user_id === user.id);
 
-    let myCard: { is_impostor: boolean; word: string | null; category_name: string } | null = null;
+    let myCard: { is_impostor: boolean; word: string | null; category_name: string; clue: string | null } | null = null;
     if (isPlaying) {
       const { data: cardRow } = await admin
         .from("impostor_cards")
-        .select("is_impostor, word, category_name")
+        .select("is_impostor, word, category_name, clue")
         .eq("session_id", session_id)
         .eq("user_id", user.id)
         .maybeSingle();

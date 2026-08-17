@@ -29,7 +29,11 @@ export default function ImpostorCardView({ card, revealed, onReveal }: ImpostorC
       <div className="impostor-card impostor-card--impostor">
         <span className="impostor-card__eyebrow">🎭 You're the Impostor</span>
         <span className="impostor-card__word impostor-card__word--impostor">???</span>
-        <span className="impostor-card__hint">Your only clue — category: {card.category_name}</span>
+        <span className="impostor-card__hint">
+          Category: {card.category_name}
+          <br />
+          Your only clue: {card.clue ?? card.category_name}
+        </span>
       </div>
     );
   }

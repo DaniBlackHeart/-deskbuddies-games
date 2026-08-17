@@ -11,11 +11,10 @@
 > it, download the result, and re-upload it to Project Knowledge. Claude
 > can't write back to Project Knowledge on its own.
 
-Last reconciled: 2026-08-17, adding the Impostor WHO? build (secret-word
-social deduction game: everyone gets a word + category except one random
-Impostor, who only sees the category as their clue; 2 rounds of typed clues
-before a multiple-choice vote, repeating once if inconclusive) on top of the
-2026-08-16 UNO reconciliation described below.
+Last reconciled: 2026-08-18, correcting the Impostor WHO? build from
+2026-08-17 (see §6a-i: the Impostor's clue was wrongly showing the category
+name instead of a per-word clue) on top of the UNO reconciliation described
+below.
 
 ---
 
@@ -65,7 +64,7 @@ frontend/
                                       paste parsers, feeding each game's import modal)
     styles/tokens.css, global.css
 supabase/
-  migrations/                        numbered SQL files, currently up to 0012
+  migrations/                        numbered SQL files, currently up to 0013
   functions/
     _shared/utils.ts                 shared helpers (see §6) — includes UNO's deck/shuffle/legality
                                       helpers, reused as-is by Impostor for seat rotation (nextUnoSeat
@@ -207,6 +206,7 @@ no reason to copy a known-dead pattern into a new table.
 | 0010 | Archive-not-delete for `question_sets`/`questions` (`archived_at` columns, partial unique index on active rows so `order_index` can be reused after an archive) | confirmed |
 | 0011 | UNO schema (`uno_sessions`, `uno_participants`, `uno_hands`, `uno_deck_state`) | confirmed — full file in Project Knowledge |
 | 0012 | Impostor WHO? schema (`impostor_categories`, `impostor_words`, `impostor_sessions`, `impostor_secrets`, `impostor_cards`, `impostor_participants`, `impostor_clues`, `impostor_votes`) | confirmed — full file in Project Knowledge |
+| 0013 | Impostor WHO? per-word clues (`impostor_words.clue`, `impostor_cards.clue`) — correction, see §6a-i | confirmed — full file in Project Knowledge |
 
 **Caveat:** only 0001 is present verbatim in Project Knowledge. Everything
 else is reconstructed from chat summaries that described *what* a migration
@@ -244,18 +244,53 @@ they're easy to revisit if they're not what was actually wanted:
   ends up with exactly 2 clues per player before every vote. Round-set 2 (if
   it happens) gets an independently-chosen new starter, per the spec's
   "instead of continuing from the previous one."
-- **The Impostor's clue is the category name** — nothing more. Re-reading
-  "every member gets a card with a secret word category... [the Impostor]
-  only gets... a clue for the secret word" as: crew's card = category +
-  word, Impostor's card = category only (no separate MOD-authored "hint"
-  field was added to `impostor_words` for this — the category itself
-  serves as the one clue, which also cleanly explains why the MOD picks the
-  category but the word is random within it).
+- **The Impostor's clue is a per-word clue authored by the MOD, with the
+  category name as a fallback.** ~~Originally built as "the clue IS just
+  the category name, nothing more" — that was wrong, caught during
+  playtesting (2026-08-18) and fixed in migration `0013`.~~ `impostor_words`
+  now has a `clue` column (nullable — a MOD can leave it blank), and
+  `impostor_cards.clue` stores whichever one actually applies for that
+  session's word, resolved once at `start_game`:
+  `pickedWord.clue?.trim() || session.category_name`. The category name is
+  still shown alongside the clue on the Impostor's card (it's genuinely
+  public info — every crew member's card shows it too — so there's no
+  reason to hide it), it's just no longer standing in *as* the clue. The
+  category-editor UI (`ImpostorCategoryEditorPage`) has an inline-editable
+  clue field per word, and both import paths (`impostorParser.ts`'s
+  `Word | Clue` line syntax and JSON `{word, clue}` objects) support
+  authoring clues in bulk.
 - **Card reveal is click-to-flip, starting face-down** — not in the
   original spec, added because "every member gets a card" reads like a
   physical-card metaphor, and starting hidden avoids an accidental
   shoulder-surf reveal before everyone's ready. Same component shape as
   UNO's face-down back.
+
+## 6a-i. Correction log — Impostor's clue field (2026-08-18)
+
+Worth its own note since it changes a decision documented above as if it
+were settled. Playtesting showed the Impostor's card displaying only
+"Category: X" as their clue — accurate to what was built, but not what was
+actually wanted; the spec's "a clue for the secret word" meant a clue about
+that specific word, not the category it belongs to. Fixed with:
+
+- `0013_impostor_word_clues.sql` — adds `impostor_words.clue` and
+  `impostor_cards.clue`, both nullable (existing words/cards from `0012`
+  keep working, they just have no clue until a MOD adds one).
+- `impostor-host`'s `start_game` now selects `word, clue` instead of just
+  `word`, and resolves the fallback (`clue || category_name`) once, at deal
+  time — not computed client-side, so there's no risk of the fallback logic
+  drifting between the card display and whatever a MOD sees while editing.
+- The category-editor page, the import parser, and the import-preview modal
+  all needed matching updates — a clue is a property of a *word*, not the
+  category, so "add a word" now has two fields, "import words" has an
+  optional `| clue` suffix per line (or a JSON object shape), and existing
+  words got an inline-editable clue field added retroactively so a MOD can
+  go back and fill in clues for words created before this fix.
+
+If a similar "which specific level does this field actually belong to"
+ambiguity comes up in a future game, this is the pattern that worked: add a
+nullable column with a graceful fallback rather than requiring a backfill,
+so nothing already-deployed breaks.
 
 ## 6b. A real bug caught during review, worth knowing about
 
