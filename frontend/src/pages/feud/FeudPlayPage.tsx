@@ -36,7 +36,7 @@ type FeudState = {
   roster_a: FeudParticipant[];
   roster_b: FeudParticipant[];
   round: PublicFeudRound | null;
-  fast_money: { my_slot: 1 | 2; answered_indices: number[] } | null;
+  fast_money: { my_slot: 1 | 2; answered_indices: number[]; prompts: string[] } | null;
   fast_money_revealed: FastMoneyRevealedEntry[];
   completed: boolean;
 };
@@ -520,7 +520,7 @@ export default function FeudPlayPage() {
         <div className="stack">
           {Array.from({ length: FASTMONEY_QUESTION_COUNT }).map((_, i) => (
             <div key={i} className="card card--tight">
-              <strong>Question {i + 1}</strong>
+              <strong>{state!.fast_money?.prompts?.[i] ?? `Question ${i + 1}`}</strong>
               {answeredIndices.has(i) ? (
                 <p className="hint">✓ Locked in</p>
               ) : (

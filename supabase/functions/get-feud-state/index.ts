@@ -92,18 +92,28 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fast Money — my own progress only (which questions I've locked in),
-    // never text/points before the host's reveal. Once the host reveals a
-    // question, both players' text/points become public for that index.
+    // Fast Money — the active player gets the real question prompts (those
+    // aren't secret, they're what you're supposed to answer) plus their own
+    // progress, but never any answer text/points before the host's reveal.
+    // Once the host reveals a question, both players' text/points become
+    // public for that index.
     let fastMoney: any = null;
     if (session.fastmoney_player1_id === user.id || session.fastmoney_player2_id === user.id) {
       const mySlot = session.fastmoney_player1_id === user.id ? 1 : 2;
-      const { data: myAnswers } = await admin
-        .from("feud_fastmoney_answers")
-        .select("question_index")
-        .eq("session_id", session_id)
-        .eq("player_slot", mySlot);
-      fastMoney = { my_slot: mySlot, answered_indices: (myAnswers ?? []).map((a) => a.question_index) };
+      const [{ data: myAnswers }, { data: fmQuestions }] = await Promise.all([
+        admin
+          .from("feud_fastmoney_answers")
+          .select("question_index")
+          .eq("session_id", session_id)
+          .eq("player_slot", mySlot),
+        admin
+          .from("feud_fastmoney_questions")
+          .select("order_index, prompt")
+          .eq("feud_set_id", session.feud_set_id)
+          .order("order_index", { ascending: true }),
+      ]);
+      const prompts = (fmQuestions ?? []).map((q) => q.prompt);
+      fastMoney = { my_slot: mySlot, answered_indices: (myAnswers ?? []).map((a) => a.question_index), prompts };
     }
 
     let fastMoneyRevealed: any[] = [];
