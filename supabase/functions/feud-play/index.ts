@@ -169,32 +169,115 @@ Deno.serve(async (req) => {
         const answers = await getRoundQuestion(admin, session!.feud_set_id, round.round_index);
         const answerText = isTimeout ? "" : ((body.answer_text as string) ?? "");
         const matchedIndex = isTimeout ? null : matchFeudAnswer(answerText, answers);
+        const hasRebuttalPending = round.face_off_provisional_index !== null && round.face_off_provisional_index !== undefined;
 
         if (matchedIndex !== null) {
-          const myTeam = await getMyTeam(admin, session_id, expectedUser);
+          const points = answers[matchedIndex].points;
+          const isTopAnswer = matchedIndex === 0; // answers are stored highest-points-first
+
+          if (!hasRebuttalPending && !isTopAnswer) {
+            // Correct, but not the top answer, and nobody's had a rebuttal
+            // shot yet — the other rep gets one chance to beat it before
+            // control is decided. (A top-answer match can't be beaten, so
+            // it skips straight to deciding, same as before.)
+            const myTeam = await getMyTeam(admin, session_id, expectedUser);
+            const otherUser = expectedUser === round.face_off_active_a_user_id ? round.face_off_active_b_user_id : round.face_off_active_a_user_id;
+            const deadline = new Date(Date.now() + FACEOFF_ANSWER_WINDOW_MS).toISOString();
+            const newRevealed = Array.from(new Set([...(round.revealed_indices ?? []), matchedIndex]));
+
+            await admin
+              .from("feud_rounds")
+              .update({
+                face_off_provisional_user_id: expectedUser,
+                face_off_provisional_index: matchedIndex,
+                face_off_provisional_points: points,
+                face_off_singleton_user_id: otherUser,
+                face_off_deadline: deadline,
+                revealed_indices: newRevealed,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", round.id);
+
+            await broadcast(admin, session_id, "faceoff_rebuttal_open", {
+              user_id: expectedUser,
+              team: myTeam,
+              index: matchedIndex,
+              text: answers[matchedIndex].text,
+              points,
+              next_user_id: otherUser,
+              deadline_ms: new Date(deadline).getTime(),
+            });
+            return jsonResponse({ correct: true, awaiting_rebuttal: true, index: matchedIndex, points, next_user_id: otherUser });
+          }
+
+          // Either this IS the top answer, or this is the rebuttal attempt —
+          // either way, control is decided now. If a rebuttal was pending
+          // and this match didn't beat it, the original answerer keeps
+          // control instead of whoever just answered.
+          let winnerUserId = expectedUser;
+          let winnerIndex = matchedIndex;
+          let winnerPoints = points;
+          if (hasRebuttalPending && points <= (round.face_off_provisional_points ?? 0)) {
+            winnerUserId = round.face_off_provisional_user_id!;
+            winnerIndex = round.face_off_provisional_index!;
+            winnerPoints = round.face_off_provisional_points!;
+          }
+          const winnerTeam = await getMyTeam(admin, session_id, winnerUserId);
+          const combinedRevealed = Array.from(new Set([...(round.revealed_indices ?? []), matchedIndex]));
+
           await admin
             .from("feud_rounds")
             .update({
               status: "faceoff_decision",
-              face_off_decision_user_id: expectedUser,
-              revealed_indices: [matchedIndex],
-              points_pot: answers[matchedIndex].points,
+              face_off_decision_user_id: winnerUserId,
+              revealed_indices: combinedRevealed,
+              points_pot: winnerPoints,
               face_off_deadline: null,
               updated_at: new Date().toISOString(),
             })
             .eq("id", round.id);
 
           await broadcast(admin, session_id, "faceoff_correct", {
-            user_id: expectedUser,
-            team: myTeam,
-            index: matchedIndex,
-            text: answers[matchedIndex].text,
-            points: answers[matchedIndex].points,
+            user_id: winnerUserId,
+            team: winnerTeam,
+            index: winnerIndex,
+            text: answers[winnerIndex].text,
+            points: winnerPoints,
           });
-          return jsonResponse({ correct: true, index: matchedIndex, points: answers[matchedIndex].points });
+          return jsonResponse({ correct: true, index: winnerIndex, points: winnerPoints });
         }
 
         // Wrong (or timed out).
+        if (hasRebuttalPending) {
+          // The rebuttal attempt failed to beat the earlier match — the
+          // original answerer keeps control by default.
+          const winnerUserId = round.face_off_provisional_user_id!;
+          const winnerIndex = round.face_off_provisional_index!;
+          const winnerPoints = round.face_off_provisional_points!;
+          const winnerTeam = await getMyTeam(admin, session_id, winnerUserId);
+
+          await admin
+            .from("feud_rounds")
+            .update({
+              status: "faceoff_decision",
+              face_off_decision_user_id: winnerUserId,
+              points_pot: winnerPoints,
+              face_off_deadline: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", round.id);
+
+          await broadcast(admin, session_id, "faceoff_correct", {
+            user_id: winnerUserId,
+            team: winnerTeam,
+            index: winnerIndex,
+            text: answers[winnerIndex].text,
+            points: winnerPoints,
+            kept_by_default: true,
+          });
+          return jsonResponse({ correct: true, index: winnerIndex, points: winnerPoints, kept_by_default: true });
+        }
+
         if (!round.face_off_singleton_user_id) {
           // First attempt missed — open the fallback attempt for the other active rep.
           const otherUser = expectedUser === round.face_off_active_a_user_id ? round.face_off_active_b_user_id : round.face_off_active_a_user_id;
@@ -233,6 +316,9 @@ Deno.serve(async (req) => {
             face_off_buzz_user_id: null,
             face_off_buzz_at: null,
             face_off_singleton_user_id: null,
+            face_off_provisional_user_id: null,
+            face_off_provisional_index: null,
+            face_off_provisional_points: null,
             face_off_deadline: null,
             updated_at: new Date().toISOString(),
           })

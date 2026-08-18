@@ -71,6 +71,12 @@ Deno.serve(async (req) => {
           face_off_active_b_user_id: roundRow.face_off_active_b_user_id,
           face_off_buzz_user_id: roundRow.face_off_buzz_user_id,
           face_off_singleton_user_id: roundRow.face_off_singleton_user_id,
+          face_off_provisional_user_id: roundRow.face_off_provisional_user_id,
+          face_off_provisional_text:
+            roundRow.face_off_provisional_index !== null && roundRow.face_off_provisional_index !== undefined
+              ? answers[roundRow.face_off_provisional_index]?.text ?? null
+              : null,
+          face_off_provisional_points: roundRow.face_off_provisional_points,
           face_off_deadline_ms: roundRow.face_off_deadline ? new Date(roundRow.face_off_deadline).getTime() : null,
           face_off_decision_user_id: roundRow.face_off_decision_user_id,
           controlling_team: roundRow.controlling_team,
