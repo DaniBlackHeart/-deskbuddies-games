@@ -205,6 +205,9 @@ export type PublicFeudRound = {
   face_off_active_b_user_id: string | null;
   face_off_buzz_user_id: string | null;
   face_off_singleton_user_id: string | null;
+  face_off_provisional_user_id: string | null;
+  face_off_provisional_text: string | null;
+  face_off_provisional_points: number | null;
   face_off_deadline_ms: number | null;
   face_off_decision_user_id: string | null;
   controlling_team: Team | null;
@@ -224,7 +227,8 @@ export type FeudSessionEvent =
   | { type: "game_started" }
   | { type: "round_started"; round_index: number; prompt: string; answer_count: number; active_a: { user_id: string; username: string }; active_b: { user_id: string; username: string } }
   | { type: "buzz_locked"; winner_user_id: string; deadline_ms: number }
-  | { type: "faceoff_correct"; user_id: string; team: Team; index: number; text: string; points: number }
+  | { type: "faceoff_correct"; user_id: string; team: Team; index: number; text: string; points: number; kept_by_default?: boolean }
+  | { type: "faceoff_rebuttal_open"; user_id: string; team: Team; index: number; text: string; points: number; next_user_id: string; deadline_ms: number }
   | { type: "faceoff_miss"; missed_user_id: string; next_user_id: string; deadline_ms: number; timed_out: boolean }
   | { type: "faceoff_next_pair"; pair_index: number; active_a: { user_id: string; username: string }; active_b: { user_id: string; username: string } }
   | { type: "faceoff_all_missed"; timed_out: boolean }
