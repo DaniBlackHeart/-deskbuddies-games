@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import type { Profile } from "../types";
@@ -28,9 +28,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
-  async function verifyMembership(currentSession: Session) {
-    setStatus("verifying");
-    setVerifyError(null);
+  // Tracks whose membership we last successfully verified, so a re-fired
+  // SIGNED_IN event for the SAME already-verified user (see note below on
+  // supabase-js's tab-refocus behavior) can re-check in the background
+  // instead of yanking the whole app back to the "Checking your DeskBuddies
+  // membership…" screen.
+  const verifiedUserId = useRef<string | null>(null);
+
+  async function verifyMembership(currentSession: Session, opts: { silent?: boolean } = {}) {
+    const { silent = false } = opts;
+    if (!silent) {
+      setStatus("verifying");
+      setVerifyError(null);
+    }
     try {
       const { data, error } = await supabase.functions.invoke("verify-membership", {
         headers: { Authorization: `Bearer ${currentSession.access_token}` },
@@ -39,15 +49,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
 
       if (!data?.is_member) {
+        verifiedUserId.current = null;
         setStatus("not_a_member");
         setProfile(null);
         return;
       }
 
+      verifiedUserId.current = currentSession.user.id;
       setProfile(data.profile as Profile);
       setStatus("member");
     } catch (err) {
       console.error("Membership verification failed:", err);
+      if (silent) {
+        // A background recheck (e.g. triggered by refocusing the tab)
+        // failing shouldn't sign someone out from under themselves over a
+        // blip — leave their current verified state alone and let the next
+        // recheck (or a manual retry) sort it out.
+        return;
+      }
       setVerifyError(
         "We couldn't verify your DeskBuddies membership right now. Please try again."
       );
@@ -91,11 +110,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!isMounted) return;
       setSession(newSession);
       if (event === "SIGNED_OUT" || !newSession) {
+        verifiedUserId.current = null;
         setProfile(null);
         setStatus("signed_out");
       } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         if (event === "SIGNED_IN") {
-          verifyMembership(newSession);
+          // supabase-js intentionally re-fires SIGNED_IN every time the tab
+          // regains focus (it doubles as "recover session on visibility
+          // change" for mobile) — not just on a real, fresh sign-in. If
+          // we've already verified this exact user this session, treat it
+          // as a background recheck instead of re-showing the full-screen
+          // "Checking your membership…" loader over whatever page they were
+          // on.
+          const isNewUser = verifiedUserId.current !== newSession.user.id;
+          verifyMembership(newSession, { silent: !isNewUser });
         }
       }
     });
@@ -118,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await supabase.auth.signOut();
+    verifiedUserId.current = null;
     setProfile(null);
     setStatus("signed_out");
   }

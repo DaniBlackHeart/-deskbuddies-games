@@ -100,8 +100,13 @@ export default function FeudPlayPage() {
         hydrate();
       })
       .on("broadcast", { event: "faceoff_correct" }, ({ payload }: { payload: FeudSessionEvent & { type: "faceoff_correct" } }) => {
-        showFlash(`✅ "${payload.text}" — ${payload.points} pts!`);
+        showFlash(payload.kept_by_default ? `🛡️ Not beaten — "${payload.text}" holds for ${payload.points} pts!` : `✅ "${payload.text}" — ${payload.points} pts!`);
         sounds.correct();
+        sounds.boardReveal();
+        hydrate();
+      })
+      .on("broadcast", { event: "faceoff_rebuttal_open" }, ({ payload }: { payload: FeudSessionEvent & { type: "faceoff_rebuttal_open" } }) => {
+        showFlash(`🎯 "${payload.text}" — ${payload.points} pts, but not the top answer!`);
         sounds.boardReveal();
         hydrate();
       })
@@ -297,6 +302,7 @@ export default function FeudPlayPage() {
       const buzzOpen = !round.face_off_buzz_user_id && iAmActive;
       const myTurnToAnswer = expectedUser && isMyTurn(expectedUser);
       const waitingOnSomeoneElse = expectedUser && !myTurnToAnswer;
+      const rebuttalPending = round.face_off_provisional_user_id !== null;
 
       return (
         <div className="card text-center">
@@ -305,6 +311,16 @@ export default function FeudPlayPage() {
           <p className="text-muted">
             {usernameFor(round.face_off_active_a_user_id)} vs {usernameFor(round.face_off_active_b_user_id)}
           </p>
+
+          {rebuttalPending && (
+            <p className="hint" style={{ marginBottom: "8px" }}>
+              {usernameFor(round.face_off_provisional_user_id)} answered "{round.face_off_provisional_text}" for{" "}
+              {round.face_off_provisional_points} pts — not the top answer.{" "}
+              {myTurnToAnswer
+                ? `Beat ${round.face_off_provisional_points} pts to take control!`
+                : `${usernameFor(expectedUser)} gets a shot to beat it.`}
+            </p>
+          )}
 
           {buzzOpen && <Buzzer onBuzz={() => callPlay("buzz")} />}
           {!buzzOpen && !expectedUser && !iAmActive && <p className="hint">Waiting for a buzz…</p>}

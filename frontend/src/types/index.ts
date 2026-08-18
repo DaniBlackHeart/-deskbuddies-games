@@ -205,6 +205,9 @@ export type PublicFeudRound = {
   face_off_active_b_user_id: string | null;
   face_off_buzz_user_id: string | null;
   face_off_singleton_user_id: string | null;
+  face_off_provisional_user_id: string | null;
+  face_off_provisional_text: string | null;
+  face_off_provisional_points: number | null;
   face_off_deadline_ms: number | null;
   face_off_decision_user_id: string | null;
   controlling_team: Team | null;
@@ -224,7 +227,8 @@ export type FeudSessionEvent =
   | { type: "game_started" }
   | { type: "round_started"; round_index: number; prompt: string; answer_count: number; active_a: { user_id: string; username: string }; active_b: { user_id: string; username: string } }
   | { type: "buzz_locked"; winner_user_id: string; deadline_ms: number }
-  | { type: "faceoff_correct"; user_id: string; team: Team; index: number; text: string; points: number }
+  | { type: "faceoff_correct"; user_id: string; team: Team; index: number; text: string; points: number; kept_by_default?: boolean }
+  | { type: "faceoff_rebuttal_open"; user_id: string; team: Team; index: number; text: string; points: number; next_user_id: string; deadline_ms: number }
   | { type: "faceoff_miss"; missed_user_id: string; next_user_id: string; deadline_ms: number; timed_out: boolean }
   | { type: "faceoff_next_pair"; pair_index: number; active_a: { user_id: string; username: string }; active_b: { user_id: string; username: string } }
   | { type: "faceoff_all_missed"; timed_out: boolean }
@@ -252,187 +256,3 @@ export type FeudSessionEvent =
       revealed_count: number;
     }
   | { type: "session_ended"; team_a_score: number; team_b_score: number; fastmoney_team: Team | null; fastmoney_total_points: number; won_grand_prize: boolean | null; completed: boolean };
-
-// =========================================================
-// UNO
-// Keep in sync with supabase/migrations/0011_uno.sql
-// =========================================================
-
-export type UnoColor = "red" | "yellow" | "green" | "blue";
-export type UnoCardValue = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "skip" | "reverse" | "draw2" | "wild" | "wild4";
-export type UnoCard = { color: UnoColor | "wild"; value: UnoCardValue };
-
-export type UnoSessionStatus = "lobby" | "live" | "ended";
-export type UnoPendingDrawType = "draw_two" | "draw_four" | null;
-
-// Shape returned by get-uno-state — NOT the raw table row (the raw
-// uno_sessions row has no draw_pile/discard_pile at all; those live in
-// uno_deck_state, which the frontend never queries directly — see
-// 0011_uno.sql for why).
-export type UnoSessionPublic = {
-  id: string;
-  status: UnoSessionStatus;
-  direction: 1 | -1;
-  current_turn_user_id: string | null;
-  current_color: UnoColor | null;
-  drawn_this_turn: boolean;
-  discard_top: UnoCard | null;
-  draw_pile_count: number;
-  pending_draw: number;
-  pending_draw_type: UnoPendingDrawType;
-  pending_draw_from_user_id: string | null;
-  state_version: number;
-  winner_id: string | null;
-};
-
-export type UnoParticipant = {
-  user_id: string;
-  seat_order: number;
-  hand_count: number;
-  has_called_uno: boolean;
-  finished_at: string | null;
-  finish_rank: number | null;
-  profiles: { username: string; avatar_url: string | null } | null;
-};
-
-// --- Realtime broadcast payload shapes (uno-session-{id} channel) ---
-
-export type UnoSessionEvent =
-  | { type: "game_started"; starter: UnoCard; current_turn_user_id: string }
-  | {
-      type: "card_played";
-      user_id: string;
-      card: UnoCard;
-      jump_in: boolean;
-      effect: UnoCardValue;
-      next_turn_user_id: string;
-      current_color: UnoColor;
-      pending_draw: number;
-      pending_draw_type: UnoPendingDrawType;
-      hand_count: number;
-      called_uno: boolean;
-    }
-  | { type: "card_drawn"; user_id: string; count: number; forced: false; next_turn_user_id: string }
-  | { type: "forced_draw"; user_id: string; count: number; forced: true; next_turn_user_id: string }
-  | { type: "turn_passed"; user_id: string; next_turn_user_id: string }
-  | { type: "uno_caught"; caught_user_id: string; caught_by_user_id: string; penalty: number }
-  | { type: "challenge_resolved"; success: boolean; accused_user_id: string; penalty_to: string; penalty: number }
-  | { type: "game_ended"; winner_user_id: string; card: UnoCard }
-  | { type: "session_ended" };
-
-// =========================================================
-// Impostor WHO?
-// Keep in sync with supabase/migrations/0012_impostor.sql
-// =========================================================
-
-export type ImpostorSessionStatus = "lobby" | "clue_giving" | "voting" | "ended";
-export type ImpostorWinner = "crew" | "impostor";
-
-export type ImpostorCategory = {
-  id: string;
-  name: string;
-  description: string | null;
-  created_by: string;
-  created_at: string;
-  archived_at: string | null;
-  word_count?: number;
-};
-
-export type ImpostorWord = {
-  id: string;
-  category_id: string;
-  word: string;
-  clue: string | null;
-  created_at: string;
-  archived_at: string | null;
-};
-
-// Final tally for a resolved vote round — every candidate's vote share,
-// shown as a percentage in the UI (count / total_votes). Broadcast live on
-// every resolution (including an inconclusive one, so players can see how
-// close it was even when the game moves on to round-set 2); ALSO persisted
-// on the session as `final_vote_tally` for a terminal (crew_win/
-// impostor_win) resolution specifically, so it's still visible after a
-// refresh — see 0014_impostor_vote_tally.sql.
-export type ImpostorVoteTally = { user_id: string; count: number };
-export type ImpostorFinalVoteTally = {
-  vote_round: 1 | 2;
-  tally: ImpostorVoteTally[];
-  total_votes: number;
-  accused_user_id: string | null;
-};
-
-// Shape returned by get-impostor-state — NOT the raw table row. Mirrors
-// get-uno-state: the raw impostor_sessions row is actually safe to read
-// directly (revealed_* stay null until a real outcome), but this shape is
-// what every page actually renders against.
-export type ImpostorSessionPublic = {
-  id: string;
-  status: ImpostorSessionStatus;
-  category_name: string;
-  round_number: number;
-  turn_index: number;
-  round_set_starter_user_id: string | null;
-  current_turn_user_id: string | null;
-  clue_deadline_ms: number | null;
-  vote_round: 1 | 2 | null;
-  vote_deadline_ms: number | null;
-  winner: ImpostorWinner | null;
-  completed: boolean;
-  revealed_impostor_user_id: string | null;
-  revealed_secret_word: string | null;
-  final_vote_tally: ImpostorFinalVoteTally | null;
-  state_version: number;
-};
-
-export type ImpostorParticipant = {
-  user_id: string;
-  seat_order: number;
-  profiles: { username: string; avatar_url: string | null } | null;
-};
-
-// A player's own card — never anyone else's (impostor_cards RLS is "read
-// own row only"). `word` is null for the impostor; `clue` is only ever set
-// for the impostor's row (their word-specific clue, or the category name
-// as a fallback if the word has none — resolved server-side at start_game).
-export type ImpostorCard = {
-  is_impostor: boolean;
-  word: string | null;
-  category_name: string;
-  clue: string | null;
-};
-
-// One entry on the public clue board.
-export type ImpostorClue = {
-  round_number: number;
-  user_id: string;
-  clue_text: string;
-  timed_out: boolean;
-};
-
-// --- Realtime broadcast payload shapes (impostor-session-{id} channel) ---
-
-export type ImpostorSessionEvent =
-  | { type: "game_started"; round_number: 1; starter_user_id: string; category_name: string }
-  | {
-      type: "clue_submitted";
-      round_number: number;
-      user_id: string;
-      clue_text: string;
-      timed_out: boolean;
-      next_turn_user_id: string | null; // null when this clue completed round 2 of a set (voting starts next)
-      clue_deadline_ms: number | null;
-    }
-  | { type: "voting_started"; vote_round: 1 | 2; deadline_ms: number }
-  | { type: "vote_cast"; voted_count: number; total_count: number } // never includes who voted for whom
-  | {
-      type: "vote_resolved";
-      vote_round: 1 | 2;
-      tally: ImpostorVoteTally[];
-      total_votes: number;
-      accused_user_id: string | null; // null if the vote was a tie/no plurality
-      outcome: "continue" | "crew_win" | "impostor_win";
-    }
-  | { type: "next_round_set_started"; round_number: 3; starter_user_id: string }
-  | { type: "game_ended"; winner: ImpostorWinner; impostor_user_id: string; secret_word: string }
-  | { type: "session_ended" };
