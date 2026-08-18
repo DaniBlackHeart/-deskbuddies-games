@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import UnoCardView from "../../components/UnoCardView";
+import UnoRulesModal from "../../components/UnoRulesModal";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { sounds } from "../../lib/sounds";
@@ -27,6 +28,7 @@ export default function UnoPlayPage() {
   const [flash, setFlash] = useState<string | null>(null);
   const [pendingCard, setPendingCard] = useState<UnoCard | null>(null); // a wild/7 the player tapped but hasn't finished configuring
   const [unoArmed, setUnoArmed] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const [busy, setBusy] = useState(false);
   const flashTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playedEndSoundRef = useRef(false);
@@ -219,19 +221,26 @@ export default function UnoPlayPage() {
           </div>
         )}
 
-        <div className="row-between">
-          <span className={`uno-direction ${session.direction === -1 ? "uno-direction--reversed" : ""}`} aria-label="Play direction">
-            ➜
-          </span>
-          <span className="badge badge-neutral">
-            {isMyTurn ? "Your turn!" : `${usernameFor(session.current_turn_user_id)}'s turn`}
-          </span>
-          {session.current_color && (
-            <span className="badge badge-neutral" style={{ textTransform: "capitalize" }}>
-              {COLOR_LABEL[session.current_color]}
+        <div className="row-between" style={{ flexWrap: "wrap", gap: "8px" }}>
+          <div className="row" style={{ gap: "8px" }}>
+            <span className={`uno-direction ${session.direction === -1 ? "uno-direction--reversed" : ""}`} aria-label="Play direction">
+              ➜
             </span>
-          )}
+            <span className="badge badge-neutral">
+              {isMyTurn ? "Your turn!" : `${usernameFor(session.current_turn_user_id)}'s turn`}
+            </span>
+            {session.current_color && (
+              <span className="badge badge-neutral" style={{ textTransform: "capitalize" }}>
+                {COLOR_LABEL[session.current_color]}
+              </span>
+            )}
+          </div>
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowRules(true)}>
+            ❓ Rules
+          </button>
         </div>
+
+        {showRules && <UnoRulesModal onClose={() => setShowRules(false)} />}
 
         <div className="uno-table">
           <div className="uno-draw-pile">
