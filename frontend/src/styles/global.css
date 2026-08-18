@@ -851,3 +851,29 @@ button {
   font-weight: 700;
   margin: var(--space-2) 0;
 }
+
+/* The percentage-vote reveal — a simple bar per player, sorted by share.
+   Reuses the vote-option danger tint for whoever was actually accused, so
+   the same "this person got flagged" visual language carries over from
+   the vote grid to the results. */
+.impostor-vote-results__headline {
+  font-weight: 700;
+  margin: 0 0 var(--space-3);
+  text-align: center;
+}
+.impostor-vote-results__bar-track {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-alt);
+  overflow: hidden;
+  margin-top: 4px;
+}
+.impostor-vote-results__bar {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  transition: width 0.4s ease;
+}
+.impostor-vote-results__bar--accused {
+  background: var(--color-danger);
+}

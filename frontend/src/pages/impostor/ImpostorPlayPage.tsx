@@ -4,10 +4,18 @@ import AppHeader from "../../components/AppHeader";
 import Timer from "../../components/Timer";
 import ImpostorCardView from "../../components/ImpostorCardView";
 import ImpostorClueBoard from "../../components/ImpostorClueBoard";
+import ImpostorVoteResults from "../../components/ImpostorVoteResults";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { sounds } from "../../lib/sounds";
-import type { ImpostorCard, ImpostorClue, ImpostorParticipant, ImpostorSessionEvent, ImpostorSessionPublic } from "../../types";
+import type {
+  ImpostorCard,
+  ImpostorClue,
+  ImpostorFinalVoteTally,
+  ImpostorParticipant,
+  ImpostorSessionEvent,
+  ImpostorSessionPublic,
+} from "../../types";
 
 type ImpostorState = {
   session: ImpostorSessionPublic;
@@ -17,6 +25,12 @@ type ImpostorState = {
   has_voted: boolean;
   is_playing: boolean;
 };
+
+// How long the percentage-vote reveal stays on screen for an inconclusive
+// vote before the next round-set's clue-giving UI takes over. A terminal
+// (crew_win/impostor_win) result doesn't need this — the results just
+// become a permanent part of the "ended" screen instead.
+const RESULTS_REVEAL_MS = 6000;
 
 export default function ImpostorPlayPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -30,7 +44,11 @@ export default function ImpostorPlayPage() {
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
+  const [lastVoteResult, setLastVoteResult] = useState<(ImpostorFinalVoteTally & { outcome: "continue" | "crew_win" | "impostor_win" }) | null>(
+    null
+  );
   const flashTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resultsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playedEndSoundRef = useRef(false);
   const latestStateRef = useRef(state);
   latestStateRef.current = state;
@@ -74,6 +92,7 @@ export default function ImpostorPlayPage() {
       .on("broadcast", { event: "game_started" }, () => {
         sounds.sessionStart();
         setRevealed(false);
+        setLastVoteResult(null);
         hydrate();
       })
       .on("broadcast", { event: "clue_submitted" }, () => {
@@ -87,14 +106,32 @@ export default function ImpostorPlayPage() {
       })
       .on("broadcast", { event: "vote_cast" }, () => hydrate())
       .on("broadcast", { event: "vote_resolved" }, ({ payload }: { payload: ImpostorSessionEvent & { type: "vote_resolved" } }) => {
+        sounds.suspenseReveal();
+        setLastVoteResult({
+          vote_round: payload.vote_round,
+          tally: payload.tally,
+          total_votes: payload.total_votes,
+          accused_user_id: payload.accused_user_id,
+          outcome: payload.outcome,
+        });
         if (payload.outcome === "continue") {
-          showFlash("No clear consensus — one more round of clues coming up…");
+          // Hold on the percentage reveal for a beat before the next
+          // round-set's UI takes over — don't hydrate immediately, or the
+          // "round 3, waiting on X" state would replace the results before
+          // anyone's had a chance to read them. next_round_set_started
+          // (which fires right after this) deliberately does NOT hydrate
+          // either, for the same reason.
+          if (resultsTimeout.current) clearTimeout(resultsTimeout.current);
+          resultsTimeout.current = setTimeout(hydrate, RESULTS_REVEAL_MS);
+        } else {
+          // Game's over — go straight to the ended screen, which shows
+          // this same results panel permanently rather than on a timer.
+          hydrate();
         }
-        hydrate();
       })
       .on("broadcast", { event: "next_round_set_started" }, () => {
         sounds.sessionStart();
-        hydrate();
+        // No hydrate() here on purpose — see the vote_resolved handler above.
       })
       .on("broadcast", { event: "game_ended" }, () => hydrate())
       .on("broadcast", { event: "session_ended" }, () => hydrate())
@@ -102,6 +139,7 @@ export default function ImpostorPlayPage() {
 
     return () => {
       supabase.removeChannel(channel);
+      if (resultsTimeout.current) clearTimeout(resultsTimeout.current);
     };
   }, [sessionId, hydrate, showFlash]);
 
@@ -169,6 +207,10 @@ export default function ImpostorPlayPage() {
 
   const { session, roster, clues, my_card, has_voted, is_playing } = state;
   const isMyTurn = is_playing && session.current_turn_user_id === profile?.id;
+  // Prefer the live broadcast (has richer info, arrives instantly); fall
+  // back to what get-impostor-state returns from the session row — needed
+  // for anyone who refreshes or joins the ended screen after the fact.
+  const finalResults = lastVoteResult ?? (session.final_vote_tally ? { ...session.final_vote_tally, outcome: session.winner === "crew" ? "crew_win" as const : "impostor_win" as const } : null);
 
   if (session.status === "ended") {
     return (
@@ -195,6 +237,18 @@ export default function ImpostorPlayPage() {
               Back to games
             </button>
           </div>
+
+          {finalResults && (
+            <div style={{ marginTop: "16px" }}>
+              <ImpostorVoteResults
+                headline="How the vote went:"
+                roster={roster}
+                tally={finalResults.tally}
+                totalVotes={finalResults.total_votes}
+                accusedUserId={finalResults.accused_user_id}
+              />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -247,35 +301,42 @@ export default function ImpostorPlayPage() {
           </div>
         )}
 
-        {session.status === "voting" && (
-          <div className="card">
-            {session.vote_deadline_ms && <Timer deadline={session.vote_deadline_ms} onExpire={() => callPlay("vote_timeout")} />}
-            <p style={{ fontWeight: 700, textAlign: "center", marginTop: 0 }}>
-              Vote {session.vote_round}: who's the Impostor?
-            </p>
-            {has_voted || selectedSuspect ? (
-              <p className="text-muted text-center" style={{ margin: 0 }}>
-                Your vote's locked in — waiting for everyone else…
-              </p>
-            ) : (
-              <div className="impostor-vote-grid">
-                {roster
-                  .filter((p) => p.user_id !== profile?.id)
-                  .map((p) => (
-                    <button
-                      key={p.user_id}
-                      type="button"
-                      className={`impostor-vote-option ${selectedSuspect === p.user_id ? "impostor-vote-option--selected" : ""}`}
-                      disabled={busy}
-                      onClick={() => handleVote(p.user_id)}
-                    >
-                      {p.profiles?.username}
-                    </button>
-                  ))}
-              </div>
-            )}
-          </div>
-        )}
+        {session.status === "voting" &&
+          (lastVoteResult && lastVoteResult.vote_round === session.vote_round ? (
+            <ImpostorVoteResults
+              headline="No clear consensus — here's how the votes landed:"
+              roster={roster}
+              tally={lastVoteResult.tally}
+              totalVotes={lastVoteResult.total_votes}
+              accusedUserId={lastVoteResult.accused_user_id}
+            />
+          ) : (
+            <div className="card">
+              {session.vote_deadline_ms && <Timer deadline={session.vote_deadline_ms} onExpire={() => callPlay("vote_timeout")} />}
+              <p style={{ fontWeight: 700, textAlign: "center", marginTop: 0 }}>Vote {session.vote_round}: who's the Impostor?</p>
+              {has_voted || selectedSuspect ? (
+                <p className="text-muted text-center" style={{ margin: 0 }}>
+                  Your vote's locked in — waiting for everyone else…
+                </p>
+              ) : (
+                <div className="impostor-vote-grid">
+                  {roster
+                    .filter((p) => p.user_id !== profile?.id)
+                    .map((p) => (
+                      <button
+                        key={p.user_id}
+                        type="button"
+                        className={`impostor-vote-option ${selectedSuspect === p.user_id ? "impostor-vote-option--selected" : ""}`}
+                        disabled={busy}
+                        onClick={() => handleVote(p.user_id)}
+                      >
+                        {p.profiles?.username}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          ))}
 
         {!is_playing && (
           <p className="hint text-center">You're spectating this game from the play screen — no card or vote to cast.</p>

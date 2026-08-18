@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import ImpostorClueBoard from "../../components/ImpostorClueBoard";
+import ImpostorVoteResults from "../../components/ImpostorVoteResults";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { ImpostorClue, ImpostorParticipant, ImpostorSessionPublic } from "../../types";
 
@@ -49,6 +50,7 @@ export default function HostImpostorSessionPage() {
             completed: data.completed,
             revealed_impostor_user_id: data.revealed_impostor_user_id,
             revealed_secret_word: data.revealed_secret_word,
+            final_vote_tally: data.final_vote_tally,
             state_version: data.state_version,
           }
         : null
@@ -224,6 +226,18 @@ export default function HostImpostorSessionPage() {
             <button className="btn btn-secondary" style={{ marginTop: "12px" }} onClick={() => navigate("/mod")}>
               Back to dashboard
             </button>
+          </div>
+        )}
+
+        {session.status === "ended" && session.final_vote_tally && (
+          <div style={{ marginTop: "16px" }}>
+            <ImpostorVoteResults
+              headline="How the vote went:"
+              roster={roster}
+              tally={session.final_vote_tally.tally}
+              totalVotes={session.final_vote_tally.total_votes}
+              accusedUserId={session.final_vote_tally.accused_user_id}
+            />
           </div>
         )}
       </div>

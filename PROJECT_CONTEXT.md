@@ -11,10 +11,9 @@
 > it, download the result, and re-upload it to Project Knowledge. Claude
 > can't write back to Project Knowledge on its own.
 
-Last reconciled: 2026-08-18, correcting the Impostor WHO? build from
-2026-08-17 (see §6a-i: the Impostor's clue was wrongly showing the category
-name instead of a per-word clue) on top of the UNO reconciliation described
-below.
+Last reconciled: 2026-08-18, adding a percentage-vote reveal to Impostor
+WHO? (0014, on top of the same-day clue-field correction in 0013) on top
+of the UNO reconciliation described below.
 
 ---
 
@@ -64,7 +63,7 @@ frontend/
                                       paste parsers, feeding each game's import modal)
     styles/tokens.css, global.css
 supabase/
-  migrations/                        numbered SQL files, currently up to 0013
+  migrations/                        numbered SQL files, currently up to 0014
   functions/
     _shared/utils.ts                 shared helpers (see §6) — includes UNO's deck/shuffle/legality
                                       helpers, reused as-is by Impostor for seat rotation (nextUnoSeat
@@ -207,6 +206,7 @@ no reason to copy a known-dead pattern into a new table.
 | 0011 | UNO schema (`uno_sessions`, `uno_participants`, `uno_hands`, `uno_deck_state`) | confirmed — full file in Project Knowledge |
 | 0012 | Impostor WHO? schema (`impostor_categories`, `impostor_words`, `impostor_sessions`, `impostor_secrets`, `impostor_cards`, `impostor_participants`, `impostor_clues`, `impostor_votes`) | confirmed — full file in Project Knowledge |
 | 0013 | Impostor WHO? per-word clues (`impostor_words.clue`, `impostor_cards.clue`) — correction, see §6a-i | confirmed — full file in Project Knowledge |
+| 0014 | Impostor WHO? persisted vote tally (`impostor_sessions.final_vote_tally`) — powers the percentage-vote reveal, see §6a-ii | confirmed — full file in Project Knowledge |
 
 **Caveat:** only 0001 is present verbatim in Project Knowledge. Everything
 else is reconstructed from chat summaries that described *what* a migration
@@ -291,6 +291,45 @@ If a similar "which specific level does this field actually belong to"
 ambiguity comes up in a future game, this is the pattern that worked: add a
 nullable column with a graceful fallback rather than requiring a backfill,
 so nothing already-deployed breaks.
+
+## 6a-ii. Percentage-vote reveal (2026-08-18)
+
+Added on request: every member can see how many people voted them (or
+anyone else) as the Impostor, as a percentage. The underlying data already
+existed — `resolveVote` in `impostor-play` was already computing a full
+per-suspect tally to decide the outcome, it just wasn't being shown to
+anyone. What changed:
+
+- `vote_resolved`'s broadcast payload gained `total_votes`, needed to turn
+  raw counts into percentages (`count / total_votes`).
+- `impostor_sessions.final_vote_tally` (migration `0014`) persists the
+  tally from whichever vote actually ENDED the game — so the percentage
+  breakdown survives a refresh, not just showing up for whoever was live
+  and connected the instant the reveal broadcast fired. An inconclusive
+  first vote does NOT get persisted (only the terminal one does) — that
+  tally is still shown live to anyone connected in the moment, it just
+  isn't kept around once the game moves past it, consistent with how other
+  intermediate round state in this schema isn't preserved either.
+- New component, `ImpostorVoteResults` — a sorted list of every player with
+  a percentage bar, 0% included for anyone nobody suspected (deliberately
+  not filtered down to only people who got votes — "how many members voted
+  YOU" only means something if the 0%-suspicion case is visible too).
+- **A real UX problem this surfaced and how it was solved:** the server
+  fires `vote_resolved` immediately followed by either `next_round_set_started`
+  or `game_ended`. Hydrating on every broadcast (the original pattern) meant
+  the percentage reveal would render for a single frame and then get
+  instantly replaced by the next phase's UI — nobody would ever actually see
+  it. Fixed by NOT hydrating on `next_round_set_started` at all (a sound cue
+  still plays), and delaying the hydrate that follows `vote_resolved` by
+  `RESULTS_REVEAL_MS` (6s) specifically for the "continue" outcome, so the
+  reveal has time to actually be read before round-set 2's UI takes over.
+  Terminal outcomes (`crew_win`/`impostor_win`) skip the delay and hydrate
+  immediately, because the ended screen shows the same results panel
+  permanently rather than on a timer — there's no "replaced too fast"
+  problem there. Applied identically in `ImpostorPlayPage` and
+  `ImpostorSpectatorPage`; `HostImpostorSessionPage` gets the persisted
+  version only (`session.final_vote_tally` on the ended screen) since it
+  doesn't listen to the broadcast channel at all, just `postgres_changes`.
 
 ## 6b. A real bug caught during review, worth knowing about
 

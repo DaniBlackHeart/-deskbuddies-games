@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
         completed: session.completed,
         revealed_impostor_user_id: session.revealed_impostor_user_id,
         revealed_secret_word: session.revealed_secret_word,
+        final_vote_tally: session.final_vote_tally,
         state_version: session.state_version,
       },
       roster: roster ?? [],

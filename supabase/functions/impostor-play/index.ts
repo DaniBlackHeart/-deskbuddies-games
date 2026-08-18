@@ -186,6 +186,7 @@ async function resolveVote(admin: ReturnType<typeof getAdminClient>, sessionId: 
   const tally = Array.from(counts.entries())
     .map(([user_id, count]) => ({ user_id, count }))
     .sort((a, b) => b.count - a.count);
+  const totalVotes = votes?.length ?? 0;
 
   // A lone top vote-getter wins the plurality; a tie at the top means no
   // accusation was actually reached.
@@ -198,6 +199,12 @@ async function resolveVote(admin: ReturnType<typeof getAdminClient>, sessionId: 
   const isFinalVote = session.vote_round === 2;
   const correctAccusation = accusedUserId !== null && accusedUserId === impostorUserId;
 
+  // Persisted so the breakdown is still visible if a player refreshes or
+  // reconnects after the game already ended, not just for whoever was
+  // live and connected at the moment of the broadcast — see
+  // 0014_impostor_vote_tally.sql.
+  const finalVoteTally = { vote_round: session.vote_round, tally, total_votes: totalVotes, accused_user_id: accusedUserId };
+
   if (correctAccusation) {
     await admin
       .from("impostor_sessions")
@@ -208,6 +215,7 @@ async function resolveVote(admin: ReturnType<typeof getAdminClient>, sessionId: 
         winner: "crew",
         revealed_impostor_user_id: impostorUserId,
         revealed_secret_word: secretWord,
+        final_vote_tally: finalVoteTally,
         current_turn_user_id: null,
         clue_deadline: null,
         vote_deadline: null,
@@ -216,7 +224,13 @@ async function resolveVote(admin: ReturnType<typeof getAdminClient>, sessionId: 
       })
       .eq("id", sessionId);
     await releaseSessionLock(admin, sessionId);
-    await broadcast(admin, sessionId, "vote_resolved", { vote_round: session.vote_round, tally, accused_user_id: accusedUserId, outcome: "crew_win" });
+    await broadcast(admin, sessionId, "vote_resolved", {
+      vote_round: session.vote_round,
+      tally,
+      total_votes: totalVotes,
+      accused_user_id: accusedUserId,
+      outcome: "crew_win",
+    });
     await broadcast(admin, sessionId, "game_ended", { winner: "crew", impostor_user_id: impostorUserId, secret_word: secretWord });
     return;
   }
@@ -231,6 +245,7 @@ async function resolveVote(admin: ReturnType<typeof getAdminClient>, sessionId: 
         winner: "impostor",
         revealed_impostor_user_id: impostorUserId,
         revealed_secret_word: secretWord,
+        final_vote_tally: finalVoteTally,
         current_turn_user_id: null,
         clue_deadline: null,
         vote_deadline: null,
@@ -239,7 +254,13 @@ async function resolveVote(admin: ReturnType<typeof getAdminClient>, sessionId: 
       })
       .eq("id", sessionId);
     await releaseSessionLock(admin, sessionId);
-    await broadcast(admin, sessionId, "vote_resolved", { vote_round: session.vote_round, tally, accused_user_id: accusedUserId, outcome: "impostor_win" });
+    await broadcast(admin, sessionId, "vote_resolved", {
+      vote_round: session.vote_round,
+      tally,
+      total_votes: totalVotes,
+      accused_user_id: accusedUserId,
+      outcome: "impostor_win",
+    });
     await broadcast(admin, sessionId, "game_ended", { winner: "impostor", impostor_user_id: impostorUserId, secret_word: secretWord });
     return;
   }
@@ -267,7 +288,13 @@ async function resolveVote(admin: ReturnType<typeof getAdminClient>, sessionId: 
     })
     .eq("id", sessionId);
 
-  await broadcast(admin, sessionId, "vote_resolved", { vote_round: session.vote_round, tally, accused_user_id: accusedUserId, outcome: "continue" });
+  await broadcast(admin, sessionId, "vote_resolved", {
+    vote_round: session.vote_round,
+    tally,
+    total_votes: totalVotes,
+    accused_user_id: accusedUserId,
+    outcome: "continue",
+  });
   await broadcast(admin, sessionId, "next_round_set_started", { round_number: 3, starter_user_id: nextStarter });
 }
 

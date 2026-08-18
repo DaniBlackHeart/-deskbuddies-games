@@ -1,69 +1,82 @@
-# Impostor WHO? — clue fix delivery manifest
+# Impostor WHO? — percentage-vote reveal delivery manifest
 
-Fixes the bug you caught in playtesting: the Impostor's card was showing
-"Your only clue — category: Everyday Objects" instead of an actual clue
-about the secret word. Now it's a real per-word clue, authored by the MOD,
-with the category name only as a fallback if a word has no clue set.
+Adds what you asked for: every member can see how many people voted them
+(or anyone else) as the Impostor, as a percentage — a sorted list with a
+bar per player, right after a vote resolves, and again permanently on the
+final results screen.
 
-This is additive on top of the original Impostor WHO? delivery — every path
-below is relative to your repo root, same as before.
+Additive on top of the previous two Impostor deliveries — paths are
+relative to your repo root, same as before.
 
-## New file
-- supabase/migrations/0013_impostor_word_clues.sql — adds `impostor_words.clue`
-  and `impostor_cards.clue`, both nullable so nothing already deployed breaks.
+## New files
+- supabase/migrations/0014_impostor_vote_tally.sql — adds
+  `impostor_sessions.final_vote_tally` (nullable jsonb), so the vote
+  breakdown survives a page refresh after the game ends
+- frontend/src/components/ImpostorVoteResults.tsx — the percentage-bar list
 
 ## Modified files
-- supabase/functions/impostor-host/index.ts — `start_game` now selects
-  `word, clue` and resolves `clue || category_name` once, at deal time
-- supabase/functions/get-impostor-state/index.ts — `my_card` select now
-  includes `clue`
-- frontend/src/types/index.ts — `ImpostorWord`/`ImpostorCard` gained a `clue` field
-- frontend/src/components/ImpostorCardView.tsx — the Impostor's card now
-  shows the word-specific clue (category name still shown too, as context —
-  it's public info anyway)
-- frontend/src/utils/impostorParser.ts — reworked to parse per-word clues:
-  `Word | Clue text` in plain-text imports, `{word, clue}` objects in JSON
-  (both the words-only and bulk-category import paths)
-- frontend/src/components/ImpostorImportModal.tsx — preview now shows each
-  word's parsed clue (or a note that it'll fall back to the category name)
-- frontend/src/pages/mod/ImpostorCategoryEditorPage.tsx — reworked: adding a
-  word now has a clue field alongside it, and every existing word gets an
-  inline-editable clue input (with a "Save" button that appears once you've
-  actually changed it) — so you can go back and add clues to categories you
-  already built before this fix
-- frontend/src/pages/mod/ImpostorCategoriesPage.tsx — bulk category import
-  now writes each word's clue too
-- SETUP.md — migration count bumped to 0013, the Impostor setup section
-  mentions the clue field and the `Word | Clue` import syntax
-- PROJECT_CONTEXT.md — §6a-i documents the correction (what was wrong, what
-  changed, and the reasoning for a nullable-column-with-fallback fix rather
-  than a backfill), migration table updated
+- supabase/functions/impostor-play/index.ts — `resolveVote` now includes
+  `total_votes` in every `vote_resolved` broadcast, and persists the final
+  tally onto the session row for a terminal (crew_win/impostor_win)
+  resolution specifically
+- supabase/functions/get-impostor-state/index.ts — returns
+  `session.final_vote_tally`
+- frontend/src/types/index.ts — new `ImpostorFinalVoteTally` type,
+  `ImpostorSessionPublic` gained `final_vote_tally`, `vote_resolved`'s
+  broadcast type gained `total_votes`
+- frontend/src/styles/global.css — `.impostor-vote-results*` bar styles
+- frontend/src/pages/impostor/ImpostorPlayPage.tsx — shows the reveal live
+  when a vote resolves, and permanently on the ended screen
+- frontend/src/pages/mod/ImpostorSpectatorPage.tsx — same, for spectators
+- frontend/src/pages/mod/HostImpostorSessionPage.tsx — the ended screen
+  shows it too (persisted version only — the host page doesn't listen to
+  live broadcasts, just `postgres_changes`)
 
 ## Deploy order
 
 ```bash
 npx supabase db push
-npx supabase functions deploy impostor-host
+npx supabase functions deploy impostor-play
 npx supabase functions deploy get-impostor-state
 git add .
-git commit -m "Fix Impostor WHO? clue: per-word clue instead of category name"
+git commit -m "Add percentage-vote reveal to Impostor WHO?"
 git push
 ```
 
-`impostor-play` and the frontend routing/CSS/sounds files from the original
-delivery are untouched — no need to redeploy `impostor-play`, though
-`git push` will pick up the frontend changes regardless.
+`impostor-host` is untouched this round — no need to redeploy it.
 
-## One thing worth knowing
+## How it behaves
 
-Any category you already built before this fix has words with no clue yet
-— they'll keep working (the Impostor just sees the category name, same as
-before), but it's worth a pass through `ImpostorCategoryEditorPage` to add
-real clues where you want them. There's no bulk "generate clues" tool —
-each one's a manual/inline edit.
+- Everyone with 0 votes still shows up at 0% — the whole point is you can
+  see "nobody suspected me at all," not just the people who got votes.
+- On an inconclusive vote (round-set 2 incoming), the reveal shows for about
+  6 seconds before the next round's clue-giving screen takes over — long
+  enough to read it, not so long it drags. Worth adjusting
+  `RESULTS_REVEAL_MS` in `ImpostorPlayPage.tsx`/`ImpostorSpectatorPage.tsx`
+  if 6s feels off in practice.
+- On a game-ending vote, the reveal doesn't disappear — it's a permanent
+  part of the final results screen, survives a refresh.
+
+## One real bug this caught (worth knowing about)
+
+The server fires `vote_resolved` immediately followed by either
+`next_round_set_started` or `game_ended`. The original broadcast-handling
+pattern (hydrate on every event) meant the percentage reveal would render
+for a single frame and then get instantly overwritten by whatever came
+next — functionally invisible. Fixed by not hydrating on
+`next_round_set_started` at all, and delaying the hydrate that follows an
+inconclusive `vote_resolved` by the 6-second window mentioned above.
+Documented in `PROJECT_CONTEXT.md` §6a-ii in case a similar
+"broadcast-arrives-then-immediately-gets-overwritten" issue shows up in a
+future game — the fix pattern (skip the redundant hydrate, delay the
+meaningful one) is the reusable part.
 
 ## Verified
+
 `npx tsc -b` and `npx oxlint` both pass clean — 0 errors, same 5
-pre-existing warnings as before (none new). Same caveat as the original
-delivery: no Deno runtime available to actually run the two changed Edge
-Functions, reviewed by hand instead.
+pre-existing warnings as before (none new). Same caveat as every Impostor
+delivery so far: no Deno runtime available to actually run
+`impostor-play`/`get-impostor-state`, reviewed by hand instead. Worth a
+real playtest to confirm the 6-second reveal timing feels right and that
+the persisted `final_vote_tally` renders correctly on a fresh page load
+after a game has already ended.

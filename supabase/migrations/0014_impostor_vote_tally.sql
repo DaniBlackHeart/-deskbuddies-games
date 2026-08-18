@@ -1,0 +1,24 @@
+-- DeskBuddies Games — Impostor WHO?: persist the final vote breakdown
+--
+-- Adds a percentage-vote reveal: after a vote resolves, every player sees
+-- how the votes landed — who got what share of the vote, not just whether
+-- someone was accused. The per-round tally was already being computed
+-- server-side for resolution (impostor-play's resolveVote) and broadcast
+-- live over the impostor-session-{id} channel, so no anti-cheat boundary
+-- changes here — this migration just adds somewhere to PERSIST that final
+-- tally, so it's still visible if a player refreshes or reconnects after
+-- the game already ended instead of only working for whoever was live and
+-- connected at the moment of the reveal.
+--
+-- Nullable and only ever written once, at the SAME moment
+-- revealed_impostor_user_id/revealed_secret_word are (a terminal
+-- crew_win/impostor_win resolution) — same "stays null until legitimately
+-- revealed, safe on the normally member-readable session row" reasoning
+-- those two columns already rely on. An inconclusive first vote (the
+-- "continue" outcome, round-set 2 incoming) does NOT get persisted here —
+-- that tally is still broadcast live for anyone connected in the moment,
+-- it just isn't kept around once the game moves on, matching how
+-- intermediate round state generally isn't preserved past its moment
+-- elsewhere in this schema either.
+
+alter table public.impostor_sessions add column final_vote_tally jsonb;

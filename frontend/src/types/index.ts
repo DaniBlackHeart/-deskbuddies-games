@@ -347,6 +347,21 @@ export type ImpostorWord = {
   archived_at: string | null;
 };
 
+// Final tally for a resolved vote round — every candidate's vote share,
+// shown as a percentage in the UI (count / total_votes). Broadcast live on
+// every resolution (including an inconclusive one, so players can see how
+// close it was even when the game moves on to round-set 2); ALSO persisted
+// on the session as `final_vote_tally` for a terminal (crew_win/
+// impostor_win) resolution specifically, so it's still visible after a
+// refresh — see 0014_impostor_vote_tally.sql.
+export type ImpostorVoteTally = { user_id: string; count: number };
+export type ImpostorFinalVoteTally = {
+  vote_round: 1 | 2;
+  tally: ImpostorVoteTally[];
+  total_votes: number;
+  accused_user_id: string | null;
+};
+
 // Shape returned by get-impostor-state — NOT the raw table row. Mirrors
 // get-uno-state: the raw impostor_sessions row is actually safe to read
 // directly (revealed_* stay null until a real outcome), but this shape is
@@ -366,6 +381,7 @@ export type ImpostorSessionPublic = {
   completed: boolean;
   revealed_impostor_user_id: string | null;
   revealed_secret_word: string | null;
+  final_vote_tally: ImpostorFinalVoteTally | null;
   state_version: number;
 };
 
@@ -394,11 +410,6 @@ export type ImpostorClue = {
   timed_out: boolean;
 };
 
-// Final tally for a resolved vote round — broadcast only, not persisted
-// beyond the event (the game either moves on to a fresh round-set or ends,
-// so there's nothing later that needs to re-read an old tally).
-export type ImpostorVoteTally = { user_id: string; count: number };
-
 // --- Realtime broadcast payload shapes (impostor-session-{id} channel) ---
 
 export type ImpostorSessionEvent =
@@ -418,6 +429,7 @@ export type ImpostorSessionEvent =
       type: "vote_resolved";
       vote_round: 1 | 2;
       tally: ImpostorVoteTally[];
+      total_votes: number;
       accused_user_id: string | null; // null if the vote was a tie/no plurality
       outcome: "continue" | "crew_win" | "impostor_win";
     }

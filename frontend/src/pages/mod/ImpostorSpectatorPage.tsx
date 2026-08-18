@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import ImpostorClueBoard from "../../components/ImpostorClueBoard";
+import ImpostorVoteResults from "../../components/ImpostorVoteResults";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
-import type { ImpostorClue, ImpostorParticipant, ImpostorSessionEvent, ImpostorSessionPublic } from "../../types";
+import type { ImpostorClue, ImpostorFinalVoteTally, ImpostorParticipant, ImpostorSessionEvent, ImpostorSessionPublic } from "../../types";
 
 type ImpostorState = {
   session: ImpostorSessionPublic;
@@ -16,6 +17,10 @@ type ImpostorState = {
 
 type Phase = "loading" | "claim_failed" | "ready";
 
+// Same reveal-then-move-on pause as ImpostorPlayPage — see its comment on
+// RESULTS_REVEAL_MS for why this isn't just an immediate hydrate().
+const RESULTS_REVEAL_MS = 6000;
+
 export default function ImpostorSpectatorPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
@@ -25,7 +30,11 @@ export default function ImpostorSpectatorPage() {
   const [state, setState] = useState<ImpostorState | null>(null);
   const [votedCount, setVotedCount] = useState(0);
   const [flash, setFlash] = useState<string | null>(null);
+  const [lastVoteResult, setLastVoteResult] = useState<(ImpostorFinalVoteTally & { outcome: "continue" | "crew_win" | "impostor_win" }) | null>(
+    null
+  );
   const flashTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resultsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showFlash = useCallback((msg: string) => {
     setFlash(msg);
@@ -63,7 +72,10 @@ export default function ImpostorSpectatorPage() {
 
     const channel = supabase
       .channel(`impostor-session-${sessionId}`)
-      .on("broadcast", { event: "game_started" }, () => hydrate())
+      .on("broadcast", { event: "game_started" }, () => {
+        setLastVoteResult(null);
+        hydrate();
+      })
       .on("broadcast", { event: "clue_submitted" }, () => hydrate())
       .on("broadcast", { event: "voting_started" }, ({ payload }: { payload: ImpostorSessionEvent & { type: "voting_started" } }) => {
         setVotedCount(0);
@@ -74,10 +86,25 @@ export default function ImpostorSpectatorPage() {
         setVotedCount(payload.voted_count);
       })
       .on("broadcast", { event: "vote_resolved" }, ({ payload }: { payload: ImpostorSessionEvent & { type: "vote_resolved" } }) => {
-        showFlash(payload.outcome === "continue" ? "No consensus — one more round-set…" : "Vote's in!");
-        hydrate();
+        setLastVoteResult({
+          vote_round: payload.vote_round,
+          tally: payload.tally,
+          total_votes: payload.total_votes,
+          accused_user_id: payload.accused_user_id,
+          outcome: payload.outcome,
+        });
+        if (payload.outcome === "continue") {
+          showFlash("No consensus — one more round-set…");
+          if (resultsTimeout.current) clearTimeout(resultsTimeout.current);
+          resultsTimeout.current = setTimeout(hydrate, RESULTS_REVEAL_MS);
+        } else {
+          showFlash("Vote's in!");
+          hydrate();
+        }
       })
-      .on("broadcast", { event: "next_round_set_started" }, () => hydrate())
+      .on("broadcast", { event: "next_round_set_started" }, () => {
+        // No hydrate() here on purpose — see the vote_resolved handler above.
+      })
       .on("broadcast", { event: "game_ended" }, () => hydrate())
       .on("broadcast", { event: "session_ended" }, () => hydrate())
       .subscribe();
@@ -92,6 +119,7 @@ export default function ImpostorSpectatorPage() {
       isMounted = false;
       supabase.removeChannel(channel);
       supabase.removeChannel(rosterChannel);
+      if (resultsTimeout.current) clearTimeout(resultsTimeout.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, hydrate, showFlash]);
@@ -131,6 +159,8 @@ export default function ImpostorSpectatorPage() {
 
   if (!state) return null;
   const { session, roster, clues } = state;
+  const finalResults =
+    lastVoteResult ?? (session.final_vote_tally ? { ...session.final_vote_tally, outcome: session.winner === "crew" ? ("crew_win" as const) : ("impostor_win" as const) } : null);
 
   return (
     <div className="app-shell">
@@ -169,23 +199,36 @@ export default function ImpostorSpectatorPage() {
           </div>
         )}
 
-        {(session.status === "clue_giving" || session.status === "voting") && (
+        {session.status === "clue_giving" && (
           <>
-            <ImpostorClueBoard clues={clues} roster={roster} currentTurnUserId={session.status === "clue_giving" ? session.current_turn_user_id : null} />
+            <ImpostorClueBoard clues={clues} roster={roster} currentTurnUserId={session.current_turn_user_id} />
             <div className="card text-center">
-              {session.status === "clue_giving" && (
-                <p style={{ margin: 0 }}>
-                  Round {session.round_number} of 4 — waiting on <strong>{usernameFor(session.current_turn_user_id)}</strong>
-                </p>
-              )}
-              {session.status === "voting" && (
-                <p style={{ margin: 0 }}>
-                  Vote {session.vote_round} — {votedCount}/{roster.length} voted
-                </p>
-              )}
+              <p style={{ margin: 0 }}>
+                Round {session.round_number} of 4 — waiting on <strong>{usernameFor(session.current_turn_user_id)}</strong>
+              </p>
             </div>
           </>
         )}
+
+        {session.status === "voting" &&
+          (lastVoteResult && lastVoteResult.vote_round === session.vote_round ? (
+            <ImpostorVoteResults
+              headline="No clear consensus — here's how the votes landed:"
+              roster={roster}
+              tally={lastVoteResult.tally}
+              totalVotes={lastVoteResult.total_votes}
+              accusedUserId={lastVoteResult.accused_user_id}
+            />
+          ) : (
+            <>
+              <ImpostorClueBoard clues={clues} roster={roster} currentTurnUserId={null} />
+              <div className="card text-center">
+                <p style={{ margin: 0 }}>
+                  Vote {session.vote_round} — {votedCount}/{roster.length} voted
+                </p>
+              </div>
+            </>
+          ))}
 
         {session.status === "ended" && (
           <div className="card text-center">
@@ -196,6 +239,18 @@ export default function ImpostorSpectatorPage() {
                 <strong>{session.revealed_secret_word}</strong>
               </p>
             )}
+          </div>
+        )}
+
+        {session.status === "ended" && finalResults && (
+          <div style={{ marginTop: "16px" }}>
+            <ImpostorVoteResults
+              headline="How the vote went:"
+              roster={roster}
+              tally={finalResults.tally}
+              totalVotes={finalResults.total_votes}
+              accusedUserId={finalResults.accused_user_id}
+            />
           </div>
         )}
       </div>
