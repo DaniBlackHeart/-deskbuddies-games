@@ -54,6 +54,7 @@ export default function FeudPlayPage() {
   const [huddle, setHuddle] = useState<{ username: string; text: string }[]>([]);
   const [huddleInput, setHuddleInput] = useState("");
   const [fmDuplicateFlag, setFmDuplicateFlag] = useState<number | null>(null);
+  const [choseToWatchFastMoney, setChoseToWatchFastMoney] = useState(false);
   const flashTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showFlash = useCallback((msg: string) => {
@@ -170,7 +171,18 @@ export default function FeudPlayPage() {
         sounds.boardReveal();
         hydrate();
       })
-      .on("broadcast", { event: "main_game_ended" }, () => hydrate())
+      .on("broadcast", { event: "main_game_ended" }, ({ payload }: { payload: FeudSessionEvent & { type: "main_game_ended" } }) => {
+        const myTeam = latestStateRef.current?.my_team;
+        const tied = payload.team_a_score === payload.team_b_score;
+        if (tied) {
+          showFlash("🤝 It's a tie!");
+        } else if (myTeam) {
+          const teamAWon = payload.team_a_score > payload.team_b_score;
+          const myTeamWon = (myTeam === "A") === teamAWon;
+          showFlash(myTeamWon ? "🎉 You won the main game!" : "😔 Main game over — you didn't win this one.");
+        }
+        hydrate();
+      })
       .on("broadcast", { event: "fastmoney_setup" }, () => hydrate())
       .on("broadcast", { event: "fastmoney_player_started" }, () => hydrate())
       .on("broadcast", { event: "fastmoney_reveal_ready" }, () => hydrate())
@@ -498,6 +510,7 @@ export default function FeudPlayPage() {
     const tied = team_a_score === team_b_score;
     const teamAWon = team_a_score > team_b_score;
     const myTeamWon = !tied && !!my_team && (my_team === "A") === teamAWon;
+    const myTeamLost = !tied && !!my_team && !myTeamWon;
 
     return (
       <div className="card text-center">
@@ -511,6 +524,23 @@ export default function FeudPlayPage() {
           <p className="text-muted">
             {myTeamWon ? "Get ready — Fast Money is coming up!" : `${teamAWon ? team_a_name : team_b_name} is heading to Fast Money.`}
           </p>
+        )}
+
+        {myTeamLost && (
+          <div style={{ marginTop: "16px" }}>
+            {choseToWatchFastMoney ? (
+              <p className="hint">👀 Sticking around — hang tight, Fast Money is coming up.</p>
+            ) : (
+              <div className="row" style={{ justifyContent: "center" }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => setChoseToWatchFastMoney(true)}>
+                  👀 Watch Fast Money
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate("/")}>
+                  Back to games
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     );
