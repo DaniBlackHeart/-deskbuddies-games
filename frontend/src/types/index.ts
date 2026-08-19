@@ -138,6 +138,7 @@ export type FeudRoundQuestion = {
   order_index: number;
   prompt: string;
   answers: FeudAnswer[];
+  is_tiebreaker: boolean;
 };
 
 export type FeudFastMoneyQuestion = {
@@ -154,6 +155,7 @@ export type FeudSessionStatus =
   | "lobby"
   | "live"
   | "main_ended"
+  | "tiebreaker"
   | "fastmoney_setup"
   | "fastmoney_p1"
   | "fastmoney_p2"
@@ -228,6 +230,7 @@ export type FeudSessionEvent =
   | { type: "round_started"; round_index: number; prompt: string; answer_count: number; active_a: { user_id: string; username: string }; active_b: { user_id: string; username: string } }
   | { type: "buzz_locked"; winner_user_id: string; deadline_ms: number }
   | { type: "faceoff_correct"; user_id: string; team: Team; index: number; text: string; points: number; kept_by_default?: boolean }
+  | { type: "tiebreaker_started" }
   | { type: "faceoff_rebuttal_open"; user_id: string; team: Team; index: number; text: string; points: number; next_user_id: string; deadline_ms: number }
   | { type: "faceoff_miss"; missed_user_id: string; next_user_id: string; deadline_ms: number; timed_out: boolean }
   | { type: "faceoff_next_pair"; pair_index: number; active_a: { user_id: string; username: string }; active_b: { user_id: string; username: string } }

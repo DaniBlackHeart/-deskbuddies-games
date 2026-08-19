@@ -75,6 +75,12 @@ function AnswersEditor({
   );
 }
 
+// 1-based position of a question among only the normal (non-tiebreaker)
+// rounds, for numbering the list the same way players experience it.
+function normalRoundIndex(all: FeudRoundQuestion[], q: FeudRoundQuestion): number {
+  return all.filter((x) => !x.is_tiebreaker).findIndex((x) => x.id === q.id) + 1;
+}
+
 function toFeudAnswers(drafts: AnswerDraft[]): FeudAnswer[] {
   return drafts
     .filter((a) => a.text.trim())
@@ -103,6 +109,7 @@ export default function FeudSetEditorPage() {
   const [showBoardForm, setShowBoardForm] = useState(false);
   const [boardPrompt, setBoardPrompt] = useState("");
   const [boardAnswers, setBoardAnswers] = useState<AnswerDraft[]>(emptyAnswers(6));
+  const [boardIsTiebreaker, setBoardIsTiebreaker] = useState(false);
   const [boardError, setBoardError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -148,6 +155,7 @@ export default function FeudSetEditorPage() {
       order_index: nextIndex,
       prompt: boardPrompt.trim(),
       answers,
+      is_tiebreaker: boardIsTiebreaker,
     });
     setSaving(false);
     if (error) {
@@ -156,6 +164,7 @@ export default function FeudSetEditorPage() {
     }
     setBoardPrompt("");
     setBoardAnswers(emptyAnswers(6));
+    setBoardIsTiebreaker(false);
     setShowBoardForm(false);
     loadData();
   }
@@ -208,7 +217,7 @@ export default function FeudSetEditorPage() {
   }
 
   async function handleStartSession() {
-    if (roundQuestions.length === 0) return;
+    if (normalRoundCount === 0) return;
     setLaunching(true);
     const { data, error } = await invokeFunction("feud-host", { action: "create_session", feud_set_id: setId });
     setLaunching(false);
@@ -228,6 +237,8 @@ export default function FeudSetEditorPage() {
   }
 
   const fmReady = fmQuestions.length === 5;
+  const normalRoundCount = roundQuestions.filter((q) => !q.is_tiebreaker).length;
+  const tiebreakerRoundCount = roundQuestions.length - normalRoundCount;
 
   return (
     <div className="app-shell">
@@ -237,10 +248,11 @@ export default function FeudSetEditorPage() {
           <div>
             <h1>{set?.name}</h1>
             <p className="text-muted" style={{ marginTop: "-8px" }}>
-              {roundQuestions.length} board question{roundQuestions.length === 1 ? "" : "s"} · Fast Money {fmQuestions.length}/5
+              {normalRoundCount} board question{normalRoundCount === 1 ? "" : "s"}
+              {tiebreakerRoundCount > 0 && ` · ${tiebreakerRoundCount} tiebreaker`} · Fast Money {fmQuestions.length}/5
             </p>
           </div>
-          <button className="btn btn-primary" onClick={handleStartSession} disabled={roundQuestions.length === 0 || launching}>
+          <button className="btn btn-primary" onClick={handleStartSession} disabled={normalRoundCount === 0 || launching}>
             {launching ? <span className="spinner" /> : "▶ Host a session"}
           </button>
         </div>
@@ -269,6 +281,20 @@ export default function FeudSetEditorPage() {
               <AnswersEditor answers={boardAnswers} onChange={setBoardAnswers} max={8} />
               <p className="hint">Alt phrasings let you accept close variants (e.g. "sleep, sleeping, nap").</p>
             </div>
+            <div className="field">
+              <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <input
+                  type="checkbox"
+                  checked={boardIsTiebreaker}
+                  onChange={(e) => setBoardIsTiebreaker(e.target.checked)}
+                  style={{ width: "auto" }}
+                />
+                ⚡ This is a tiebreaker round
+              </label>
+              <p className="hint">
+                Only played if the main game ends tied — add tiebreaker rounds after all your normal ones.
+              </p>
+            </div>
             {boardError && <p className="error-text">{boardError}</p>}
             <div className="row">
               <button className="btn btn-primary" onClick={handleAddBoardQuestion} disabled={saving}>
@@ -282,11 +308,11 @@ export default function FeudSetEditorPage() {
         )}
 
         <div className="stack">
-          {roundQuestions.map((q, i) => (
+          {roundQuestions.map((q) => (
             <div key={q.id} className="card card--tight">
               <div className="row-between">
                 <strong>
-                  {i + 1}. {q.prompt}
+                  {q.is_tiebreaker ? "⚡ Tiebreaker" : `${normalRoundIndex(roundQuestions, q)}.`} {q.prompt}
                 </strong>
                 <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteBoardQuestion(q.id)}>
                   Delete

@@ -88,6 +88,9 @@ export default function FeudSpectatorPage() {
         showFlash(`Round ${payload.round_index + 1} — face-off!`);
         hydrate();
       })
+      .on("broadcast", { event: "tiebreaker_started" }, () => {
+        showFlash("⚡ Tied! Tiebreaker round starting…");
+      })
       .on("broadcast", { event: "buzz_locked" }, () => hydrate())
       .on("broadcast", { event: "faceoff_correct" }, ({ payload }: any) => {
         showFlash(`✅ "${payload.text}" — ${payload.points} pts!`);
@@ -220,7 +223,7 @@ export default function FeudSpectatorPage() {
         )}
 
         {session.status === "lobby" && renderLobby()}
-        {session.status === "live" && round && renderRound()}
+        {(session.status === "live" || session.status === "tiebreaker") && round && renderRound()}
         {session.status === "main_ended" && renderMainEnded()}
         {(session.status === "fastmoney_setup" || session.status === "fastmoney_p1" || session.status === "fastmoney_p2") && renderFastMoney()}
         {session.status === "fastmoney_reveal" && renderFastMoneyReveal()}
@@ -359,10 +362,17 @@ export default function FeudSpectatorPage() {
   }
 
   function renderMainEnded() {
+    const { team_a_score, team_b_score, team_a_name, team_b_name } = session;
+    const tied = team_a_score === team_b_score;
     return (
       <div className="card text-center">
-        <h2>Main game over!</h2>
-        <p className="text-muted">Waiting for the host to set up Fast Money…</p>
+        <h2>{tied ? "🤝 Main game over — it's a tie!" : "🏁 Main game over!"}</h2>
+        <p style={{ fontWeight: 700, fontSize: "1.1rem" }}>
+          {team_a_name} {team_a_score} — {team_b_score} {team_b_name}
+        </p>
+        <p className="text-muted">
+          {tied ? "Waiting for the host to start a tiebreaker." : `${team_a_score > team_b_score ? team_a_name : team_b_name} is heading to Fast Money.`}
+        </p>
       </div>
     );
   }

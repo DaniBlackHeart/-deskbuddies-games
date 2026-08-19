@@ -40,6 +40,7 @@ const STATUS_LABELS: Record<string, string> = {
   lobby: "Not started yet",
   live: "Live",
   main_ended: "Main game over — set up Fast Money below",
+  tiebreaker: "Tiebreaker round!",
   fastmoney_setup: "Fast Money — ready to start",
   fastmoney_p1: "Fast Money — Player 1 answering",
   fastmoney_p2: "Fast Money — Player 2 answering",
@@ -56,6 +57,7 @@ export default function HostFeudSessionPage() {
   const [round, setRound] = useState<RoundRow | null>(null);
   const [roundQuestion, setRoundQuestion] = useState<FeudRoundQuestion | null>(null);
   const [fmQuestions, setFmQuestions] = useState<FeudFastMoneyQuestion[]>([]);
+  const [totalRoundQuestions, setTotalRoundQuestions] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [fmTeamChoice, setFmTeamChoice] = useState<Team>("A");
@@ -109,10 +111,23 @@ export default function HostFeudSessionPage() {
     setFmQuestions(data ?? []);
   }
 
+  // Needed to tell "no round in progress because none has started yet" apart
+  // from "no round in progress because the set is out of rounds" — the host
+  // controls show a different next action for each (see renderLive).
+  async function loadRoundQuestionCount(currentSession: FeudSession | null) {
+    if (!currentSession) return;
+    const { count } = await supabase
+      .from("feud_round_questions")
+      .select("id", { count: "exact", head: true })
+      .eq("feud_set_id", currentSession.feud_set_id)
+      .eq("is_tiebreaker", false);
+    setTotalRoundQuestions(count ?? null);
+  }
+
   async function loadAll() {
     setLoading(true);
     const s = await loadSession();
-    await Promise.all([loadRosters(), loadRound(s), loadFmQuestions(s)]);
+    await Promise.all([loadRosters(), loadRound(s), loadFmQuestions(s), loadRoundQuestionCount(s)]);
     setLoading(false);
   }
 
@@ -207,7 +222,7 @@ export default function HostFeudSessionPage() {
         )}
 
         {session.status === "lobby" && renderLobby()}
-        {session.status === "live" && renderLive()}
+        {(session.status === "live" || session.status === "tiebreaker") && renderLive()}
         {session.status === "main_ended" && renderMainEnded()}
         {(session.status === "fastmoney_setup" || session.status === "fastmoney_p1" || session.status === "fastmoney_p2") && renderFastMoneyControl()}
         {session.status === "fastmoney_reveal" && renderFastMoneyReveal()}
@@ -269,10 +284,23 @@ export default function HostFeudSessionPage() {
   }
 
   function renderLive() {
+    const isTiebreaker = session!.status === "tiebreaker";
     const roundInProgress = round && round.status !== "complete";
+    // null totalRoundQuestions just means the count hasn't loaded yet — default
+    // to "assume more rounds" so we don't flash the wrong button on load.
+    const hasMoreRounds = totalRoundQuestions === null || session!.current_round_index + 1 < totalRoundQuestions;
+    const mainGameJustFinished = !isTiebreaker && !roundInProgress && round !== null && !hasMoreRounds;
+    // A tiebreaker round always exists the moment status flips to
+    // "tiebreaker" (start_tiebreaker_round creates it in the same
+    // transaction), so there's never a "start it" step here — only a
+    // "wrap it up" one once it completes.
+    const tiebreakerJustFinished = isTiebreaker && !roundInProgress && round !== null;
+
     return (
       <div className="card">
-        {!roundInProgress && (
+        {isTiebreaker && <span className="badge badge-neutral" style={{ marginBottom: "12px" }}>⚡ Tiebreaker round</span>}
+
+        {!isTiebreaker && !roundInProgress && !mainGameJustFinished && (
           <div className="text-center">
             <button className="btn btn-primary" disabled={busy} onClick={async () => {
               const result = await callHost("start_round");
@@ -341,11 +369,32 @@ export default function HostFeudSessionPage() {
           </div>
         )}
 
-        <button className="btn btn-ghost btn-block" style={{ marginTop: "20px" }} disabled={busy} onClick={() => {
-          if (confirm("End the main game and move to Fast Money setup?")) callHost("end_main_game");
-        }}>
-          End main game →
-        </button>
+        {mainGameJustFinished && (
+          <div className="card text-center" style={{ marginTop: "20px" }}>
+            <p style={{ fontWeight: 700, marginTop: 0 }}>🏁 That was the last round!</p>
+            <button className="btn btn-primary btn-block" disabled={busy} onClick={() => callHost("end_main_game")}>
+              Proceed to the Fast Money round →
+            </button>
+          </div>
+        )}
+
+        {tiebreakerJustFinished && (
+          <div className="card text-center" style={{ marginTop: "20px" }}>
+            <p style={{ fontWeight: 700, marginTop: 0 }}>⚡ Tiebreaker round over!</p>
+            <button className="btn btn-primary btn-block" disabled={busy} onClick={() => callHost("end_main_game")}>
+              See the result →
+            </button>
+          </div>
+        )}
+
+        {!mainGameJustFinished && !tiebreakerJustFinished && (
+          <button className="btn btn-ghost btn-block" style={{ marginTop: "20px" }} disabled={busy} onClick={() => {
+            const message = isTiebreaker ? "End the tiebreaker round early?" : "End the main game early and move to Fast Money setup?";
+            if (confirm(message)) callHost("end_main_game");
+          }}>
+            {isTiebreaker ? "End tiebreaker early →" : "End main game early →"}
+          </button>
+        )}
       </div>
     );
   }
@@ -370,7 +419,17 @@ export default function HostFeudSessionPage() {
         ) : (
           <>
             <p className="text-muted">
-              It's a tie ({session!.team_a_score}–{session!.team_b_score}) — pick which team plays Fast Money.
+              It's a tie ({session!.team_a_score}–{session!.team_b_score}).
+            </p>
+            <button
+              className="btn btn-primary btn-block"
+              disabled={busy}
+              onClick={() => callHost("start_tiebreaker_round")}
+            >
+              ⚡ Start tiebreaker round
+            </button>
+            <p className="hint text-center" style={{ margin: "10px 0" }}>
+              No tiebreaker round in this set? Pick a team for Fast Money manually instead:
             </p>
             <div className="row">
               <button className={`btn btn-sm ${fmTeamChoice === "A" ? "btn-primary" : "btn-secondary"}`} onClick={() => setFmTeamChoice("A")}>

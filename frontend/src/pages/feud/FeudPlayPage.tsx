@@ -93,6 +93,9 @@ export default function FeudPlayPage() {
         showFlash(`Round ${payload.round_index + 1} — face-off!`);
         hydrate();
       })
+      .on("broadcast", { event: "tiebreaker_started" }, () => {
+        showFlash("⚡ Tied! Tiebreaker round starting…");
+      })
       .on("broadcast", { event: "buzz_locked" }, ({ payload }: { payload: FeudSessionEvent & { type: "buzz_locked" } }) => {
         // Skip for whoever actually pressed — Buzzer.tsx already played the
         // sound for them the instant they tapped, with zero network delay.
@@ -203,6 +206,25 @@ export default function FeudPlayPage() {
     };
   }, [sessionId, state?.round?.status, state?.round?.round_index]);
 
+  // Main-game-end sound — separate from, and earlier than, the full
+  // session-end sound below (that one fires after Fast Money too). Same
+  // winner/loser-per-team logic, no delay needed since there's no
+  // intro/reveal sequence gating this one.
+  const playedMainEndSoundRef = useRef(false);
+  useEffect(() => {
+    if (!state || playedMainEndSoundRef.current) return;
+    if (state.session.status !== "main_ended") return;
+    playedMainEndSoundRef.current = true;
+    const { team_a_score, team_b_score } = state.session;
+    if (team_a_score === team_b_score) {
+      sounds.setFinished();
+      return;
+    }
+    const winningTeam: Team = team_a_score > team_b_score ? "A" : "B";
+    if (state.my_team === winningTeam) sounds.winner();
+    else if (state.my_team) sounds.loser();
+  }, [state]);
+
   // Session-end sound when the game ends — once per session. A "set
   // finished" or "ended early" intro plays first, then whoever's on the
   // winning team gets the winner sound, the other team gets the loser
@@ -284,7 +306,7 @@ export default function FeudPlayPage() {
           </div>
         )}
 
-        {session.status === "live" && round && renderRound()}
+        {(session.status === "live" || session.status === "tiebreaker") && round && renderRound()}
         {session.status === "main_ended" && renderMainEnded()}
         {(session.status === "fastmoney_setup" || session.status === "fastmoney_p1" || session.status === "fastmoney_p2") && renderFastMoney()}
         {session.status === "fastmoney_reveal" && renderFastMoneyReveal()}
@@ -472,10 +494,24 @@ export default function FeudPlayPage() {
   }
 
   function renderMainEnded() {
+    const { team_a_score, team_b_score, team_a_name, team_b_name } = session;
+    const tied = team_a_score === team_b_score;
+    const teamAWon = team_a_score > team_b_score;
+    const myTeamWon = !tied && !!my_team && (my_team === "A") === teamAWon;
+
     return (
       <div className="card text-center">
-        <h2>Main game over!</h2>
-        <p className="text-muted">Waiting for the host to set up Fast Money…</p>
+        <h2>{tied ? "🤝 It's a tie!" : myTeamWon ? "🎉 Your team won the main game!" : "Main game over"}</h2>
+        <p style={{ fontWeight: 700, fontSize: "1.1rem" }}>
+          {team_a_name} {team_a_score} — {team_b_score} {team_b_name}
+        </p>
+        {tied ? (
+          <p className="text-muted">Scores are tied — waiting for the host to start a tiebreaker.</p>
+        ) : (
+          <p className="text-muted">
+            {myTeamWon ? "Get ready — Fast Money is coming up!" : `${teamAWon ? team_a_name : team_b_name} is heading to Fast Money.`}
+          </p>
+        )}
       </div>
     );
   }

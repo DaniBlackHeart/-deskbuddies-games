@@ -203,17 +203,25 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (openRound) return jsonResponse({ error: "Finish the current round before starting the next one" }, 409);
 
-        const nextIndex = session.current_round_index + 1;
+        // Search forward (not an exact-index match) so a tiebreaker
+        // question sitting at a lower order_index than expected — e.g. a
+        // MOD added a normal round after already adding a tiebreaker one —
+        // gets skipped rather than prematurely ending the main game.
+        const searchFrom = session.current_round_index + 1;
         const { data: roundQuestion } = await admin
           .from("feud_round_questions")
           .select("*")
           .eq("feud_set_id", session.feud_set_id)
-          .eq("order_index", nextIndex)
+          .eq("is_tiebreaker", false)
+          .gte("order_index", searchFrom)
+          .order("order_index", { ascending: true })
+          .limit(1)
           .maybeSingle();
 
         if (!roundQuestion) {
           return jsonResponse({ done: true, message: "No more board questions — end the main game when ready." });
         }
+        const nextIndex = roundQuestion.order_index;
 
         const [rosterA, rosterB] = await Promise.all([
           getTeamRoster(admin, session_id, "A"),
@@ -298,7 +306,9 @@ Deno.serve(async (req) => {
       case "end_main_game": {
         const { data: session } = await admin.from("feud_sessions").select("*").eq("id", session_id).single();
         if (!session) return jsonResponse({ error: "Session not found" }, 404);
-        if (session.status !== "live") return jsonResponse({ error: "Main game isn't in progress" }, 409);
+        if (session.status !== "live" && session.status !== "tiebreaker") {
+          return jsonResponse({ error: "Main game isn't in progress" }, 409);
+        }
 
         await admin.from("feud_sessions").update({ status: "main_ended" }).eq("id", session_id);
         await broadcast(admin, session_id, "main_game_ended", {
@@ -306,6 +316,81 @@ Deno.serve(async (req) => {
           team_b_score: session.team_b_score,
         });
         return jsonResponse({ team_a_score: session.team_a_score, team_b_score: session.team_b_score });
+      }
+
+      // A tie after the main game: pulls the next tiebreaker-flagged round
+      // question (order_index continues right where the normal rounds left
+      // off — see 0016_feud_tiebreaker.sql) and plays it out through the
+      // exact same face-off/board/steal round machinery as any other round.
+      // If the scores are STILL tied afterward, the host can call this
+      // again — it'll pick up the next tiebreaker question, if the MOD
+      // added more than one.
+      case "start_tiebreaker_round": {
+        const { data: session } = await admin.from("feud_sessions").select("*").eq("id", session_id).single();
+        if (!session) return jsonResponse({ error: "Session not found" }, 404);
+        if (session.status !== "main_ended") {
+          return jsonResponse({ error: "A tiebreaker only makes sense right after the main game ends" }, 409);
+        }
+        if (session.team_a_score !== session.team_b_score) {
+          return jsonResponse({ error: "Scores aren't tied — no tiebreaker needed" }, 409);
+        }
+
+        const searchFrom = session.current_round_index + 1;
+        const { data: roundQuestion } = await admin
+          .from("feud_round_questions")
+          .select("*")
+          .eq("feud_set_id", session.feud_set_id)
+          .eq("is_tiebreaker", true)
+          .gte("order_index", searchFrom)
+          .order("order_index", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (!roundQuestion) {
+          return jsonResponse(
+            { error: "No tiebreaker round was added to this set — pick a team for Fast Money manually below" },
+            404
+          );
+        }
+        const nextIndex = roundQuestion.order_index;
+
+        const [rosterA, rosterB] = await Promise.all([
+          getTeamRoster(admin, session_id, "A"),
+          getTeamRoster(admin, session_id, "B"),
+        ]);
+        const pairIndex = 0;
+        const activeA = rosterA[pairIndex % rosterA.length];
+        const activeB = rosterB[pairIndex % rosterB.length];
+
+        await admin.from("feud_sessions").update({ status: "tiebreaker", current_round_index: nextIndex }).eq("id", session_id);
+
+        const { data: round, error } = await admin
+          .from("feud_rounds")
+          .insert({
+            session_id,
+            round_index: nextIndex,
+            status: "faceoff",
+            pair_index: pairIndex,
+            face_off_active_a_user_id: activeA.user_id,
+            face_off_active_b_user_id: activeB.user_id,
+          })
+          .select()
+          .single();
+
+        if (error) return jsonResponse({ error: "Could not start the tiebreaker round" }, 500);
+
+        await broadcast(admin, session_id, "round_started", {
+          round_index: nextIndex,
+          prompt: roundQuestion.prompt,
+          answer_count: (roundQuestion.answers as FeudAnswer[]).length,
+          active_a: { user_id: activeA.user_id, username: (activeA as any).profiles?.username },
+          active_b: { user_id: activeB.user_id, username: (activeB as any).profiles?.username },
+        });
+        // Separate from round_started so player/spectator UIs can flash
+        // something more specific than the generic "Round N — face-off!".
+        await broadcast(admin, session_id, "tiebreaker_started", {});
+
+        return jsonResponse({ round, prompt: roundQuestion.prompt });
       }
 
       case "select_fastmoney_players": {
