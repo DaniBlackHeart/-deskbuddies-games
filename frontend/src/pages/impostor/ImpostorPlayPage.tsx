@@ -8,6 +8,7 @@ import ImpostorVoteResults from "../../components/ImpostorVoteResults";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { sounds } from "../../lib/sounds";
+import { recordServerTime } from "../../lib/clockSync";
 import type {
   ImpostorCard,
   ImpostorClue,
@@ -66,6 +67,7 @@ export default function ImpostorPlayPage() {
       console.error(error ?? data?.error);
       return;
     }
+    recordServerTime(data.server_now_ms);
     setState(data as ImpostorState);
     setLoading(false);
   }, [sessionId]);

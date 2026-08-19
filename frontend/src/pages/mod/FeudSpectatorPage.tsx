@@ -5,6 +5,7 @@ import Timer from "../../components/Timer";
 import FeudBoard from "../../components/FeudBoard";
 import TeamScoreboard from "../../components/TeamScoreboard";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
+import { recordServerTime } from "../../lib/clockSync";
 import type { FeudParticipant, PublicFeudRound, Team } from "../../types";
 
 type FastMoneyRevealedEntry = {
@@ -34,6 +35,7 @@ type FeudState = {
   roster_b: FeudParticipant[];
   round: PublicFeudRound | null;
   fast_money_revealed: FastMoneyRevealedEntry[];
+  server_now_ms?: number;
 };
 
 type Phase = "loading" | "claim_failed" | "ready";
@@ -61,6 +63,7 @@ export default function FeudSpectatorPage() {
       console.error(error);
       return;
     }
+    recordServerTime(data?.server_now_ms);
     setState(data);
     setPhase("ready");
   }, [sessionId]);

@@ -172,6 +172,7 @@ Deno.serve(async (req) => {
       fast_money: fastMoney,
       fast_money_revealed: fastMoneyRevealed,
       completed,
+      server_now_ms: Date.now(),
     });
   } catch (err) {
     console.error("get-feud-state crashed", err);

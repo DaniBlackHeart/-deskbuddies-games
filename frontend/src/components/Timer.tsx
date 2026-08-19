@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { sounds } from "../lib/sounds";
+import { correctedNow } from "../lib/clockSync";
 
 type TimerProps = {
   deadline: number; // epoch ms
@@ -7,11 +8,11 @@ type TimerProps = {
 };
 
 export default function Timer({ deadline, onExpire }: TimerProps) {
-  const [remainingMs, setRemainingMs] = useState(() => deadline - Date.now());
+  const [remainingMs, setRemainingMs] = useState(() => deadline - correctedNow());
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const remaining = deadline - Date.now();
+      const remaining = deadline - correctedNow();
       setRemainingMs(remaining);
       if (remaining <= 0) {
         clearInterval(interval);

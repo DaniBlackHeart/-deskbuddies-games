@@ -9,6 +9,7 @@ import TypedAnswerBox from "../../components/TypedAnswerBox";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { sounds } from "../../lib/sounds";
+import { recordServerTime } from "../../lib/clockSync";
 import type { FeudParticipant, FeudSessionEvent, PublicFeudRound, Team } from "../../types";
 
 type FastMoneyRevealedEntry = {
@@ -70,6 +71,7 @@ export default function FeudPlayPage() {
       console.error(error ?? data?.error);
       return;
     }
+    recordServerTime(data.server_now_ms);
     setState(data as FeudState);
     setLoading(false);
   }, [sessionId]);

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import Timer from "../../components/Timer";
+import { recordServerTime, correctedNow } from "../../lib/clockSync";
 import Leaderboard from "../../components/Leaderboard";
 import AnswerInput from "../../components/AnswerInput";
 import { lobbyMusic, sounds } from "../../lib/sounds";
@@ -44,6 +45,7 @@ export default function TriviaPlayPage() {
       console.error(error);
       return;
     }
+    recordServerTime(data.server_now_ms);
     setMode(data.mode === "hard" ? "hard" : "chill");
     if (data.status === "ended") {
       setLeaderboard(data.leaderboard ?? []);
@@ -74,7 +76,7 @@ export default function TriviaPlayPage() {
       setMyResult(null);
       setWasNoShow(false);
     }
-    setTimeExpired(data.status === "grading" || (data.deadline_ms ? Date.now() > data.deadline_ms : false));
+    setTimeExpired(data.status === "grading" || (data.deadline_ms ? correctedNow() > data.deadline_ms : false));
     setPhase(data.status === "grading" ? "question" : "question");
     setRevealed(null);
     if (data.status === "grading") {

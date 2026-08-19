@@ -4,6 +4,7 @@ import AppHeader from "../../components/AppHeader";
 import Leaderboard from "../../components/Leaderboard";
 import Timer from "../../components/Timer";
 import { supabase } from "../../lib/supabaseClient";
+import { recordServerTime } from "../../lib/clockSync";
 import type { LeaderboardEntry, PublicQuestion, SessionEvent, SessionMode } from "../../types";
 
 type Phase = "loading" | "claim_failed" | "waiting" | "question" | "ended";
@@ -65,6 +66,7 @@ export default function SpectatorPage() {
       console.error(error);
       return;
     }
+    recordServerTime(data.server_now_ms);
     setMode(data.mode === "hard" ? "hard" : "chill");
     setLeaderboard(data.leaderboard ?? []);
 

@@ -56,11 +56,11 @@ Deno.serve(async (req) => {
         .eq("question_set_id", session.question_set_id)
         .is("archived_at", null);
       const completed = (totalQuestions ?? 0) > 0 && session.current_question_index + 1 >= (totalQuestions ?? 0);
-      return jsonResponse({ status: "ended", leaderboard, mode: session.mode, completed });
+      return jsonResponse({ status: "ended", leaderboard, mode: session.mode, completed, server_now_ms: Date.now() });
     }
 
     if (session.current_question_index < 0 || !session.current_question_started_at) {
-      return jsonResponse({ status: session.status, question: null, leaderboard, mode: session.mode });
+      return jsonResponse({ status: session.status, question: null, leaderboard, mode: session.mode, server_now_ms: Date.now() });
     }
 
     const { data: question } = await admin
@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
           }
         : null,
       deadline_ms,
+      server_now_ms: Date.now(),
       existing_answer: existingAnswer
         ? {
             ...existingAnswer,

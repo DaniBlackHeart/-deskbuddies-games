@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
       my_card: myCard,
       has_voted: hasVoted,
       is_playing: isPlaying,
+      server_now_ms: Date.now(),
     });
   } catch (err) {
     console.error("get-impostor-state crashed", err);
