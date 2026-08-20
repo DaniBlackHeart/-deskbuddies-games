@@ -1,7 +1,7 @@
 # DeskBuddies Games
 
 A web app for the **DeskBuddies** Discord server — a home for the games you and your
-MODs come up with. Four so far:
+MODs come up with. Five so far:
 
 - **Trivia Night** — live-hosted, mixing multiple-choice and typed questions.
 - **Family Feud** — live-hosted, face-off / board / steal / Fast Money, fully
@@ -11,6 +11,9 @@ MODs come up with. Four so far:
 - **Impostor WHO?** — everyone gets a secret word and its category except
   one random Impostor, who only sees the category as their one clue. Two
   rounds of typed clues, then a multiple-choice vote on who's faking it.
+- **Wheel of Fortune** — buzz in to call a consonant, spin the wheel, buy
+  vowels, and solve the puzzle across 5 rounds (plus a Do-or-Die tiebreaker
+  if needed), then the leader plays the Bonus Round. 2–10 players.
 
 Members sign in with Discord and must be a member of the DeskBuddies server. MODs
 (auto-detected from a Discord role) get extra controls to write questions and host
@@ -57,22 +60,40 @@ supabase/
     votes are "read own row only" too, so nobody can watch the tally build
     by peeking at other players' rows — only the resolution broadcast
     reveals the aggregate count once voting closes.
-- **Question sets**: MODs build Trivia's, Feud's, and Impostor WHO?'s ahead
-  of time — one item at a time, or by pasting a whole batch via each game's
-  import tool (Trivia and Impostor WHO? support bulk import; Feud's set
-  editor doesn't yet). UNO has no equivalent — it's the standard deck, so a
-  MOD starts a game directly from the MOD Dashboard with nothing to author
-  first.
-- **No shared `games` table.** Trivia, Feud, UNO, and Impostor WHO? keep
-  fully separate, parallel tables rather than a unified `games`/`sessions`
-  schema. What *is* shared is a small `active_session_lock` table that
-  enforces "only one live session, across any game, at a time" — every
-  game's `create_session` claims it atomically, same pattern as claiming a
-  spectator seat. This was an open question after Trivia shipped alone;
-  it's been decided, not just deferred — four games in, the actual
-  duplication between them still hasn't justified a schema merge, and every
-  game so far is the same shape (everyone-plays-together, host-driven, one
-  session at a time). Worth revisiting only if that stops being true.
+  - Wheel of Fortune: the puzzle phrase (both the main round's and the
+    Bonus Round's) lives in its own zero-policy table, same "defense in
+    depth" pattern as UNO's draw pile / Impostor's secret word. The public
+    round row only ever holds the *masked* phrase, computed server-side
+    from which letters have actually been guessed correctly — never the
+    real text.
+- **Question sets**: MODs build Trivia's, Feud's, Impostor WHO?'s, and
+  Wheel of Fortune's ahead of time — one item at a time, or by pasting a
+  whole batch via each game's import tool (Trivia and Impostor WHO?
+  support bulk import; Feud's and Wheel of Fortune's set editors don't
+  yet). UNO has no equivalent — it's the standard deck, so a MOD starts a
+  game directly from the MOD Dashboard with nothing to author first.
+- **No shared `games` table.** Trivia, Feud, UNO, Impostor WHO?, and Wheel
+  of Fortune keep fully separate, parallel tables rather than a unified
+  `games`/`sessions` schema. What *is* shared is a small
+  `active_session_lock` table that enforces "only one live session, across
+  any game, at a time" — every game's `create_session` claims it
+  atomically, same pattern as claiming a spectator seat. This was an open
+  question after Trivia shipped alone; it's been decided, not just
+  deferred — five games in, the actual duplication between them still
+  hasn't justified a schema merge, and every game so far is the same shape
+  (everyone-plays-together, host-driven, one session at a time). Worth
+  revisiting only if that stops being true.
+- **Wheel of Fortune's categories, not a "Sets" table.** Unlike Feud's
+  hand-curated Sets, Wheel of Fortune's phrases live in
+  `wheel_categories`/`wheel_phrases` — the exact same shape as Impostor
+  WHO?'s categories/words. Every round (and the Bonus Round's 3 choices)
+  randomly picks a category and a phrase within it, preferring ones not
+  already used that session. This was a judgment call worth knowing about:
+  the brief mentioned both "phrases in a set like Feud" and "categories
+  with a randomizer like Impostor," and a category-as-the-grouping reading
+  satisfies both without a redundant second structure — flagging it in
+  case a hand-curated Set (so a MOD can guarantee a themed game, e.g. all
+  movie-related) turns out to be wanted after playtesting.
 
 ## Local development
 

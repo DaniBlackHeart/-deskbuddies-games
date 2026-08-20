@@ -1,82 +1,103 @@
-# Impostor WHO? — percentage-vote reveal delivery manifest
+# MANIFEST — Wheel of Fortune (new game)
 
-Adds what you asked for: every member can see how many people voted them
-(or anyone else) as the Impostor, as a percentage — a sorted list with a
-bar per player, right after a vote resolves, and again permanently on the
-final results screen.
+Merge this into your repo root with `cp -r` (not as a subfolder). Everything
+here is either a brand-new file or a full replacement of an existing one —
+no partial diffs to hand-apply.
 
-Additive on top of the previous two Impostor deliveries — paths are
-relative to your repo root, same as before.
+## What's in this zip
 
-## New files
-- supabase/migrations/0014_impostor_vote_tally.sql — adds
-  `impostor_sessions.final_vote_tally` (nullable jsonb), so the vote
-  breakdown survives a page refresh after the game ends
-- frontend/src/components/ImpostorVoteResults.tsx — the percentage-bar list
+**New files:**
+- `supabase/migrations/0017_wheel_of_fortune.sql`
+- `supabase/functions/wheel-host/index.ts`
+- `supabase/functions/wheel-play/index.ts`
+- `supabase/functions/get-wheel-state/index.ts`
+- `frontend/src/pages/wheel/WheelLobbyPage.tsx`
+- `frontend/src/pages/wheel/WheelPlayPage.tsx`
+- `frontend/src/pages/mod/WheelCategoriesPage.tsx`
+- `frontend/src/pages/mod/WheelCategoryEditorPage.tsx`
+- `frontend/src/pages/mod/HostWheelSessionPage.tsx`
+- `frontend/src/pages/mod/WheelSpectatorPage.tsx`
+- `frontend/src/components/WheelBoard.tsx`
+- `frontend/src/components/WheelSpinner.tsx`
+- `frontend/src/components/WheelScoreboard.tsx`
+- `frontend/src/lib/wheelConstants.ts`
 
-## Modified files
-- supabase/functions/impostor-play/index.ts — `resolveVote` now includes
-  `total_votes` in every `vote_resolved` broadcast, and persists the final
-  tally onto the session row for a terminal (crew_win/impostor_win)
-  resolution specifically
-- supabase/functions/get-impostor-state/index.ts — returns
-  `session.final_vote_tally`
-- frontend/src/types/index.ts — new `ImpostorFinalVoteTally` type,
-  `ImpostorSessionPublic` gained `final_vote_tally`, `vote_resolved`'s
-  broadcast type gained `total_votes`
-- frontend/src/styles/global.css — `.impostor-vote-results*` bar styles
-- frontend/src/pages/impostor/ImpostorPlayPage.tsx — shows the reveal live
-  when a vote resolves, and permanently on the ended screen
-- frontend/src/pages/mod/ImpostorSpectatorPage.tsx — same, for spectators
-- frontend/src/pages/mod/HostImpostorSessionPage.tsx — the ended screen
-  shows it too (persisted version only — the host page doesn't listen to
-  live broadcasts, just `postgres_changes`)
+**Replaced files (full contents, not diffs):**
+- `supabase/functions/_shared/utils.ts` — added the wedge table, phrase
+  masking, and category/phrase randomizer helpers at the end; everything
+  else is untouched
+- `frontend/src/App.tsx` — added Wheel routes
+- `frontend/src/types/index.ts` — added Wheel types at the end
+- `frontend/src/lib/sounds.ts` — added Wheel sound effects
+- `frontend/src/lib/archiveOrDelete.ts` — added
+  `deleteWheelCategory`/`restoreWheelCategory`
+- `frontend/src/pages/DashboardPage.tsx` — added the Wheel of Fortune card
+- `frontend/src/pages/mod/ModDashboardPage.tsx` — added the "in progress"
+  panel, the category-management card, and the direct "start a game" card
+- `frontend/src/styles/global.css` — appended the Wheel of Fortune section
+  at the end
+- `README.md`, `SETUP.md`, `PROJECT_CONTEXT.md` — updated for the 5th game
 
-## Deploy order
+## Deploy order (Supabase before frontend, per the project's own rule)
 
 ```bash
+cd deskbuddies-games              # your actual project root
+
 npx supabase db push
-npx supabase functions deploy impostor-play
-npx supabase functions deploy get-impostor-state
+npx supabase functions deploy wheel-host
+npx supabase functions deploy wheel-play
+npx supabase functions deploy get-wheel-state
+
 git add .
-git commit -m "Add percentage-vote reveal to Impostor WHO?"
+git commit -m "Add Wheel of Fortune"
 git push
 ```
 
-`impostor-host` is untouched this round — no need to redeploy it.
+No new secrets, no new Discord app config — this reuses everything Trivia/
+Feud/UNO/Impostor already set up.
 
-## How it behaves
+## Validated before packaging
 
-- Everyone with 0 votes still shows up at 0% — the whole point is you can
-  see "nobody suspected me at all," not just the people who got votes.
-- On an inconclusive vote (round-set 2 incoming), the reveal shows for about
-  6 seconds before the next round's clue-giving screen takes over — long
-  enough to read it, not so long it drags. Worth adjusting
-  `RESULTS_REVEAL_MS` in `ImpostorPlayPage.tsx`/`ImpostorSpectatorPage.tsx`
-  if 6s feels off in practice.
-- On a game-ending vote, the reveal doesn't disappear — it's a permanent
-  part of the final results screen, survives a refresh.
+- `npx tsc -b` → 0 errors
+- `npx oxlint` → 0 new warnings (the 6 that show up are pre-existing,
+  identical warnings already present in UNO/Feud/Impostor/AuthContext)
+- All three new Edge Functions type-checked clean with a real `deno check`
+  (not just hand-reviewed) — the only thing it flags is a `Deno.serve`
+  typing quirk that's present in *every* existing host/play function in
+  this repo already, not something new
 
-## One real bug this caught (worth knowing about)
+## Design decisions worth reading before playtesting
 
-The server fires `vote_resolved` immediately followed by either
-`next_round_set_started` or `game_ended`. The original broadcast-handling
-pattern (hydrate on every event) meant the percentage reveal would render
-for a single frame and then get instantly overwritten by whatever came
-next — functionally invisible. Fixed by not hydrating on
-`next_round_set_started` at all, and delaying the hydrate that follows an
-inconclusive `vote_resolved` by the 6-second window mentioned above.
-Documented in `PROJECT_CONTEXT.md` §6a-ii in case a similar
-"broadcast-arrives-then-immediately-gets-overwritten" issue shows up in a
-future game — the fix pattern (skip the redundant hydrate, delay the
-meaningful one) is the reusable part.
+Full writeup is in `PROJECT_CONTEXT.md` §6c, but the short version:
 
-## Verified
+1. **No separate "Sets" table.** Phrases live in `wheel_categories` /
+   `wheel_phrases` — same shape as Impostor WHO?'s categories/words, not
+   Feud's hand-curated Sets. Every round randomly picks a category +
+   phrase. Means a MOD can't force a themed game (e.g. "all Disney night")
+   — say the word if that's wanted and it's a straightforward add.
+2. **Turn model is a buzzer race** (same primitive as Feud's face-off),
+   not seat rotation. Whoever buzzes in keeps going while they keep
+   guessing right; a miss locks them out until anyone else lands a hit; if
+   that would lock out everyone, the round auto-reveals.
+3. **Vowel cost (350 pts) comes out of the current round's stake only**,
+   not a running cross-round bank.
+4. **Wild Card** = 2 consonant calls off one spin. **Free Play** =
+   protects the next miss from ending your turn. **Mystery** = take 500
+   safe, or risk a 50/50 between 3000 points and an instant Bankrupt.
+5. **Bonus Round prize is randomized (5,000–25,000) and hidden** until you
+   solve or fail — not a fixed number.
+6. **Do-or-Die tiebreaker** replays with only the tied players eligible to
+   buzz; caps at 5 automatic retries before picking a random winner among
+   them, so it can't loop forever if the category pool runs dry.
 
-`npx tsc -b` and `npx oxlint` both pass clean — 0 errors, same 5
-pre-existing warnings as before (none new). Same caveat as every Impostor
-delivery so far: no Deno runtime available to actually run
-`impostor-play`/`get-impostor-state`, reviewed by hand instead. Worth a
-real playtest to confirm the 6-second reveal timing feels right and that
-the persisted `final_vote_tally` renders correctly on a fresh page load
-after a game has already ended.
+None of these were explicitly specified in the request — they're the calls
+I made to turn "here's how the game works" into something implementable.
+Very open to adjusting any of them once you've actually played it.
+
+## One thing to do before your first game
+
+Add at least a couple of Wheel categories with a few phrases each — MOD
+Dashboard → Wheel Categories → New category. A 5-round game needs at
+least 5 phrases available somewhere (fewer is fine too — the randomizer
+falls back to repeating a category/phrase rather than failing outright,
+it just won't be as varied).

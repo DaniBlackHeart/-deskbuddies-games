@@ -35,16 +35,26 @@ type ActiveImpostorSession = {
   spectator: { username: string } | null;
 };
 
+type ActiveWheelSession = {
+  id: string;
+  status: string;
+  current_round_index: number;
+  spectator_id: string | null;
+  spectator: { username: string } | null;
+};
+
 export default function ModDashboardPage() {
   const navigate = useNavigate();
   const [active, setActive] = useState<ActiveSession[]>([]);
   const [activeFeud, setActiveFeud] = useState<ActiveFeudSession[]>([]);
   const [activeUno, setActiveUno] = useState<ActiveUnoSession[]>([]);
   const [activeImpostor, setActiveImpostor] = useState<ActiveImpostorSession[]>([]);
+  const [activeWheel, setActiveWheel] = useState<ActiveWheelSession[]>([]);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [clearingLock, setClearingLock] = useState(false);
   const [lockResult, setLockResult] = useState<string | null>(null);
   const [startingUno, setStartingUno] = useState(false);
+  const [startingWheel, setStartingWheel] = useState(false);
 
   useEffect(() => {
     supabase
@@ -74,7 +84,25 @@ export default function ModDashboardPage() {
       .neq("status", "ended")
       .order("created_at", { ascending: false })
       .then(({ data }) => setActiveImpostor((data as unknown as ActiveImpostorSession[]) ?? []));
+
+    supabase
+      .from("wheel_sessions")
+      .select("id, status, current_round_index, spectator_id, spectator:profiles!spectator_id(username)")
+      .neq("status", "ended")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setActiveWheel((data as unknown as ActiveWheelSession[]) ?? []));
   }, []);
+
+  async function handleStartWheel() {
+    setStartingWheel(true);
+    const { data, error } = await invokeFunction("wheel-host", { action: "create_session" });
+    setStartingWheel(false);
+    if (error) {
+      alert(error);
+      return;
+    }
+    navigate(`/mod/wheel-host/${data.session.id}`);
+  }
 
   async function handleStartUno() {
     setStartingUno(true);
@@ -116,7 +144,7 @@ export default function ModDashboardPage() {
       <AppHeader />
       <div className="container">
         <h1>🛠️ MOD Dashboard</h1>
-        <p className="text-muted">Manage question sets and run Trivia Night, Family Feud, UNO, and Impostor WHO?.</p>
+        <p className="text-muted">Manage question sets and run Trivia Night, Family Feud, UNO, Impostor WHO?, and Wheel of Fortune.</p>
 
         {active.length > 0 && (
           <div className="card" style={{ marginBottom: "20px" }}>
@@ -231,6 +259,35 @@ export default function ModDashboardPage() {
           </div>
         )}
 
+        {activeWheel.length > 0 && (
+          <div className="card" style={{ marginBottom: "20px" }}>
+            <h3>Wheel of Fortune in progress</h3>
+            {activeWheel.map((s) => (
+              <div key={s.id} className="stack" style={{ marginTop: "8px" }}>
+                <div className="row-between">
+                  <span>
+                    {s.status === "live" || s.status === "tiebreaker" ? `Round ${s.current_round_index + 1}` : s.status} —{" "}
+                    <span className="badge badge-live">{s.status}</span>
+                  </span>
+                  <div className="row">
+                    <Link to={`/mod/wheel-spectate/${s.id}`} className="btn btn-secondary btn-sm">
+                      👀 Watch as spectator
+                    </Link>
+                    <Link to={`/mod/wheel-host/${s.id}`} className="btn btn-primary btn-sm">
+                      Go to host controls
+                    </Link>
+                  </div>
+                </div>
+                {s.spectator && (
+                  <p className="hint" style={{ margin: 0 }}>
+                    Currently being spectated by <strong>{s.spectator.username}</strong>
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <div
           style={{
             display: "grid",
@@ -280,6 +337,29 @@ export default function ModDashboardPage() {
               </p>
             </div>
           </Link>
+          <Link to="/mod/wheel-categories" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="card">
+              <div style={{ fontSize: "2rem" }}>🎡</div>
+              <h3 style={{ marginTop: "12px" }}>Wheel Categories</h3>
+              <p className="text-muted" style={{ marginBottom: 0 }}>
+                Manage categories and phrases for Wheel of Fortune.
+              </p>
+            </div>
+          </Link>
+          {/* Same reasoning as the UNO card above — no set/category needs
+              picking up front, since each round randomizes its own category
+              and phrase, so this starts a session directly. */}
+          <div
+            className="card"
+            style={{ cursor: startingWheel ? "wait" : "pointer", opacity: startingWheel ? 0.7 : 1 }}
+            onClick={() => !startingWheel && handleStartWheel()}
+          >
+            <div style={{ fontSize: "2rem" }}>🎡</div>
+            <h3 style={{ marginTop: "12px" }}>Wheel of Fortune</h3>
+            <p className="text-muted" style={{ marginBottom: 0 }}>
+              {startingWheel ? "Starting a new game…" : "Start a new Wheel of Fortune game — 2-10 players."}
+            </p>
+          </div>
         </div>
 
         <p className="text-muted" style={{ marginTop: "28px" }}>

@@ -29,6 +29,12 @@ import ImpostorCategoriesPage from "./pages/mod/ImpostorCategoriesPage";
 import ImpostorCategoryEditorPage from "./pages/mod/ImpostorCategoryEditorPage";
 import HostImpostorSessionPage from "./pages/mod/HostImpostorSessionPage";
 import ImpostorSpectatorPage from "./pages/mod/ImpostorSpectatorPage";
+import WheelLobbyPage from "./pages/wheel/WheelLobbyPage";
+import WheelPlayPage from "./pages/wheel/WheelPlayPage";
+import WheelCategoriesPage from "./pages/mod/WheelCategoriesPage";
+import WheelCategoryEditorPage from "./pages/mod/WheelCategoryEditorPage";
+import HostWheelSessionPage from "./pages/mod/HostWheelSessionPage";
+import WheelSpectatorPage from "./pages/mod/WheelSpectatorPage";
 
 export default function App() {
   return (
@@ -108,6 +114,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ImpostorPlayPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/wheel/lobby"
+            element={
+              <ProtectedRoute>
+                <WheelLobbyPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/wheel/play/:sessionId"
+            element={
+              <ProtectedRoute>
+                <WheelPlayPage />
               </ProtectedRoute>
             }
           />
@@ -229,6 +251,38 @@ export default function App() {
             element={
               <ModRoute>
                 <ImpostorSpectatorPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/wheel-categories"
+            element={
+              <ModRoute>
+                <WheelCategoriesPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/wheel-categories/:categoryId"
+            element={
+              <ModRoute>
+                <WheelCategoryEditorPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/wheel-host/:sessionId"
+            element={
+              <ModRoute>
+                <HostWheelSessionPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/wheel-spectate/:sessionId"
+            element={
+              <ModRoute>
+                <WheelSpectatorPage />
               </ModRoute>
             }
           />

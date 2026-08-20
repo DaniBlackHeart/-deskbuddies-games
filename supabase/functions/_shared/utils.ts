@@ -380,6 +380,197 @@ export function drawUnoCards(
   return { drawn, newDrawPile: pile, newDiscardPile: discard };
 }
 
+// --- Wheel of Fortune helpers ---
+
+export const WHEEL_VOWELS = ["A", "E", "I", "O", "U"];
+export const WHEEL_CONSONANTS = [
+  "B", "C", "D", "F", "G", "H", "J", "K", "L", "M",
+  "N", "P", "Q", "R", "S", "T", "V", "W", "X", "Y", "Z",
+]; // Y is always a consonant on the wheel, same as the real show.
+
+export type WheelWedge =
+  | { type: "points"; value: number }
+  | { type: "bankrupt" }
+  | { type: "lose_turn" }
+  | { type: "free_play"; value: number }
+  | { type: "wild_card"; value: number }
+  | { type: "mystery" };
+
+/**
+ * A 24-wedge wheel: 18 point wedges (300-900) plus Bankrupt x1, Lose a
+ * Turn x2, Free Play x1, Wild Card x1, Mystery x1 — spread out rather
+ * than clustered, same idea as a real wheel's layout. Order doesn't
+ * matter mechanically (spinWheel picks uniformly at random); it's only
+ * meaningful for how the frontend's wheel graphic renders the wedges.
+ */
+export const WHEEL_WEDGES: WheelWedge[] = [
+  { type: "points", value: 500 },
+  { type: "points", value: 600 },
+  { type: "points", value: 700 },
+  { type: "points", value: 300 },
+  { type: "points", value: 400 },
+  { type: "bankrupt" },
+  { type: "points", value: 500 },
+  { type: "points", value: 800 },
+  { type: "points", value: 300 },
+  { type: "points", value: 600 },
+  { type: "lose_turn" },
+  { type: "points", value: 700 },
+  { type: "points", value: 400 },
+  { type: "points", value: 500 },
+  { type: "points", value: 900 },
+  { type: "free_play", value: 500 },
+  { type: "points", value: 300 },
+  { type: "points", value: 600 },
+  { type: "wild_card", value: 500 },
+  { type: "points", value: 400 },
+  { type: "mystery" },
+  { type: "points", value: 700 },
+  { type: "points", value: 300 },
+  { type: "lose_turn" },
+];
+
+export function spinWheel(): { wedge: WheelWedge; index: number } {
+  const index = Math.floor(Math.random() * WHEEL_WEDGES.length);
+  return { wedge: WHEEL_WEDGES[index], index };
+}
+
+export const WHEEL_VOWEL_COST = 350;
+export const WHEEL_MYSTERY_FACE_VALUE = 500;
+export const WHEEL_MYSTERY_BONUS_VALUE = 3000;
+export const WHEEL_MYSTERY_RISK_WIN_CHANCE = 0.5;
+export const WHEEL_MIN_PLAYERS = 2;
+export const WHEEL_MAX_PLAYERS = 10;
+export const WHEEL_MAIN_ROUNDS = 5;
+export const WHEEL_BUZZ_WINDOW_MS = 10_000;
+export const WHEEL_ACTION_WINDOW_MS = 10_000;
+export const WHEEL_SOLVE_WINDOW_MS = 15_000;
+export const WHEEL_BONUS_SOLVE_WINDOW_MS = 20_000;
+export const WHEEL_BONUS_GIVEN_LETTERS = ["R", "S", "T", "L", "N", "E"];
+export const WHEEL_BONUS_PRIZE_POOL = [5000, 7500, 10000, 15000, 25000];
+export const WHEEL_MAX_TIEBREAKER_ATTEMPTS = 5;
+
+/** True if the character is a letter A-Z (case-insensitive). */
+export function isWheelLetter(ch: string): boolean {
+  return /^[A-Za-z]$/.test(ch);
+}
+
+/**
+ * Builds the public "masked" version of a phrase: any letter that's been
+ * guessed is shown as-is (original case preserved), every other letter is
+ * a blank placeholder, and non-letter characters (spaces, punctuation)
+ * always show through. `guessedLetters` should be uppercase; matching is
+ * case-insensitive either way.
+ */
+export function maskWheelPhrase(phraseText: string, guessedLetters: string[]): string {
+  const guessed = new Set(guessedLetters.map((l) => l.toUpperCase()));
+  return phraseText
+    .split("")
+    .map((ch) => (isWheelLetter(ch) ? (guessed.has(ch.toUpperCase()) ? ch : "_") : ch))
+    .join("");
+}
+
+/** How many times a letter appears in the phrase (letters only, case-insensitive). */
+export function countWheelLetterOccurrences(phraseText: string, letter: string): number {
+  const upper = letter.toUpperCase();
+  let count = 0;
+  for (const ch of phraseText.toUpperCase()) {
+    if (ch === upper) count++;
+  }
+  return count;
+}
+
+/** True once every letter in the phrase has been guessed — the puzzle is fully revealed. */
+export function isWheelPhraseFullyRevealed(phraseText: string, guessedLetters: string[]): boolean {
+  const guessed = new Set(guessedLetters.map((l) => l.toUpperCase()));
+  for (const ch of phraseText.toUpperCase()) {
+    if (isWheelLetter(ch) && !guessed.has(ch)) return false;
+  }
+  return true;
+}
+
+/** Exact-match phrase-solve comparison (case/punctuation/whitespace-insensitive via normalizeAnswer). */
+export function wheelPhraseMatches(guess: string, actual: string): boolean {
+  return normalizeAnswer(guess) === normalizeAnswer(actual);
+}
+
+/**
+ * Picks a random category (preferring one not in `excludeCategoryIds`)
+ * that has at least one active phrase, then a random active phrase within
+ * it (preferring one not in `excludePhraseIds`). Falls back to relaxing
+ * the exclusions — category repeat first, then phrase repeat — rather
+ * than failing outright, so a MOD with a small content library can still
+ * run a full 5-round game. Returns null only if there are truly zero
+ * active phrases anywhere.
+ */
+export async function pickWheelCategoryAndPhrase(
+  admin: ReturnType<typeof getAdminClient>,
+  excludeCategoryIds: string[],
+  excludePhraseIds: string[]
+): Promise<{ category: { id: string; name: string }; phrase: { id: string; phrase: string } } | null> {
+  const { data: categories } = await admin.from("wheel_categories").select("id, name").is("archived_at", null);
+  if (!categories || categories.length === 0) return null;
+
+  const withCounts = await Promise.all(
+    categories.map(async (c) => {
+      const { count } = await admin
+        .from("wheel_phrases")
+        .select("id", { count: "exact", head: true })
+        .eq("category_id", c.id)
+        .is("archived_at", null);
+      return { id: c.id, name: c.name, count: count ?? 0 };
+    })
+  );
+
+  const withPhrases = withCounts.filter((c) => c.count > 0);
+  if (withPhrases.length === 0) return null;
+
+  const excludeCatSet = new Set(excludeCategoryIds);
+  const unusedCategories = withPhrases.filter((c) => !excludeCatSet.has(c.id));
+  const categoryPool = unusedCategories.length > 0 ? unusedCategories : withPhrases;
+  const pickedCategory = categoryPool[Math.floor(Math.random() * categoryPool.length)];
+
+  const { data: phrases } = await admin
+    .from("wheel_phrases")
+    .select("id, phrase")
+    .eq("category_id", pickedCategory.id)
+    .is("archived_at", null);
+  if (!phrases || phrases.length === 0) return null;
+
+  const excludePhraseSet = new Set(excludePhraseIds);
+  const unusedPhrases = phrases.filter((p) => !excludePhraseSet.has(p.id));
+  const phrasePool = unusedPhrases.length > 0 ? unusedPhrases : phrases;
+  const pickedPhrase = phrasePool[Math.floor(Math.random() * phrasePool.length)];
+
+  return {
+    category: { id: pickedCategory.id, name: pickedCategory.name },
+    phrase: { id: pickedPhrase.id, phrase: pickedPhrase.phrase },
+  };
+}
+
+/** Picks `count` distinct random categories that each have at least one active phrase — used for the Bonus Round's 3 category choices. */
+export async function pickRandomWheelCategories(
+  admin: ReturnType<typeof getAdminClient>,
+  count: number
+): Promise<{ id: string; name: string }[]> {
+  const { data: categories } = await admin.from("wheel_categories").select("id, name").is("archived_at", null);
+  if (!categories || categories.length === 0) return [];
+
+  const withCounts = await Promise.all(
+    categories.map(async (c) => {
+      const { count: phraseCount } = await admin
+        .from("wheel_phrases")
+        .select("id", { count: "exact", head: true })
+        .eq("category_id", c.id)
+        .is("archived_at", null);
+      return { id: c.id, name: c.name, count: phraseCount ?? 0 };
+    })
+  );
+
+  const eligible = withCounts.filter((c) => c.count > 0);
+  return shuffle(eligible).slice(0, count).map((c) => ({ id: c.id, name: c.name }));
+}
+
 /** Computes a session's leaderboard by summing points_awarded per participant. */
 export async function computeLeaderboard(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
   const { data: participants } = await admin

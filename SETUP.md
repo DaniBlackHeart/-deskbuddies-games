@@ -79,7 +79,7 @@ You should now also have: **Client ID**, **Client Secret** (from App B).
    haven't already.
 2. **SQL Editor** → paste the contents of `supabase/migrations/0001_init.sql`
    → Run, then repeat in order for every later migration file
-   (`0002` ... currently up to `0013`). (Or, if you use the Supabase CLI:
+   (`0002` ... currently up to `0017`). (Or, if you use the Supabase CLI:
    `supabase link --project-ref <ref>` then `supabase db push` — but see the
    note below if you're picking up an existing project that already had
    migrations pasted manually.)
@@ -111,6 +111,9 @@ You should now also have: **Client ID**, **Client Secret** (from App B).
    npx supabase functions deploy impostor-host
    npx supabase functions deploy impostor-play
    npx supabase functions deploy get-impostor-state
+   npx supabase functions deploy wheel-host
+   npx supabase functions deploy wheel-play
+   npx supabase functions deploy get-wheel-state
    ```
    `<your-project-ref>` is the short project ID (e.g. `fixlkzjyfpcgnieorlaw`) —
    the subdomain of your project URL, **not** a folder path and **not** the

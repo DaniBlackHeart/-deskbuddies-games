@@ -41,6 +41,12 @@ export default function DashboardPage() {
             title="Impostor WHO?"
             description="Everyone gets a secret word except one Impostor. Give clues, then vote them out."
           />
+          <GameCard
+            to="/wheel/lobby"
+            emoji="🎡"
+            title="Wheel of Fortune"
+            description="Buzz in, spin the wheel, call letters, and solve the puzzle — 5 rounds plus a Bonus Round."
+          />
         </div>
       </div>
     </div>

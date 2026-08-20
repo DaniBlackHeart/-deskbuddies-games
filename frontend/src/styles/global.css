@@ -877,3 +877,216 @@ button {
 .impostor-vote-results__bar--accused {
   background: var(--color-danger);
 }
+
+/* Wheel of Fortune — the board is the centerpiece, styled like physical
+   letter tiles on a dark backing (echoes the real show's board without
+   needing actual imagery). Reuses the primary/success tokens rather than
+   inventing a new palette: revealed tiles read as "won" (success-tinted),
+   blanks stay neutral dark. */
+.wheel-board {
+  background: var(--color-text);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+.wheel-board__category {
+  text-align: center;
+  color: var(--color-text-on-primary);
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-3);
+  opacity: 0.85;
+}
+.wheel-board__grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 14px;
+}
+.wheel-board__word {
+  display: flex;
+  gap: 4px;
+}
+.wheel-board__tile {
+  width: 26px;
+  height: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+.wheel-board__tile--blank {
+  background: #2a231b;
+  border: 1px solid #4a3d30;
+}
+.wheel-board__tile--revealed {
+  background: var(--color-success);
+  color: #fff;
+  animation: wheel-tile-reveal 0.25s ease;
+}
+.wheel-board__punct {
+  color: var(--color-text-on-primary);
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  opacity: 0.7;
+}
+@keyframes wheel-tile-reveal {
+  from {
+    transform: scale(0.6) rotateY(90deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+/* The wheel graphic — purely decorative flourish (see WheelSpinner.tsx),
+   spins to a random angle; the actual outcome comes from the server. */
+.wheel-spinner-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+.wheel-spinner__pointer {
+  color: var(--color-primary);
+  font-size: 1.2rem;
+  margin-bottom: -6px;
+}
+.wheel-spinner {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--color-primary) 0deg 30deg,
+    var(--color-secondary) 30deg 60deg,
+    var(--color-warning) 60deg 90deg,
+    var(--color-primary) 90deg 120deg,
+    var(--color-secondary) 120deg 150deg,
+    var(--color-danger) 150deg 180deg,
+    var(--color-primary) 180deg 210deg,
+    var(--color-secondary) 210deg 240deg,
+    var(--color-warning) 240deg 270deg,
+    var(--color-primary) 270deg 300deg,
+    var(--color-secondary) 300deg 330deg,
+    var(--color-danger) 330deg 360deg
+  );
+  border: 4px solid var(--color-surface-raised);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 2.2s cubic-bezier(0.17, 0.67, 0.17, 1);
+}
+.wheel-spinner__hub {
+  background: var(--color-surface-raised);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+.wheel-spinner__result {
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+/* Scoreboard — round-in-progress points alongside the banked total,
+   highlighting whoever currently holds the turn or is locked out. */
+.wheel-scoreboard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wheel-scoreboard__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  border: 1.5px solid var(--color-border-soft);
+}
+.wheel-scoreboard__row--active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+.wheel-scoreboard__row--locked {
+  opacity: 0.55;
+}
+.wheel-scoreboard__name {
+  flex: 1;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wheel-scoreboard__round {
+  color: var(--color-success);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.wheel-scoreboard__total {
+  font-weight: 800;
+  min-width: 3.5em;
+  text-align: right;
+}
+
+/* Letter-call keypad — consonants (call/bonus) and vowels (buy/bonus). */
+.wheel-keypad {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 6px;
+  margin: var(--space-3) 0;
+}
+.wheel-keypad__key {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface-raised);
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.wheel-keypad__key:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+.wheel-keypad__key:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.wheel-keypad__key--vowel {
+  background: var(--color-secondary-soft);
+  border-color: var(--color-secondary);
+}
+
+.wheel-wedge-flash {
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.3rem;
+  padding: var(--space-3);
+}
+.wheel-wedge-flash--bankrupt,
+.wheel-wedge-flash--lose_turn {
+  color: var(--color-danger);
+}
+.wheel-wedge-flash--points {
+  color: var(--color-success);
+}
+.wheel-wedge-flash--free_play,
+.wheel-wedge-flash--wild_card,
+.wheel-wedge-flash--mystery {
+  color: var(--color-warning);
+}

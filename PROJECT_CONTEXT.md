@@ -11,9 +11,10 @@
 > it, download the result, and re-upload it to Project Knowledge. Claude
 > can't write back to Project Knowledge on its own.
 
-Last reconciled: 2026-08-18, adding a percentage-vote reveal to Impostor
-WHO? (0014, on top of the same-day clue-field correction in 0013) on top
-of the UNO reconciliation described below.
+Last reconciled: 2026-08-21, adding Wheel of Fortune (0017) as the fifth
+game — buzz-in consonant calling, wheel spin with special wedges, vowel
+buying, solve-anytime, a Do-or-Die tiebreaker, and a Bonus Round — on top
+of the Impostor WHO?/UNO reconciliation described below.
 
 ---
 
@@ -21,7 +22,7 @@ of the UNO reconciliation described below.
 
 A web app for the **DeskBuddies** Discord server. Members sign in with
 Discord and must be a verified member of the server. MODs (auto-detected via
-a Discord role) get extra controls. Four games exist now:
+a Discord role) get extra controls. Five games exist now:
 
 - **Trivia Night** — live-hosted, multiple-choice + typed questions.
 - **Family Feud** — live-hosted, face-off / board / steal / Fast Money,
@@ -38,6 +39,17 @@ a Discord role) get extra controls. Four games exist now:
   word pools, like Trivia's question sets) — a MOD opens a category and
   starts the session from there, same pattern as Trivia/Feud, not UNO's
   "start directly from the dashboard."
+- **Wheel of Fortune** — live-hosted, 2–10 players. Turn-holder is decided
+  by a buzzer race (same primitive as Feud's face-off buzz-lock), not seat
+  rotation: whoever buzzes in spins, calls a consonant, and keeps going
+  while they keep guessing correctly; a miss (or Bankrupt/Lose a Turn)
+  locks them out until anyone else lands a correct guess, and if everyone
+  eligible is locked out at once the round auto-reveals. 5 main rounds,
+  then a Do-or-Die tiebreaker round if tied, then the leader plays a Bonus
+  Round (3 category choices, RSTLNE + 3 more consonants + 1 vowel, 20s to
+  solve). Has MOD-authored content — categories + phrases, same
+  categories/words shape as Impostor WHO? rather than Feud's Sets (see the
+  design-decision note in §5).
 
 ## 2. Stack
 
@@ -51,28 +63,35 @@ one-offs) · React Context + local state only, no Redux/Zustand · `oxlint`.
 ```
 frontend/
   src/
-    pages/trivia/, pages/feud/, pages/uno/, pages/impostor/    game-specific pages
+    pages/trivia/, pages/feud/, pages/uno/, pages/impostor/, pages/wheel/    game-specific pages
     pages/mod/                       MOD-only pages (question sets, hosting, spectator, dashboard)
     components/                      shared, game-agnostic UI (GameCard, Timer, Leaderboard,
                                       Buzzer, FeudBoard, TeamScoreboard, TypedAnswerBox, UnoCardView,
-                                      ImpostorCardView, ImpostorClueBoard, ...)
+                                      ImpostorCardView, ImpostorClueBoard, WheelBoard, WheelSpinner,
+                                      WheelScoreboard, ...)
     lib/                             archiveOrDelete.ts, unoRules.ts (client-side legality hinting,
                                       mirrors the server check — never authoritative), supabaseClient.ts
-                                      (invokeFunction helper), sounds.ts
+                                      (invokeFunction helper), sounds.ts, wheelConstants.ts (frontend-side
+                                      copies of Wheel's letter sets/costs — _shared/utils.ts is Deno-only
+                                      and isn't part of the Vite bundle, so these are deliberately
+                                      duplicated, same spirit as randomJoinCode/broadcast below)
     utils/                           questionParser.ts, impostorParser.ts (both: JSON-or-text-template
                                       paste parsers, feeding each game's import modal)
     styles/tokens.css, global.css
 supabase/
-  migrations/                        numbered SQL files, currently up to 0014
+  migrations/                        numbered SQL files, currently up to 0017
   functions/
     _shared/utils.ts                 shared helpers (see §6) — includes UNO's deck/shuffle/legality
                                       helpers, reused as-is by Impostor for seat rotation (nextUnoSeat
-                                      is plain modular arithmetic, nothing UNO-specific about it)
+                                      is plain modular arithmetic, nothing UNO-specific about it), plus
+                                      Wheel of Fortune's wedge table, phrase-masking, and category/phrase
+                                      randomizer helpers
     verify-membership/               Discord membership + MOD role check
     trivia-host/, trivia-answer/, get-current-question/
     feud-host/, feud-play/, get-feud-state/
     uno-host/, uno-play/, get-uno-state/
     impostor-host/, impostor-play/, get-impostor-state/
+    wheel-host/, wheel-play/, get-wheel-state/
 ```
 
 ## 4. Auth & security model (don't break this)
@@ -207,6 +226,9 @@ no reason to copy a known-dead pattern into a new table.
 | 0012 | Impostor WHO? schema (`impostor_categories`, `impostor_words`, `impostor_sessions`, `impostor_secrets`, `impostor_cards`, `impostor_participants`, `impostor_clues`, `impostor_votes`) | confirmed — full file in Project Knowledge |
 | 0013 | Impostor WHO? per-word clues (`impostor_words.clue`, `impostor_cards.clue`) — correction, see §6a-i | confirmed — full file in Project Knowledge |
 | 0014 | Impostor WHO? persisted vote tally (`impostor_sessions.final_vote_tally`) — powers the percentage-vote reveal, see §6a-ii | confirmed — full file in Project Knowledge |
+| 0015 | Family Feud real face-off rebuttal (`feud_rounds.face_off_provisional_*`) — a correct-but-not-top-answer match now gives the other rep a shot to beat it, instead of any match deciding control immediately | confirmed — full file in Project Knowledge |
+| 0016 | Family Feud tiebreaker round (`feud_round_questions.is_tiebreaker`, `feud_sessions.status` gains `'tiebreaker'`) — MOD-flagged tiebreaker-only content, pulled in only if the main game ends tied, replayed through the same face-off/board/steal mechanics as any other round | confirmed — full file in Project Knowledge |
+| 0017 | Wheel of Fortune schema (`wheel_categories`, `wheel_phrases`, `wheel_sessions`, `wheel_bonus_secrets`, `wheel_participants`, `wheel_rounds`, `wheel_round_secrets`) — see §6c | confirmed — full file in Project Knowledge |
 
 **Caveat:** only 0001 is present verbatim in Project Knowledge. Everything
 else is reconstructed from chat summaries that described *what* a migration
@@ -413,19 +435,103 @@ again in a future game.
   double-fire, which the simpler "check existing row first" pattern used
   elsewhere already handles fine).
 
+## 6c. Wheel of Fortune — game-design decisions (read this before "fixing" anything below)
+
+The build request specified the overall shape in real detail (buzz-call
+consonants, spin/buy-vowel/solve, the wedge list, 5 rounds, a tiebreaker,
+a Bonus Round) but a few mechanics were genuinely ambiguous or under-
+specified. These were resolved during the build, not asked about up front,
+so they're worth knowing about before "fixing" something that was actually
+a deliberate call:
+
+- **Categories, not a hand-curated "Sets" table.** The brief said both
+  "phrases in a set like Feud" and "categories with a randomizer like
+  Impostor." Rather than building both a Feud-style Sets grouping *and*
+  an Impostor-style categories/randomizer (redundant), `wheel_categories`/
+  `wheel_phrases` mirrors Impostor's shape exactly, and every round (plus
+  the Bonus Round's 3 choices) randomly picks a category + phrase,
+  preferring ones not already used that session (`pickWheelCategoryAndPhrase`
+  in `_shared/utils.ts`). Trade-off: a MOD can't guarantee a themed game
+  (e.g. "all Disney phrases tonight") the way a Feud Set would let them —
+  worth adding a real Sets table later if that turns out to matter more
+  than the simplicity of one content shape.
+- **Turn model is a buzzer race, not seat rotation** — the one genuinely
+  new primitive in this game vs. UNO's/Feud's rotation. Whoever wins the
+  buzz (`buzz` action, same atomic-conditional-update pattern as Feud's
+  face-off buzz-lock) becomes `active_user_id` and keeps their turn while
+  they keep guessing correctly — spinning, calling a consonant, buying a
+  vowel, or attempting to solve, in any order, per "at any point during
+  their turn a member can attempt to solve." A miss (wrong consonant,
+  wrong solve, Bankrupt, or Lose a Turn) adds them to
+  `locked_out_user_ids` and reopens the buzzer to everyone else; ANY
+  correct consonant guess (even by the same still-active player) clears
+  the whole lockout list — that's the literal reading of "locked out until
+  another member guessed a correct consonant." If a miss would lock out
+  every remaining eligible player, the round auto-reveals instead of
+  reopening a buzzer nobody could answer (`resolveTurnEnd` in
+  `wheel-play`).
+- **Vowel cost (350 pts) comes out of the current round's stake**, not a
+  cross-round persistent bank — a player needs 350+ points already built
+  up *this round* before they can buy. Buying never ends a turn (hit or
+  miss), matching the real show. Worth revisiting if playtesting shows
+  players stuck unable to ever buy a vowel early in a round.
+- **Special wedges**, since the brief described what each does but not the
+  exact mechanics:
+  - **Wild Card** = "allows an additional consonant to be called" is
+    implemented as literally 2 consonant calls off one spin
+    (`pending_wedge.calls_remaining`), each graded independently; whether
+    the turn continues after is decided by the *second* call's outcome,
+    same rule as any normal turn.
+  - **Free Play** = protects the very next consonant miss from ending the
+    turn (`free_play_active`), one-time use, then clears.
+  - **Mystery** = an immediate take-500-safe vs. risk-it choice
+    (`mystery_choice`); risking is a 50/50 between a 3000-point call and
+    an instant Bankrupt-equivalent (turn ends, round points zeroed), no
+    consonant call happens on a risk failure.
+  - **Bankrupt**/**Lose a Turn** both route through the same
+    `resolveTurnEnd` a wrong guess uses — landing on either is treated as
+    equivalent to a miss for lockout purposes, since nothing in the brief
+    said otherwise and it keeps one player from monopolizing buzzes purely
+    off bad wheel luck.
+- **Bonus Round prize is a hidden, randomized amount** (5,000–25,000,
+  picked when the winner chooses their category, revealed only on
+  solve/fail) rather than a fixed number — matches "if they fail, the
+  bonus prize is lost" reading as a specific envelope-style prize, not
+  just "some points."
+- **Do-or-Die tiebreaker eligibility is enforced twice** — server-side via
+  `tiebreak_eligible_user_ids` (a non-tied player's `buzz` call gets a 403
+  even if they try), and client-side via `round.eligible_user_ids` from
+  `get-wheel-state` so an ineligible player doesn't even see a live buzzer
+  to tap. Caught the client-side gap myself during review before shipping
+  — the server-side check alone was correct but would've shown a
+  confusing "buzz then get an error" experience to spectating players.
+  Capped at 5 automatic re-tiebreak attempts (`WHEEL_MAX_TIEBREAKER_ATTEMPTS`)
+  before falling back to a random pick among the tied players, so a
+  content-starved category pool can't loop forever without ever producing
+  a Bonus Round winner.
+- **Round-to-round pacing is MOD-driven** (`advance_round`), same as
+  Trivia's "Next Question" and Feud's per-phase buttons, not automatic —
+  a `force_end_round` escape hatch also exists for a stalled/AFK round,
+  same "always show a next action" lesson as the host-control dead-end bug
+  under §6b/known-bugs above.
+
+
+
 ## 8. Feature parity + cleanup flagged, not all resolved
 
 - **Bulk paste-import for question sets** — Trivia has it
   (`QuestionSetsPage`'s import/paste with a "Show example" toggle); Impostor
   WHO? has it too (`ImpostorImportModal`, both words-only and whole
-  categories-with-words); Feud's `FeudSetEditorPage` is now the one game
-  left without it. Not applicable to UNO — no MOD-authored content at all.
-- **Spectator mode** — now on all four games (Trivia via 0006, Feud via
-  0009, UNO via 0011, Impostor WHO? via 0012), same masking rule every
-  time: the spectator sees exactly what a player would see, never anything
-  that would let them cheat if they later played (Impostor: no card, no
-  vote — same `is_playing: false` shape `get-impostor-state` already
-  returns for anyone not seated, no special-casing needed, same as UNO).
+  categories-with-words); Feud's `FeudSetEditorPage` and Wheel of
+  Fortune's `WheelCategoryEditorPage` are the two now left without it —
+  both are one-phrase-at-a-time only. Not applicable to UNO — no
+  MOD-authored content at all.
+- **Spectator mode** — now on all five games (Trivia via 0006, Feud via
+  0009, UNO via 0011, Impostor WHO? via 0012, Wheel of Fortune via 0017),
+  same masking rule every time: the spectator sees exactly what a player
+  would see, never anything that would let them cheat if they later played
+  (Impostor: no card, no vote; Wheel: the same server-masked phrase
+  everyone else gets — same `is_playing`/no-special-casing shape as UNO).
 - Small duplication flagged but not necessarily cleaned up: `randomJoinCode()`
   copy-pasted between `trivia-host`/`feud-host` (UNO/Impostor don't have this
   problem — no `join_code` at all, see §5); a `broadcast()` helper
@@ -434,10 +540,12 @@ again in a future game.
   answer check reimplements text normalization inline instead of importing
   the shared `normalizeAnswer`, missing accent-stripping. Worth fixing.
 - `ModDashboardPage`'s subtitle: fixed during the UNO build to mention all
-  three games at the time; **fixed again** during the Impostor build to
-  mention all four. Worth a quick grep for a hardcoded game list/count
-  anywhere else in the frontend if a 5th game ever gets added — this is the
-  second time it's silently gone stale.
+  three games at the time; fixed again during the Impostor build to
+  mention all four; **fixed a third time** during the Wheel of Fortune
+  build to mention all five. This is now three-for-three going stale on
+  every single new game — worth just grepping for a hardcoded game
+  list/count anywhere else in the frontend before the *next* one ships,
+  rather than waiting to notice it's wrong again.
 - **UNO: Wild Draw Four challenge + stacking, combined** — a deliberate
   scope cut, not a bug, but worth knowing before it comes up in
   playtesting. If a second +4 gets stacked on top of the first, a challenge

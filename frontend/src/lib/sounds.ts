@@ -227,6 +227,60 @@ export const sounds = {
     ]);
   },
 
+  /** Quick fluttering sweep — the Wheel of Fortune wheel spinning. */
+  wheelSpin() {
+    playTones([
+      { freq: 300, start: 0, duration: 0.05, type: "square", gain: 0.08 },
+      { freq: 260, start: 0.08, duration: 0.05, type: "square", gain: 0.08 },
+      { freq: 300, start: 0.16, duration: 0.05, type: "square", gain: 0.08 },
+      { freq: 260, start: 0.24, duration: 0.05, type: "square", gain: 0.08 },
+      { freq: 300, start: 0.32, duration: 0.05, type: "square", gain: 0.07 },
+      { freq: 260, start: 0.4, duration: 0.05, type: "square", gain: 0.06 },
+    ]);
+  },
+
+  /** Harsh alarm blare — landed on Bankrupt. */
+  bankrupt() {
+    playTones([
+      { freq: 150, start: 0, duration: 0.3, type: "sawtooth", gain: 0.2 },
+      { freq: 110, start: 0.24, duration: 0.4, type: "sawtooth", gain: 0.22 },
+    ]);
+  },
+
+  /** Bright single coin-drop chime — buying a vowel. */
+  vowelBought() {
+    playTones([
+      { freq: 1046.5, start: 0, duration: 0.08, type: "triangle", gain: 0.16 },
+      { freq: 1318.51, start: 0.06, duration: 0.12, type: "triangle", gain: 0.16 },
+    ]);
+  },
+
+  /** Sparkly ascending run — landed on Wild Card. */
+  wildCard() {
+    playTones([
+      { freq: 659.25, start: 0, duration: 0.08, type: "triangle", gain: 0.14 },
+      { freq: 830.61, start: 0.06, duration: 0.08, type: "triangle", gain: 0.14 },
+      { freq: 1046.5, start: 0.12, duration: 0.16, type: "triangle", gain: 0.16 },
+    ]);
+  },
+
+  /** Warm two-note relief — Free Play saved a miss from ending your turn. */
+  freePlaySaved() {
+    playTones([
+      { freq: 523.25, start: 0, duration: 0.1, type: "sine", gain: 0.14 },
+      { freq: 659.25, start: 0.08, duration: 0.16, type: "sine", gain: 0.16 },
+    ]);
+  },
+
+  /** Short triumphant flourish — a round was solved (smaller than setFinished, which is reserved for the whole game). */
+  roundSolved() {
+    playTones([
+      { freq: 587.33, start: 0, duration: 0.12, type: "triangle", gain: 0.18 },
+      { freq: 739.99, start: 0.1, duration: 0.12, type: "triangle", gain: 0.18 },
+      { freq: 987.77, start: 0.2, duration: 0.28, type: "triangle", gain: 0.22 },
+    ]);
+  },
+
   /**
    * Plays the right "how did this end" intro (finished vs. cut short), then
    * calls `then` once it's had time to land — meant to be followed by

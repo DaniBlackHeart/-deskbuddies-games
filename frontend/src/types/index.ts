@@ -443,3 +443,114 @@ export type ImpostorSessionEvent =
   | { type: "next_round_set_started"; round_number: 3; starter_user_id: string }
   | { type: "game_ended"; winner: ImpostorWinner; impostor_user_id: string; secret_word: string }
   | { type: "session_ended" };
+
+// =========================================================
+// Wheel of Fortune
+// Keep in sync with supabase/migrations/0017_wheel_of_fortune.sql
+// =========================================================
+
+export type WheelCategory = {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  archived_at: string | null;
+  phrase_count?: number;
+};
+
+export type WheelPhrase = {
+  id: string;
+  category_id: string;
+  phrase: string;
+  created_at: string;
+  archived_at: string | null;
+};
+
+export type WheelSessionStatus = "lobby" | "live" | "tiebreaker" | "bonus_category_choice" | "bonus_letter_choice" | "bonus_solving" | "ended";
+export type WheelTurnPhase = "buzz_open" | "awaiting_action" | "awaiting_consonant" | "awaiting_mystery_choice" | "awaiting_solve_guess";
+export type WheelRoundStatus = "active" | "solved" | "revealed";
+
+export type WheelWedge =
+  | { type: "points"; value: number; calls_remaining?: number }
+  | { type: "bankrupt" }
+  | { type: "lose_turn" }
+  | { type: "free_play"; value: number; calls_remaining?: number }
+  | { type: "wild_card"; value: number; calls_remaining?: number }
+  | { type: "mystery" };
+
+export type WheelCategoryChoice = { id: string; name: string };
+
+// Shape returned by get-wheel-state — session.status governs which
+// bonus_* fields are meaningful; they stay null/empty until that phase.
+export type WheelSessionPublic = {
+  id: string;
+  status: WheelSessionStatus;
+  current_round_index: number;
+  winner_user_id: string | null;
+  bonus_category_choices: WheelCategoryChoice[] | null;
+  bonus_category_id: string | null;
+  bonus_category_name: string | null;
+  bonus_given_letters: string[];
+  bonus_chosen_consonants: string[];
+  bonus_chosen_vowel: string | null;
+  bonus_deadline_ms: number | null;
+  bonus_won: boolean | null;
+  bonus_points_awarded: number | null;
+  bonus_solved_phrase: string | null;
+  bonus_masked_phrase: string | null;
+  state_version: number;
+};
+
+export type WheelParticipant = {
+  user_id: string;
+  seat_order: number;
+  total_points: number;
+  profiles: { username: string; avatar_url: string | null } | null;
+};
+
+// The current round, as returned by get-wheel-state — masked_phrase is
+// computed server-side and never includes unrevealed letters.
+export type WheelRoundPublic = {
+  id: string;
+  round_index: number;
+  is_tiebreaker: boolean;
+  category_name: string;
+  phrase_length: number;
+  status: WheelRoundStatus;
+  solved_by_user_id: string | null;
+  guessed_letters: string[];
+  locked_out_user_ids: string[];
+  active_user_id: string | null;
+  turn_phase: WheelTurnPhase;
+  turn_deadline_ms: number | null;
+  pending_wedge: WheelWedge | null;
+  free_play_active: boolean;
+  round_scores: Record<string, number>;
+  masked_phrase: string;
+  eligible_user_ids: string[];
+};
+
+// --- Realtime broadcast payload shapes (wheel-session-{id} channel) ---
+
+export type WheelSessionEvent =
+  | { type: "game_started"; round_index: 0 }
+  | { type: "round_started"; round_index: number; is_tiebreaker: boolean; category_name: string; masked_phrase: string; buzz_deadline_ms: number }
+  | { type: "tiebreaker_started"; eligible_user_ids: string[] }
+  | { type: "buzz_won"; user_id: string; deadline_ms: number }
+  | { type: "spin_result"; user_id: string; wedge: WheelWedge; deadline_ms?: number }
+  | { type: "mystery_resolved"; user_id: string; choice: "take" | "risk"; outcome: "face_value" | "big_win" | "bankrupt"; value?: number; deadline_ms?: number }
+  | { type: "vowel_bought"; user_id: string; letter: string; occurrences: number; masked_phrase: string; cost: number; deadline_ms?: number }
+  | { type: "consonant_called"; user_id: string; letter: string; hit: boolean; occurrences: number; value: number; masked_phrase: string }
+  | { type: "extra_call_available"; user_id: string; deadline_ms: number }
+  | { type: "free_play_saved"; user_id: string }
+  | { type: "turn_timed_out"; user_id: string }
+  | { type: "solve_attempt_started"; user_id: string; deadline_ms: number }
+  | { type: "solve_missed"; user_id: string; timed_out: boolean }
+  | { type: "turn_ended"; ending_user_id: string; locked_out_user_ids: string[]; buzz_deadline_ms: number }
+  | { type: "round_ended"; round_index: number; solved: boolean; solved_by_user_id?: string; points_won?: number; revealed_phrase: string }
+  | { type: "bonus_setup"; winner_user_id: string; choices: WheelCategoryChoice[] }
+  | { type: "bonus_category_chosen"; category_name: string; given_letters: string[]; phrase_length: number }
+  | { type: "bonus_board_revealed"; masked_phrase: string; deadline_ms: number }
+  | { type: "bonus_resolved"; won: boolean; prize_points: number; phrase: string; timed_out: boolean }
+  | { type: "session_ended" };

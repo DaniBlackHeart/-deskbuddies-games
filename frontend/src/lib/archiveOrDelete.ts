@@ -195,3 +195,43 @@ export async function restoreImpostorCategory(categoryId: string): Promise<Archi
   }
   return { outcome: "restored" };
 }
+
+// =========================================================
+// Wheel of Fortune — wheel_categories
+// Same shape as impostor_categories: wheel_phrases has no FK back to
+// sessions (a round only ever copies a phrase's text into
+// wheel_round_secrets, never references the row), so phrases always
+// hard-delete cleanly. wheel_categories IS referenced by
+// wheel_rounds.category_id though, so a category used in a past game
+// hits the same FK RESTRICT and needs the same archive fallback.
+// =========================================================
+export async function deleteWheelCategory(categoryId: string): Promise<ArchiveOrDeleteResult> {
+  const { error: deleteError } = await supabase.from("wheel_categories").delete().eq("id", categoryId);
+
+  if (!deleteError) return { outcome: "deleted" };
+
+  if (deleteError.code !== FOREIGN_KEY_VIOLATION) {
+    console.error("wheel_category delete failed", deleteError);
+    return { outcome: "error", message: "Something went wrong deleting that category. Please try again." };
+  }
+
+  const { error: archiveError } = await supabase
+    .from("wheel_categories")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", categoryId);
+
+  if (archiveError) {
+    console.error("wheel_category archive failed", archiveError);
+    return { outcome: "error", message: "Couldn't archive that category either. Please try again." };
+  }
+  return { outcome: "archived" };
+}
+
+export async function restoreWheelCategory(categoryId: string): Promise<ArchiveOrDeleteResult> {
+  const { error } = await supabase.from("wheel_categories").update({ archived_at: null }).eq("id", categoryId);
+  if (error) {
+    console.error("wheel_category restore failed", error);
+    return { outcome: "error", message: "Couldn't restore that category. Please try again." };
+  }
+  return { outcome: "restored" };
+}
