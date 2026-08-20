@@ -54,7 +54,6 @@ export default function ModDashboardPage() {
   const [clearingLock, setClearingLock] = useState(false);
   const [lockResult, setLockResult] = useState<string | null>(null);
   const [startingUno, setStartingUno] = useState(false);
-  const [startingWheel, setStartingWheel] = useState(false);
 
   useEffect(() => {
     supabase
@@ -92,17 +91,6 @@ export default function ModDashboardPage() {
       .order("created_at", { ascending: false })
       .then(({ data }) => setActiveWheel((data as unknown as ActiveWheelSession[]) ?? []));
   }, []);
-
-  async function handleStartWheel() {
-    setStartingWheel(true);
-    const { data, error } = await invokeFunction("wheel-host", { action: "create_session" });
-    setStartingWheel(false);
-    if (error) {
-      alert(error);
-      return;
-    }
-    navigate(`/mod/wheel-host/${data.session.id}`);
-  }
 
   async function handleStartUno() {
     setStartingUno(true);
@@ -340,26 +328,12 @@ export default function ModDashboardPage() {
           <Link to="/mod/wheel-categories" style={{ textDecoration: "none", color: "inherit" }}>
             <div className="card">
               <div style={{ fontSize: "2rem" }}>🎡</div>
-              <h3 style={{ marginTop: "12px" }}>Wheel Categories</h3>
+              <h3 style={{ marginTop: "12px" }}>Wheel of Fortune</h3>
               <p className="text-muted" style={{ marginBottom: 0 }}>
-                Manage categories and phrases for Wheel of Fortune.
+                Manage categories and phrases, then start a session from inside one.
               </p>
             </div>
           </Link>
-          {/* Same reasoning as the UNO card above — no set/category needs
-              picking up front, since each round randomizes its own category
-              and phrase, so this starts a session directly. */}
-          <div
-            className="card"
-            style={{ cursor: startingWheel ? "wait" : "pointer", opacity: startingWheel ? 0.7 : 1 }}
-            onClick={() => !startingWheel && handleStartWheel()}
-          >
-            <div style={{ fontSize: "2rem" }}>🎡</div>
-            <h3 style={{ marginTop: "12px" }}>Wheel of Fortune</h3>
-            <p className="text-muted" style={{ marginBottom: 0 }}>
-              {startingWheel ? "Starting a new game…" : "Start a new Wheel of Fortune game — 2-10 players."}
-            </p>
-          </div>
         </div>
 
         <p className="text-muted" style={{ marginTop: "28px" }}>

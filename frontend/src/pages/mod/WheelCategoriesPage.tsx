@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { deleteWheelCategory, restoreWheelCategory } from "../../lib/archiveOrDelete";
 import type { WheelCategory } from "../../types";
@@ -17,6 +17,7 @@ export default function WheelCategoriesPage() {
   const [newName, setNewName] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [startingGame, setStartingGame] = useState(false);
 
   async function loadCategories() {
     setLoading(true);
@@ -85,20 +86,47 @@ export default function WheelCategoriesPage() {
     navigate(`/mod/wheel-categories/${data.id}`);
   }
 
+  async function handleStartGame() {
+    setStartingGame(true);
+    const { data, error } = await invokeFunction("wheel-host", { action: "create_session" });
+    setStartingGame(false);
+    if (error) {
+      alert(error);
+      return;
+    }
+    navigate(`/mod/wheel-host/${data.session.id}`);
+  }
+
   return (
     <div className="app-shell">
       <AppHeader />
       <div className="container">
         <div className="row-between" style={{ flexWrap: "wrap", gap: "8px" }}>
-          <h1>Wheel Categories</h1>
+          <h1>Wheel of Fortune</h1>
           <button className="btn btn-primary" onClick={() => setCreating(true)}>
             + New category
           </button>
         </div>
         <p className="hint" style={{ marginTop: "-8px" }}>
           Each round reveals a random category and a random phrase from within it — same idea as Impostor WHO?'s
-          categories. Start a new game from the MOD Dashboard once you've got a few in here.
+          categories.
         </p>
+
+        <div className="card card--tight" style={{ marginBottom: "16px" }}>
+          <div className="row-between" style={{ flexWrap: "wrap", gap: "8px" }}>
+            <p className="hint" style={{ margin: 0 }}>
+              🎡 Every round randomizes its own category and phrase — nothing to pick up front.
+            </p>
+            <button className="btn btn-secondary btn-sm" onClick={handleStartGame} disabled={startingGame || categories.length === 0}>
+              {startingGame ? <span className="spinner" /> : "▶ Start new game"}
+            </button>
+          </div>
+          {categories.length === 0 && (
+            <p className="hint" style={{ marginTop: "8px", marginBottom: 0 }}>
+              Add at least one category with a phrase before starting.
+            </p>
+          )}
+        </div>
 
         {creating && (
           <div className="card" style={{ marginBottom: "16px" }}>
