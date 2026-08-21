@@ -130,10 +130,6 @@ export default function WheelCategoriesPage() {
             </button>
           </div>
         </div>
-        <p className="hint" style={{ marginTop: "-8px" }}>
-          Each round reveals a random category and a random phrase from within it — same idea as Impostor WHO?'s
-          categories.
-        </p>
 
         <div className="card card--tight" style={{ marginBottom: "16px" }}>
           <div className="row-between" style={{ flexWrap: "wrap", gap: "8px" }}>
