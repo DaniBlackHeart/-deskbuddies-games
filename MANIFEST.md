@@ -1,40 +1,50 @@
-# MANIFEST — fix: Wheel of Fortune's two dashboard tiles → one
+# MANIFEST — Wheel of Fortune: bulk import for categories & phrases
 
-Frontend-only, no Supabase changes. Merge into your repo root with `cp -r`,
-same as any other delivery.
+Frontend-only, no Supabase changes. Merge into your repo root with `cp -r`.
 
-## What was wrong
+## What's new
 
-I gave Wheel of Fortune two separate MOD Dashboard tiles ("Wheel
-Categories" that opened the category list, and "Wheel of Fortune" that
-started a session directly). Every other game with MOD-authored content
-(Impostor WHO?) has exactly **one** tile that opens its content page, with
-the "start a game" action living on that page itself. Wheel should've
-followed the same pattern from the start — this brings it in line.
+Same "paste, preview, confirm" import flow Trivia and Impostor WHO? already
+have, added to Wheel of Fortune in the two places it's needed:
 
-## What changed
+- **`WheelCategoriesPage`** — new "📋 Import categories" button next to
+  "+ New category". Paste a JSON array of `{name, description, phrases}`
+  objects, or a plain-text template (`Category: ...` / `Description: ...`
+  / one `- phrase` per line, blank-line-separated blocks). Creates whole
+  new categories with their phrases in one paste.
+- **`WheelCategoryEditorPage`** — new "📋 Import phrases" button next to
+  "+ Add phrase", inside an already-open category. Paste a JSON array of
+  strings, or one phrase per line. Adds phrases to that category only.
 
-- **`frontend/src/pages/mod/ModDashboardPage.tsx`** — removed the second
-  "Wheel of Fortune" direct-start tile (and its now-unused `startingWheel`
-  state/`handleStartWheel` handler). The remaining tile is renamed "Wheel
-  of Fortune" (was "Wheel Categories") with copy matching Impostor WHO?'s
-  exactly: "Manage categories and phrases, then start a session from
-  inside one."
-- **`frontend/src/pages/mod/WheelCategoriesPage.tsx`** — added a "▶ Start
-  new game" card at the top, mirroring Impostor Categories' "🎲 Start with
-  random category" card exactly (same placement, same disabled-when-empty
-  behavior). This is where starting a game now actually happens.
+Both show a live preview with any parse errors called out before you
+confirm, same as Impostor's import modal.
+
+## New files
+
+- `frontend/src/utils/wheelParser.ts` — the paste parser, mirrors
+  `impostorParser.ts`'s JSON-or-text-template split. Simpler than
+  Impostor's version since a phrase has no clue/answer-key field riding
+  along with it — no pipe-delimited second field to parse.
+- `frontend/src/components/WheelImportModal.tsx` — mirrors
+  `ImpostorImportModal.tsx` (same modal shell, same `mode` prop pattern),
+  with the per-item preview simplified to just the phrase text since
+  there's nothing else to show.
+
+## Replaced files (full contents)
+
+- `frontend/src/pages/mod/WheelCategoriesPage.tsx`
+- `frontend/src/pages/mod/WheelCategoryEditorPage.tsx`
 
 ## Deploy
 
 ```bash
 cd deskbuddies-games
 git add .
-git commit -m "Fix: consolidate Wheel of Fortune's dashboard tiles into one"
+git commit -m "Add bulk import for Wheel of Fortune categories and phrases"
 git push
 ```
 
-Frontend-only change — no `supabase db push`, no function redeploy needed.
+Frontend-only — no `supabase db push`, no function redeploy.
 
 Validated: `npx tsc -b` → 0 errors, `npx oxlint` → 0 new warnings (same 6
-pre-existing ones as before).
+pre-existing ones as every prior delivery).

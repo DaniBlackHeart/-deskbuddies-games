@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import WheelImportModal from "../../components/WheelImportModal";
 import { supabase } from "../../lib/supabaseClient";
 import type { WheelCategory, WheelPhrase } from "../../types";
 
@@ -16,6 +17,7 @@ export default function WheelCategoryEditorPage() {
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   async function loadData() {
     setLoading(true);
@@ -53,6 +55,12 @@ export default function WheelCategoryEditorPage() {
       return;
     }
     setNewPhrase("");
+    loadData();
+  }
+
+  async function handleBulkImport(newPhrases: string[]) {
+    await supabase.from("wheel_phrases").insert(newPhrases.map((p) => ({ category_id: categoryId, phrase: p })));
+    setShowImport(false);
     loadData();
   }
 
@@ -123,6 +131,9 @@ export default function WheelCategoryEditorPage() {
           <button className="btn btn-secondary" onClick={handleAddPhrase} disabled={saving}>
             {saving ? <span className="spinner" /> : "+ Add phrase"}
           </button>
+          <button className="btn btn-secondary" onClick={() => setShowImport(true)}>
+            📋 Import phrases
+          </button>
           {formError && <p className="error-text">{formError}</p>}
         </div>
 
@@ -179,6 +190,8 @@ export default function WheelCategoryEditorPage() {
           </div>
         )}
       </div>
+
+      {showImport && <WheelImportModal mode="phrases" onCancel={() => setShowImport(false)} onConfirm={handleBulkImport} />}
     </div>
   );
 }

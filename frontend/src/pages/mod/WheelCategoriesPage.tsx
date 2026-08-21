@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import WheelImportModal from "../../components/WheelImportModal";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { deleteWheelCategory, restoreWheelCategory } from "../../lib/archiveOrDelete";
 import type { WheelCategory } from "../../types";
+import type { ParsedWheelCategory } from "../../utils/wheelParser";
 
 export default function WheelCategoriesPage() {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ export default function WheelCategoriesPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [startingGame, setStartingGame] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   async function loadCategories() {
     setLoading(true);
@@ -86,6 +89,21 @@ export default function WheelCategoriesPage() {
     navigate(`/mod/wheel-categories/${data.id}`);
   }
 
+  async function handleBulkImport(parsed: ParsedWheelCategory[]) {
+    if (!profile) return;
+    for (const cat of parsed) {
+      const { data: catRow, error } = await supabase
+        .from("wheel_categories")
+        .insert({ name: cat.name, description: cat.description, created_by: profile.id })
+        .select()
+        .single();
+      if (error || !catRow) continue;
+      await supabase.from("wheel_phrases").insert(cat.phrases.map((p) => ({ category_id: catRow.id, phrase: p })));
+    }
+    setShowImport(false);
+    loadCategories();
+  }
+
   async function handleStartGame() {
     setStartingGame(true);
     const { data, error } = await invokeFunction("wheel-host", { action: "create_session" });
@@ -103,9 +121,14 @@ export default function WheelCategoriesPage() {
       <div className="container">
         <div className="row-between" style={{ flexWrap: "wrap", gap: "8px" }}>
           <h1>Wheel of Fortune</h1>
-          <button className="btn btn-primary" onClick={() => setCreating(true)}>
-            + New category
-          </button>
+          <div className="row">
+            <button className="btn btn-secondary" onClick={() => setShowImport(true)}>
+              📋 Import categories
+            </button>
+            <button className="btn btn-primary" onClick={() => setCreating(true)}>
+              + New category
+            </button>
+          </div>
         </div>
         <p className="hint" style={{ marginTop: "-8px" }}>
           Each round reveals a random category and a random phrase from within it — same idea as Impostor WHO?'s
@@ -214,6 +237,8 @@ export default function WheelCategoriesPage() {
           </div>
         )}
       </div>
+
+      {showImport && <WheelImportModal mode="categories" onCancel={() => setShowImport(false)} onConfirm={handleBulkImport} />}
     </div>
   );
 }
