@@ -537,7 +537,7 @@ export type WheelSessionEvent =
   | { type: "game_started"; round_index: 0 }
   | { type: "round_started"; round_index: number; is_tiebreaker: boolean; category_name: string; masked_phrase: string; buzz_deadline_ms: number }
   | { type: "tiebreaker_started"; eligible_user_ids: string[] }
-  | { type: "buzz_guess_result"; user_id: string; letter: string; hit: boolean; occurrences: number; masked_phrase: string }
+  | { type: "buzz_won"; user_id: string; deadline_ms: number }
   | { type: "spin_result"; user_id: string; wedge: WheelWedge; deadline_ms?: number }
   | { type: "mystery_resolved"; user_id: string; choice: "take" | "risk"; outcome: "face_value" | "big_win" | "bankrupt"; value?: number; deadline_ms?: number }
   | { type: "vowel_bought"; user_id: string; letter: string; occurrences: number; masked_phrase: string; cost: number; deadline_ms?: number }

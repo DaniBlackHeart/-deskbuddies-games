@@ -187,18 +187,15 @@ Deno.serve(async (req) => {
       }
 
       // ---------------------------------------------------------------
-      // Buzz-in — this IS the consonant guess, not a separate step before
-      // one. "Every member will press the buzzer to guess a consonant...
-      // If they guessed the correct consonant, they can spin the wheel to
-      // continue." So: whoever's buzz+letter lands first gets it graded
-      // right away, with no wheel spin involved yet. A hit reveals the
-      // letter for free and hands them the normal action menu (spin / buy
-      // a vowel / solve) to continue with — spinning only ever happens
-      // *after* that, to score whichever consonant comes next. A miss
-      // ends the turn exactly like any other wrong guess.
+      // Buzz-in — a plain floor claim, no letter attached. Winning it
+      // hands you the "guessing phase": you must call a consonant next
+      // (handled by call_consonant below, with pending_wedge left null so
+      // that first call scores no points — nothing's been spun yet). Only
+      // once THAT call comes back correct does "the guessing phase" end
+      // and spinning become available. A wrong call there ends the turn
+      // and reopens the buzzer for everyone else, same as any other miss.
       // ---------------------------------------------------------------
       case "buzz": {
-        const { letter } = body as { letter: string };
         const { data: session } = await admin.from("wheel_sessions").select("status, tiebreak_eligible_user_ids").eq("id", session_id).single();
         if (!session) return jsonResponse({ error: "Session not found" }, 404);
         const round = await getActiveRound(admin, session_id);
@@ -209,17 +206,11 @@ Deno.serve(async (req) => {
         if (!eligible.includes(user.id)) return jsonResponse({ error: "You're not eligible to buzz in this round" }, 403);
         if (round.locked_out_user_ids.includes(user.id)) return jsonResponse({ error: "You're locked out until someone else guesses correctly" }, 403);
 
-        const upper = (letter ?? "").toUpperCase();
-        if (!WHEEL_CONSONANTS.includes(upper)) return jsonResponse({ error: "That's not a consonant" }, 400);
-        if (round.guessed_letters.includes(upper)) return jsonResponse({ error: "That letter's already been called" }, 409);
-
-        // Atomic claim: only succeeds if nobody's won the buzz yet. Once
-        // claimed, this request exclusively owns the round (no other buzz
-        // can win), so the grading below needs no further locking — set a
-        // safe placeholder phase now and correct it based on the outcome.
+        const deadline = new Date(Date.now() + WHEEL_ACTION_WINDOW_MS).toISOString();
+        // Atomic claim: only succeeds if nobody's won the buzz yet.
         const { data: claimed } = await admin
           .from("wheel_rounds")
-          .update({ active_user_id: user.id, turn_phase: "awaiting_action" })
+          .update({ active_user_id: user.id, turn_phase: "awaiting_consonant", pending_wedge: null, turn_deadline: deadline })
           .eq("id", round.id)
           .eq("turn_phase", "buzz_open")
           .is("active_user_id", null)
@@ -228,37 +219,8 @@ Deno.serve(async (req) => {
 
         if (!claimed) return jsonResponse({ error: "Too slow — someone else buzzed first!" }, 409);
 
-        const phraseText = await getRoundSecret(admin, round.id);
-        const occurrences = countWheelLetterOccurrences(phraseText, upper);
-        const isHit = occurrences > 0;
-        const newGuessed = [...round.guessed_letters, upper];
-        const masked = maskWheelPhrase(phraseText, newGuessed);
-        const fullyRevealed = isWheelPhraseFullyRevealed(phraseText, newGuessed);
-
-        if (isHit) {
-          // Any correct guess clears the whole lockout list, same rule as call_consonant.
-          await admin.from("wheel_rounds").update({ guessed_letters: newGuessed, locked_out_user_ids: [] }).eq("id", round.id);
-        } else {
-          await admin.from("wheel_rounds").update({ guessed_letters: newGuessed }).eq("id", round.id);
-        }
-
-        await broadcast(admin, session_id, "buzz_guess_result", { user_id: user.id, letter: upper, hit: isHit, occurrences, masked_phrase: masked });
-
-        const updatedRound = { ...round, active_user_id: user.id, guessed_letters: newGuessed, locked_out_user_ids: isHit ? [] : round.locked_out_user_ids };
-
-        if (fullyRevealed) {
-          await resolveSolve(admin, session_id, updatedRound, user.id);
-          return jsonResponse({ hit: isHit, occurrences, solved: true });
-        }
-
-        if (isHit) {
-          const deadline = new Date(Date.now() + WHEEL_ACTION_WINDOW_MS).toISOString();
-          await admin.from("wheel_rounds").update({ turn_phase: "awaiting_action", turn_deadline: deadline }).eq("id", round.id);
-          return jsonResponse({ hit: true, occurrences, solved: false, deadline_ms: new Date(deadline).getTime() });
-        }
-
-        const result = await resolveTurnEnd(admin, session_id, updatedRound, user.id, session);
-        return jsonResponse({ hit: false, occurrences: 0, solved: false, revealed: result.revealed });
+        await broadcast(admin, session_id, "buzz_won", { user_id: user.id, deadline_ms: new Date(deadline).getTime() });
+        return jsonResponse({ ok: true, deadline_ms: new Date(deadline).getTime() });
       }
 
       case "buzz_timeout": {
@@ -454,15 +416,20 @@ Deno.serve(async (req) => {
         if (round.guessed_letters.includes(upper)) return jsonResponse({ error: "That letter's already been called" }, 409);
 
         const wedge = round.pending_wedge as (WheelWedge & { calls_remaining: number }) | null;
-        if (!wedge || wedge.type === "bankrupt" || wedge.type === "lose_turn") {
+        if (wedge && (wedge.type === "bankrupt" || wedge.type === "lose_turn")) {
           return jsonResponse({ error: "No consonant call pending" }, 409);
         }
+        // wedge === null means this is the post-buzz "guessing phase" call
+        // — no spin has happened yet, so a hit earns no points. It only
+        // reveals the letter and, on success, ends the guessing phase and
+        // opens up the normal action menu (which includes spinning, to
+        // actually start scoring subsequent letters).
 
         const phraseText = await getRoundSecret(admin, round.id);
         const occurrences = countWheelLetterOccurrences(phraseText, upper);
         const isHit = occurrences > 0;
         const newGuessed = [...round.guessed_letters, upper];
-        const value = "value" in wedge ? wedge.value : 0;
+        const value = wedge && "value" in wedge ? wedge.value : 0;
         const roundScores = { ...(round.round_scores ?? {}) };
         if (isHit) roundScores[user.id] = (roundScores[user.id] ?? 0) + value * occurrences;
         const masked = maskWheelPhrase(phraseText, newGuessed);
@@ -484,7 +451,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ hit: isHit, occurrences, solved: true });
         }
 
-        const callsRemaining = (wedge.calls_remaining ?? 1) - 1;
+        const callsRemaining = wedge ? (wedge.calls_remaining ?? 1) - 1 : 0;
 
         if (callsRemaining > 0) {
           // Wild Card's extra call — still their turn, must call again.

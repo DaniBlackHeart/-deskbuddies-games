@@ -459,19 +459,23 @@ a deliberate call:
   than the simplicity of one content shape.
 - **Turn model is a buzzer race, not seat rotation** — the one genuinely
   new primitive in this game vs. UNO's/Feud's rotation. Whoever wins the
-  buzz becomes `active_user_id` and keeps their turn while they keep
-  guessing correctly — spinning, calling a consonant, buying a vowel, or
-  attempting to solve, in any order, per "at any point during their turn a
-  member can attempt to solve." A miss (wrong consonant, wrong solve,
-  Bankrupt, or Lose a Turn) adds them to `locked_out_user_ids` and reopens
-  the buzzer to everyone else; ANY correct consonant guess (even by the
-  same still-active player) clears the whole lockout list — that's the
-  literal reading of "locked out until another member guessed a correct
-  consonant." If a miss would lock out every remaining eligible player,
-  the round auto-reveals instead of reopening a buzzer nobody could answer
-  (`resolveTurnEnd` in `wheel-play`). **Buzzing in IS the first consonant
-  guess of a turn, not a separate step before one** — see the correction
-  log right below, this was wrong in the first delivery.
+  buzz (plain floor-claim, no letter attached) becomes `active_user_id`
+  and immediately owes one mandatory, unscored consonant call — "the
+  guessing phase" — before anything else is available to them. Once that
+  first call comes back correct, they keep their turn while they keep
+  guessing correctly — spinning (now available), calling a consonant,
+  buying a vowel, or attempting to solve, in any order, per "at any point
+  during their turn a member can attempt to solve." A miss at any point
+  (wrong consonant, wrong solve, Bankrupt, or Lose a Turn) adds them to
+  `locked_out_user_ids` and reopens the buzzer to everyone else; ANY
+  correct consonant guess (even by the same still-active player) clears
+  the whole lockout list — that's the literal reading of "locked out until
+  another member guessed a correct consonant." If a miss would lock out
+  every remaining eligible player, the round auto-reveals instead of
+  reopening a buzzer nobody could answer (`resolveTurnEnd` in
+  `wheel-play`). This exact sequencing (plain buzz → separate mandatory
+  guess → *then* spinning unlocks) took two playtest rounds to land on —
+  see the correction log right below before changing any of it again.
 - **Vowel cost (350 pts) comes out of the current round's stake**, not a
   cross-round persistent bank — a player needs 350+ points already built
   up *this round* before they can buy. Buying never ends a turn (hit or
@@ -489,22 +493,37 @@ continue solving the puzzle." Caught via playtesting (screenshots showing
 "Spin the wheel" appearing immediately after buzzing, with no consonant
 ever having been named).
 
-Fix: `buzz` now takes a `letter` and grades it immediately, atomically
-with the floor-claim — buzzing in *is* calling a consonant, no separate
-step. A hit reveals that letter for free (no points — nothing's been spun
-yet) and hands the guesser the normal action menu to continue with; a miss
-ends the turn exactly like any other wrong guess. The frontend's buzz
-phase changed from a single generic "BUZZ IN" button to a full consonant
-keypad, since pressing a buzzer now means "I'm guessing *this* letter,"
-not "give me the floor and I'll decide after."
+**This went through two attempts before landing right — worth knowing
+which one is actually live:**
 
-Everything from the second letter of a turn onward is genuinely unchanged
-— once a player holds the floor, "spin, then call a consonant" (the
-brief's other, correct-as-written sentence: "The contestant can call one
-consonant after spinning") is exactly what `awaiting_action` → `spin` →
-`awaiting_consonant` → `call_consonant` already did and still does,
-wedges (Bankrupt/Lose a Turn/Free Play/Wild Card/Mystery) included. The
-bug was scoped entirely to how a turn *starts*, not how it continues.
+- *First attempt* (superseded): made buzzing itself carry a letter —
+  pressing a specific consonant key both claimed the floor and submitted
+  that guess in one atomic action, graded immediately. This technically
+  matched "press the buzzer to guess a consonant" but turned out not to be
+  what was wanted: it forced committing to a letter blind, in the same
+  instant as racing for the floor, with no separate moment to actually
+  think about which consonant to call.
+- **Actual fix (live)**: buzzing is a plain floor-claim with no letter
+  attached — same generic `Buzzer` component as before, `buzz` action
+  takes no arguments. Winning it drops the player straight into
+  `awaiting_consonant` with `pending_wedge` left `null` (no spin has
+  happened, so this call scores no points) — a genuinely separate step
+  where they now pick which consonant to guess. `call_consonant` handles
+  both this unscored first call *and* every scored post-spin call from the
+  same code path, distinguished only by whether `pending_wedge` is null;
+  no new turn-phase value was needed. Hit → clears lockouts, ends "the
+  guessing phase," and opens the normal action menu (spin becomes
+  *available*, not forced — they can also buy a vowel or solve instead,
+  per "at any point during their turn"). Miss → `resolveTurnEnd`, same as
+  any other wrong guess, turn moves to the next member.
+
+Everything from the second letter of a turn onward was correct in both
+attempts and is still unchanged — once a player holds the floor, "spin,
+then call a consonant" (the brief's other sentence: "The contestant can
+call one consonant after spinning") is exactly what `awaiting_action` →
+`spin` → `awaiting_consonant` → `call_consonant` already did and still
+does, wedges (Bankrupt/Lose a Turn/Free Play/Wild Card/Mystery) included.
+Both rounds of the bug were scoped entirely to how a turn *starts*.
 
 Two more real bugs caught in the same round of testing:
 
