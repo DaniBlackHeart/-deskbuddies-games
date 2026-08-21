@@ -947,7 +947,9 @@ button {
 }
 
 /* The wheel graphic — purely decorative flourish (see WheelSpinner.tsx),
-   spins to a random angle; the actual outcome comes from the server. */
+   spins to a random angle; the actual outcome comes from the server. Now
+   an actual labeled SVG (24 wedges, real point values) rather than a
+   plain unlabeled conic-gradient — sized up so the labels are legible. */
 .wheel-spinner-wrap {
   display: flex;
   flex-direction: column;
@@ -957,43 +959,34 @@ button {
 }
 .wheel-spinner__pointer {
   color: var(--color-primary);
-  font-size: 1.2rem;
-  margin-bottom: -6px;
+  font-size: 1.5rem;
+  margin-bottom: -10px;
+  z-index: 1;
 }
 .wheel-spinner {
-  width: 140px;
-  height: 140px;
+  position: relative;
+  width: 260px;
+  height: 260px;
+  max-width: 90vw;
+  max-height: 90vw;
   border-radius: 50%;
-  background: conic-gradient(
-    var(--color-primary) 0deg 30deg,
-    var(--color-secondary) 30deg 60deg,
-    var(--color-warning) 60deg 90deg,
-    var(--color-primary) 90deg 120deg,
-    var(--color-secondary) 120deg 150deg,
-    var(--color-danger) 150deg 180deg,
-    var(--color-primary) 180deg 210deg,
-    var(--color-secondary) 210deg 240deg,
-    var(--color-warning) 240deg 270deg,
-    var(--color-primary) 270deg 300deg,
-    var(--color-secondary) 300deg 330deg,
-    var(--color-danger) 330deg 360deg
-  );
-  border: 4px solid var(--color-surface-raised);
   box-shadow: var(--shadow-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transition: transform 2.2s cubic-bezier(0.17, 0.67, 0.17, 1);
 }
 .wheel-spinner__hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   background: var(--color-surface-raised);
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
+  font-size: 1.4rem;
+  box-shadow: var(--shadow-sm);
 }
 .wheel-spinner__result {
   font-weight: 800;
@@ -1070,6 +1063,15 @@ button {
 .wheel-keypad__key--vowel {
   background: var(--color-secondary-soft);
   border-color: var(--color-secondary);
+}
+.wheel-keypad__key--buzz {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  font-size: 1.1rem;
+}
+.wheel-keypad__key--buzz:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
 }
 
 .wheel-wedge-flash {

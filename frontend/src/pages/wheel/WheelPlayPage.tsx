@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import Timer from "../../components/Timer";
-import Buzzer from "../../components/Buzzer";
 import WheelBoard from "../../components/WheelBoard";
 import WheelSpinner from "../../components/WheelSpinner";
 import WheelScoreboard from "../../components/WheelScoreboard";
@@ -126,8 +125,10 @@ export default function WheelPlayPage() {
       .on("broadcast", { event: "tiebreaker_started" }, () => {
         showFlash("Tied! Do-or-Die round starting…");
       })
-      .on("broadcast", { event: "buzz_won" }, ({ payload }: { payload: WheelSessionEvent & { type: "buzz_won" } }) => {
-        if (payload.user_id !== profile?.id) sounds.buzzer();
+      .on("broadcast", { event: "buzz_guess_result" }, ({ payload }: { payload: WheelSessionEvent & { type: "buzz_guess_result" } }) => {
+        if (payload.hit) sounds.correct();
+        else sounds.wrong();
+        showFlash(`${usernameFor(payload.user_id)} buzzed in with "${payload.letter}" — ${payload.hit ? "correct!" : "wrong!"}`);
         hydrate();
       })
       .on("broadcast", { event: "spin_result" }, ({ payload }: { payload: WheelSessionEvent & { type: "spin_result" } }) => {
@@ -435,7 +436,7 @@ export default function WheelPlayPage() {
 
         {round?.status === "active" && round.turn_phase === "buzz_open" && (
           <div className="card text-center">
-            {round.turn_deadline_ms && <Timer deadline={round.turn_deadline_ms} />}
+            {round.turn_deadline_ms && <Timer deadline={round.turn_deadline_ms} onExpire={() => callPlay("buzz_timeout")} />}
             {!is_playing || !round.eligible_user_ids.includes(myId ?? "") ? (
               <p className="text-muted">
                 {!is_playing
@@ -447,7 +448,22 @@ export default function WheelPlayPage() {
             ) : iAmLockedOut ? (
               <p className="text-muted">You're locked out until someone else guesses a correct consonant.</p>
             ) : (
-              <Buzzer onBuzz={() => callPlay("buzz")} disabled={busy} label="BUZZ IN" />
+              <>
+                <p style={{ fontWeight: 700, margin: "0 0 8px" }}>Buzz in with a consonant!</p>
+                <div className="wheel-keypad">
+                  {WHEEL_CONSONANTS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className="wheel-keypad__key wheel-keypad__key--buzz"
+                      disabled={busy || usedConsonantSet.has(c)}
+                      onClick={() => callPlay("buzz", { letter: c })}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}

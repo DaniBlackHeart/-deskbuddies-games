@@ -11,10 +11,12 @@
 > it, download the result, and re-upload it to Project Knowledge. Claude
 > can't write back to Project Knowledge on its own.
 
-Last reconciled: 2026-08-21, adding Wheel of Fortune (0017) as the fifth
-game — buzz-in consonant calling, wheel spin with special wedges, vowel
-buying, solve-anytime, a Do-or-Die tiebreaker, and a Bonus Round — on top
-of the Impostor WHO?/UNO reconciliation described below.
+Last reconciled: 2026-08-21, fixing a real playtest-caught bug in Wheel of
+Fortune (0017, shipped earlier the same day) — buzzing in was spinning the
+wheel before ever naming a consonant, backwards from the brief. See §6c-i
+for the full correction log (also fixes: the buzz timer doing nothing on
+expiry, and the wheel graphic being small and unlabeled) — on top of the
+Impostor WHO?/UNO reconciliation described below.
 
 ---
 
@@ -457,24 +459,70 @@ a deliberate call:
   than the simplicity of one content shape.
 - **Turn model is a buzzer race, not seat rotation** — the one genuinely
   new primitive in this game vs. UNO's/Feud's rotation. Whoever wins the
-  buzz (`buzz` action, same atomic-conditional-update pattern as Feud's
-  face-off buzz-lock) becomes `active_user_id` and keeps their turn while
-  they keep guessing correctly — spinning, calling a consonant, buying a
-  vowel, or attempting to solve, in any order, per "at any point during
-  their turn a member can attempt to solve." A miss (wrong consonant,
-  wrong solve, Bankrupt, or Lose a Turn) adds them to
-  `locked_out_user_ids` and reopens the buzzer to everyone else; ANY
-  correct consonant guess (even by the same still-active player) clears
-  the whole lockout list — that's the literal reading of "locked out until
-  another member guessed a correct consonant." If a miss would lock out
-  every remaining eligible player, the round auto-reveals instead of
-  reopening a buzzer nobody could answer (`resolveTurnEnd` in
-  `wheel-play`).
+  buzz becomes `active_user_id` and keeps their turn while they keep
+  guessing correctly — spinning, calling a consonant, buying a vowel, or
+  attempting to solve, in any order, per "at any point during their turn a
+  member can attempt to solve." A miss (wrong consonant, wrong solve,
+  Bankrupt, or Lose a Turn) adds them to `locked_out_user_ids` and reopens
+  the buzzer to everyone else; ANY correct consonant guess (even by the
+  same still-active player) clears the whole lockout list — that's the
+  literal reading of "locked out until another member guessed a correct
+  consonant." If a miss would lock out every remaining eligible player,
+  the round auto-reveals instead of reopening a buzzer nobody could answer
+  (`resolveTurnEnd` in `wheel-play`). **Buzzing in IS the first consonant
+  guess of a turn, not a separate step before one** — see the correction
+  log right below, this was wrong in the first delivery.
 - **Vowel cost (350 pts) comes out of the current round's stake**, not a
   cross-round persistent bank — a player needs 350+ points already built
   up *this round* before they can buy. Buying never ends a turn (hit or
   miss), matching the real show. Worth revisiting if playtesting shows
   players stuck unable to ever buy a vowel early in a round.
+
+## 6c-i. Correction log — buzz-then-spin order was backwards (2026-08-21)
+
+First delivery had the buzz claim the floor and go straight to offering
+Spin/Buy Vowel/Solve — i.e., spin-before-guess for every single letter,
+every time. That directly contradicted the brief's own words: "Every
+member will press the buzzer to guess a consonant for the phrase. If the
+members guessed the correct consonant, they can spin the wheel to
+continue solving the puzzle." Caught via playtesting (screenshots showing
+"Spin the wheel" appearing immediately after buzzing, with no consonant
+ever having been named).
+
+Fix: `buzz` now takes a `letter` and grades it immediately, atomically
+with the floor-claim — buzzing in *is* calling a consonant, no separate
+step. A hit reveals that letter for free (no points — nothing's been spun
+yet) and hands the guesser the normal action menu to continue with; a miss
+ends the turn exactly like any other wrong guess. The frontend's buzz
+phase changed from a single generic "BUZZ IN" button to a full consonant
+keypad, since pressing a buzzer now means "I'm guessing *this* letter,"
+not "give me the floor and I'll decide after."
+
+Everything from the second letter of a turn onward is genuinely unchanged
+— once a player holds the floor, "spin, then call a consonant" (the
+brief's other, correct-as-written sentence: "The contestant can call one
+consonant after spinning") is exactly what `awaiting_action` → `spin` →
+`awaiting_consonant` → `call_consonant` already did and still does,
+wedges (Bankrupt/Lose a Turn/Free Play/Wild Card/Mystery) included. The
+bug was scoped entirely to how a turn *starts*, not how it continues.
+
+Two more real bugs caught in the same round of testing:
+
+- **The buzz-phase timer never actually did anything on expiry.** The
+  `Timer` component was rendered during `buzz_open` with no `onExpire`
+  prop at all, so nothing ever called the (already-existing, already-
+  correct) `buzz_timeout` action when the countdown hit zero — the round
+  would just sit there forever with a buzzer nobody could press yet
+  nothing happening. Fixed by wiring `onExpire={() => callPlay("buzz_timeout")}`.
+- **The wheel graphic was small and blank.** `WheelSpinner` was a plain
+  `conic-gradient` div with no labels at all — you couldn't tell what
+  you'd landed on without waiting for the text below it. Rebuilt as an
+  actual labeled SVG (24 wedges, real point values, color-coded specials)
+  at nearly double the size, with the same real wedge table
+  (`WHEEL_WEDGE_LAYOUT` in `wheelConstants.ts`) the server actually spins
+  against — so what's printed on it is honest, even though which wedge it
+  visually stops on is still decorative (see the file's own comment for
+  why that's fine).
 - **Special wedges**, since the brief described what each does but not the
   exact mechanics:
   - **Wild Card** = "allows an additional consonant to be called" is
