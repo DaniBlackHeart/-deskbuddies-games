@@ -398,36 +398,38 @@ export type WheelWedge =
 
 /**
  * A 24-wedge wheel: 18 point wedges (300-900) plus Bankrupt x1, Lose a
- * Turn x2, Free Play x1, Wild Card x1, Mystery x1 — spread out rather
- * than clustered, same idea as a real wheel's layout. Order doesn't
- * matter mechanically (spinWheel picks uniformly at random); it's only
- * meaningful for how the frontend's wheel graphic renders the wedges.
+ * Turn x2, Free Play x1, Wild Card x1, Mystery x1 — the 6 specials sit
+ * exactly every 4th slot (60° apart), so each one has a mirror-opposite
+ * special directly across the wheel instead of clustering together on
+ * one side. Order doesn't affect actual odds (spinWheel picks uniformly
+ * at random) — it only matters for how the frontend's wheel graphic lays
+ * the wedges out, which mirrors this exact table.
  */
 export const WHEEL_WEDGES: WheelWedge[] = [
-  { type: "points", value: 500 },
-  { type: "points", value: 600 },
-  { type: "points", value: 700 },
-  { type: "points", value: 300 },
-  { type: "points", value: 400 },
   { type: "bankrupt" },
   { type: "points", value: 500 },
-  { type: "points", value: 800 },
-  { type: "points", value: 300 },
   { type: "points", value: 600 },
-  { type: "lose_turn" },
   { type: "points", value: 700 },
+  { type: "lose_turn" },
+  { type: "points", value: 300 },
   { type: "points", value: 400 },
   { type: "points", value: 500 },
-  { type: "points", value: 900 },
   { type: "free_play", value: 500 },
-  { type: "points", value: 300 },
   { type: "points", value: 600 },
+  { type: "points", value: 700 },
+  { type: "points", value: 300 },
   { type: "wild_card", value: 500 },
   { type: "points", value: 400 },
+  { type: "points", value: 500 },
+  { type: "points", value: 600 },
   { type: "mystery" },
   { type: "points", value: 700 },
   { type: "points", value: 300 },
+  { type: "points", value: 400 },
   { type: "lose_turn" },
+  { type: "points", value: 500 },
+  { type: "points", value: 800 },
+  { type: "points", value: 900 },
 ];
 
 export function spinWheel(): { wedge: WheelWedge; index: number } {

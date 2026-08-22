@@ -57,7 +57,15 @@ export default function WheelSpinner({ spinning, resultLabel }: WheelSpinnerProp
             const endAngle = startAngle + WEDGE_ANGLE;
             const midAngle = startAngle + WEDGE_ANGLE / 2;
             const labelPos = polarToCartesian(midAngle, RADIUS * 0.68);
-            const textRotation = midAngle > 90 && midAngle < 270 ? midAngle + 180 : midAngle;
+            // Align the label along the radius (so it reads vertically at
+            // the top/bottom of the wheel and horizontally at the sides,
+            // like a real prize wheel) rather than along the tangent.
+            // SVG's unrotated text points along "my angle 90°" (to the
+            // right), so subtract 90 to redirect it along this wedge's
+            // own radius, then flip 180° wherever that would otherwise
+            // render upside-down for a viewer.
+            const radialAngle = ((midAngle - 90 + 360) % 360);
+            const textRotation = radialAngle > 90 && radialAngle < 270 ? radialAngle + 180 : radialAngle;
             const label = wedgeShortLabel(wedge);
             const isSpecial = wedge.type !== "points";
             return (

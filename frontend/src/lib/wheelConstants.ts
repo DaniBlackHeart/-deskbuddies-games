@@ -42,33 +42,35 @@ export function wedgeLabel(wedge: { type: string; value?: number } | null | unde
 // reason as everything else in this file. Landing here is still purely
 // decorative (see WheelSpinner.tsx) — this is what makes the graphic show
 // real, readable wedge values instead of a plain unlabeled color wheel.
+// The 6 specials sit exactly every 4th slot (60° apart) so each has a
+// mirror-opposite special directly across the wheel, matching the server.
 export type WheelWedgeLayout = { type: string; value?: number };
 
 export const WHEEL_WEDGE_LAYOUT: WheelWedgeLayout[] = [
-  { type: "points", value: 500 },
-  { type: "points", value: 600 },
-  { type: "points", value: 700 },
-  { type: "points", value: 300 },
-  { type: "points", value: 400 },
   { type: "bankrupt" },
   { type: "points", value: 500 },
-  { type: "points", value: 800 },
-  { type: "points", value: 300 },
   { type: "points", value: 600 },
-  { type: "lose_turn" },
   { type: "points", value: 700 },
+  { type: "lose_turn" },
+  { type: "points", value: 300 },
   { type: "points", value: 400 },
   { type: "points", value: 500 },
-  { type: "points", value: 900 },
-  { type: "free_play" },
-  { type: "points", value: 300 },
+  { type: "free_play", value: 500 },
   { type: "points", value: 600 },
-  { type: "wild_card" },
+  { type: "points", value: 700 },
+  { type: "points", value: 300 },
+  { type: "wild_card", value: 500 },
   { type: "points", value: 400 },
+  { type: "points", value: 500 },
+  { type: "points", value: 600 },
   { type: "mystery" },
   { type: "points", value: 700 },
   { type: "points", value: 300 },
+  { type: "points", value: 400 },
   { type: "lose_turn" },
+  { type: "points", value: 500 },
+  { type: "points", value: 800 },
+  { type: "points", value: 900 },
 ];
 
 export function wedgeShortLabel(wedge: WheelWedgeLayout): string {

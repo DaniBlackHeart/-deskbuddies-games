@@ -1,31 +1,39 @@
-# MANIFEST — fix: remove the timer for deciding whether to spin
+# MANIFEST — fix: wheel text orientation + evenly-spaced special wedges
 
-One backend function change. Merge into your repo root with `cp -r`.
+Two real bugs in the wheel graphic, not cosmetic nitpicks. Merge into your
+repo root with `cp -r`.
 
-## What changed
+## What was wrong
 
-The "Spin the wheel / Buy a vowel / Solve the puzzle" decision no longer
-has a countdown. Every place that transitions a round into
-`awaiting_action` now sets `turn_deadline: null` instead of a
-`now + 10s` deadline:
+1. **Text rotation was inverted.** The label rotation math aligned each
+   wedge's text with its *tangent* instead of its *radius* — so labels at
+   the top/bottom of the wheel rendered near-horizontal (should be
+   vertical, reading outward along the spoke) and labels at the sides
+   rendered vertical (should be horizontal). Backwards from how a real
+   prize wheel reads.
+2. **Special wedges were genuinely clustered.** Bankrupt/Lose a Turn/Free
+   Play/Wild Card/Mystery weren't evenly spread — 4 of the 6 sat within an
+   8-slot span while most of the rest of the wheel had none at all.
 
-- The initial transition after a correct opening guess or a correct
-  post-spin consonant call.
-- Free Play saving a miss (also lands back in `awaiting_action`).
-- The next player picking up control after a seat-rotation hand-off.
-- Refreshing state after buying a vowel (previously reset the deadline
-  for another 10s; now just clears it).
+## What's fixed
 
-**No frontend change was needed** — the `Timer` component on that screen
-was already gated on `round.turn_deadline_ms` being non-null, so once the
-backend stopped sending a deadline, it stopped rendering automatically.
+1. **`frontend/src/components/WheelSpinner.tsx`** — rotation now uses
+   `midAngle - 90` (the correction needed to redirect SVG's default
+   horizontal text along this wedge's own radius) instead of `midAngle`
+   directly, with the same upside-down-avoidance flip as before. Top/
+   bottom wedges now render vertically, side wedges horizontally, like a
+   real wheel.
+2. **`supabase/functions/_shared/utils.ts`** (`WHEEL_WEDGES`) and
+   **`frontend/src/lib/wheelConstants.ts`** (`WHEEL_WEDGE_LAYOUT`) —
+   reordered so all 6 specials sit exactly every 4th slot (60° apart),
+   each with a mirror-opposite special directly across the wheel
+   (Bankrupt ↔ Wild Card, and so on). **Order doesn't affect actual
+   odds** — `spinWheel()` picks uniformly at random regardless of
+   arrangement — this is purely a layout fix. Point-value frequencies
+   (18 wedges, 300-900) were preserved as closely as reasonable; both
+   arrays are still byte-identical to each other, same as before.
 
-Calling a consonant (after spinning), the Mystery wedge's take-vs-risk
-choice, and solving the puzzle all keep their normal 10s/15s timers —
-this change is scoped specifically to the "what do you want to do next"
-moment, not anything with a clock-driven answer already in motion.
-
-## Deploy
+## Deploy order (Supabase before frontend)
 
 ```bash
 cd deskbuddies-games
@@ -33,12 +41,17 @@ cd deskbuddies-games
 npx supabase functions deploy wheel-play
 
 git add .
-git commit -m "fix: remove the countdown timer for choosing to spin, buy a vowel, or solve"
+git commit -m "fix: correct wheel label rotation and evenly space the special wedges"
 git push
 ```
 
-No migration needed.
+Only `wheel-play` actually references the wedge table (`wheel-host`
+doesn't spin the wheel), so that's the only function that needs
+redeploying even though `_shared/utils.ts` changed. No migration needed.
 
 Validated: `npx tsc -b` → 0 errors, `npx oxlint` → 0 new warnings,
-`wheel-play` type-checked clean with `deno check` (same pre-existing
-`Deno.serve` quirk as every other function, nothing new).
+`wheel-play` and `wheel-host` both type-checked clean with `deno check`
+(same pre-existing `Deno.serve` quirk as every other function). Also
+confirmed programmatically: both wedge arrays are still exactly 24 items,
+byte-identical to each other, and the 6 specials land at indices
+0/4/8/12/16/20 — evenly spaced with no gaps.

@@ -641,6 +641,26 @@ Mystery's choice, and solving still have their normal 10s/15s timers —
 this is scoped specifically to "what do you want to do next," not to
 anything with an actual clock-ticking answer already in motion.
 
+**Same-day follow-up, take two:** the wheel graphic itself had two real
+bugs, not just cosmetic nitpicks. First, the label rotation math was
+inverted — it aligned text with the wedge's *tangent* instead of its
+*radius*, so labels at the top/bottom of the wheel rendered near-
+horizontal (should be vertical, reading outward along the spoke) and
+labels at the sides rendered vertical (should be horizontal). Fixed by
+rotating `midAngle - 90` (SVG's unrotated text points along this
+component's "90°" position, so that's the offset needed to redirect it
+along the wedge's own radius) instead of `midAngle` directly, with the
+same "flip 180° if it'd render upside-down" logic as before. Second, the
+6 special wedges (Bankrupt/Lose a Turn ×2/Free Play/Wild Card/Mystery) in
+`WHEEL_WEDGES` were genuinely clustered — 4 of them sat within an 8-slot
+span while the rest of the wheel had none. Reordered (in both
+`_shared/utils.ts` and its frontend mirror, `wheelConstants.ts` — order
+doesn't affect actual odds, `spinWheel` picks uniformly, so this was
+purely a layout fix) so all 6 sit exactly every 4th slot, 60° apart, each
+with a mirror-opposite special directly across the wheel. Point-value
+frequencies were preserved as closely as reasonable (18 point wedges,
+300-900, same rough spread as before) — only the arrangement changed.
+
 ## 8. Feature parity + cleanup flagged, not all resolved
 
 - **Bulk paste-import for question sets** — Trivia has it
