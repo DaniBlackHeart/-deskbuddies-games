@@ -11,12 +11,12 @@
 > it, download the result, and re-upload it to Project Knowledge. Claude
 > can't write back to Project Knowledge on its own.
 
-Last reconciled: 2026-08-21, fixing a real playtest-caught bug in Wheel of
-Fortune (0017, shipped earlier the same day) — buzzing in was spinning the
-wheel before ever naming a consonant, backwards from the brief. See §6c-i
-for the full correction log (also fixes: the buzz timer doing nothing on
-expiry, and the wheel graphic being small and unlabeled) — on top of the
-Impostor WHO?/UNO reconciliation described below.
+Last reconciled: 2026-08-21, three rounds of same-day playtest fixes on
+Wheel of Fortune (0017, shipped earlier the same day): buzzing was
+spinning before naming a consonant (§6c-i), then the buzzer was reopening
+on every miss for a round's entire duration instead of just once to open
+it (§6c-ii, migration `0018`) — on top of the Impostor WHO?/UNO
+reconciliation described below.
 
 ---
 
@@ -81,7 +81,7 @@ frontend/
                                       paste parsers, feeding each game's import modal)
     styles/tokens.css, global.css
 supabase/
-  migrations/                        numbered SQL files, currently up to 0017
+  migrations/                        numbered SQL files, currently up to 0018
   functions/
     _shared/utils.ts                 shared helpers (see §6) — includes UNO's deck/shuffle/legality
                                       helpers, reused as-is by Impostor for seat rotation (nextUnoSeat
@@ -231,6 +231,7 @@ no reason to copy a known-dead pattern into a new table.
 | 0015 | Family Feud real face-off rebuttal (`feud_rounds.face_off_provisional_*`) — a correct-but-not-top-answer match now gives the other rep a shot to beat it, instead of any match deciding control immediately | confirmed — full file in Project Knowledge |
 | 0016 | Family Feud tiebreaker round (`feud_round_questions.is_tiebreaker`, `feud_sessions.status` gains `'tiebreaker'`) — MOD-flagged tiebreaker-only content, pulled in only if the main game ends tied, replayed through the same face-off/board/steal mechanics as any other round | confirmed — full file in Project Knowledge |
 | 0017 | Wheel of Fortune schema (`wheel_categories`, `wheel_phrases`, `wheel_sessions`, `wheel_bonus_secrets`, `wheel_participants`, `wheel_rounds`, `wheel_round_secrets`) — see §6c | confirmed — full file in Project Knowledge |
+| 0018 | Wheel of Fortune round rotation fix (`wheel_rounds.is_opened`) — see §6c-ii | confirmed — full file in Project Knowledge |
 
 **Caveat:** only 0001 is present verbatim in Project Knowledge. Everything
 else is reconstructed from chat summaries that described *what* a migration
@@ -582,7 +583,52 @@ Two more real bugs caught in the same round of testing:
   same "always show a next action" lesson as the host-control dead-end bug
   under §6b/known-bugs above.
 
+## 6c-ii. Correction log — the buzzer was reopening on every miss, not just before the round "opens" (2026-08-21)
 
+Third round of Wheel of Fortune playtesting fixes, same day as 6c-i.
+Caught via a screenshot showing the buzzer still live in Round 3 with
+letters already on the board, plus a direct description of the wanted
+behavior: "the buzzer should [not] be there anymore when there are
+already letters on the board... once they spin the wheel and guessed
+wrong, the next member can spin next, they don't need to buzz again."
+
+What was live at the time reopened `buzz_open` on *every single miss* for
+the whole round — post-spin consonant misses, Bankrupt, Lose a Turn, wrong
+solves, timeouts, all of it — forever, for the round's entire duration.
+That's not how the real show (or this brief) works: the buzzer is a
+one-time face-off to decide who opens the round. Once *any* guess lands
+correctly, the buzzer is done — from then on, a miss just passes control
+to the next seat directly (they spin immediately, no buzzing), same as
+real Wheel of Fortune's seat rotation.
+
+Fix: added `wheel_rounds.is_opened` (migration `0018`, defaults `false` on
+every new round). It flips to `true` — permanently, for that round only —
+the first time any consonant guess lands correctly, whether that's the
+mandatory unscored opening guess (see 6c-i) or a later post-spin one.
+`resolveTurnEnd` now branches on it:
+- **Not opened**: unchanged from 6c-i — add the misser to
+  `locked_out_user_ids`, reopen the buzzer for whoever's left eligible, or
+  reveal the phrase if that would lock out everyone.
+- **Opened**: no more lockouts, no more buzzing. Control passes straight
+  to the next eligible seat (`getNextEligibleUserId`, ordered by
+  `wheel_participants.seat_order`, wrapping around — and for a Do-or-Die
+  tiebreaker round, filtered to only the tied players, same as the buzz
+  phase already was), who lands directly in `awaiting_action` — ready to
+  spin, no guess-first step required this time. `locked_out_user_ids` gets
+  cleared and stops mattering entirely once a round is opened.
+
+Net effect: the "if all members guessed wrong, the round ends
+automatically" auto-reveal rule now correctly applies *only* to the
+opening face-off (nobody in the whole room can even get the round
+started) — once opened, a round just keeps rotating through seats,
+exactly like a real game, until someone actually solves it. No frontend
+type changes were needed for the buzzer-hiding part — `turn_phase` never
+returns to `'buzz_open'` after opening, so the existing
+`turn_phase === 'buzz_open'` check that shows the `Buzzer` component
+already stops rendering it automatically. A new `turn_passed` broadcast
+event was added (distinct from the pre-opening `turn_ended`) so the
+frontend can show "so-and-so's turn to spin!" instead of implying the
+buzzer reopened.
 
 ## 8. Feature parity + cleanup flagged, not all resolved
 

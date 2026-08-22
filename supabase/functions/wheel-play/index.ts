@@ -78,10 +78,28 @@ async function eligibleUserIds(admin: Admin, sessionId: string, session: { statu
   return (data ?? []).map((p) => p.user_id);
 }
 
+/** The next eligible seat after `currentUserId`, in seat_order, wrapping around. Used for post-opening rotation — no buzzing involved. */
+async function getNextEligibleUserId(admin: Admin, sessionId: string, currentUserId: string, session: { status: string; tiebreak_eligible_user_ids: string[] }): Promise<string | null> {
+  const { data: participants } = await admin.from("wheel_participants").select("user_id").eq("session_id", sessionId).order("seat_order", { ascending: true });
+  if (!participants || participants.length === 0) return null;
+  const eligibleSet = new Set(await eligibleUserIds(admin, sessionId, session));
+  const ordered = participants.map((p) => p.user_id).filter((id) => eligibleSet.has(id));
+  if (ordered.length === 0) return null;
+  const idx = ordered.indexOf(currentUserId);
+  if (idx === -1) return ordered[0];
+  return ordered[(idx + 1) % ordered.length];
+}
+
 /**
- * Ends the active player's turn: adds them to the lockout list, and either
- * reopens the buzzer for everyone else or — if that would lock out every
- * remaining eligible player — reveals the phrase and closes the round out.
+ * Ends the active player's turn. Two different modes, depending on
+ * whether this round's opening buzz-off has already been won:
+ *   - Not yet opened: this WAS the opening guess and it missed — add them
+ *     to the lockout list and reopen the buzzer for everyone else still
+ *     eligible, or reveal the phrase if that would lock out everyone.
+ *   - Already opened: the buzzer is done for this round. Control passes
+ *     straight to the next seat (by seat_order, wrapping), who can spin
+ *     immediately — no buzzing, no lockouts, exactly like the real show's
+ *     seat rotation.
  * Returns the broadcast payload the caller should send after its own
  * scoring updates.
  */
@@ -92,6 +110,35 @@ async function resolveTurnEnd(
   endingUserId: string,
   session: { status: string; tiebreak_eligible_user_ids: string[] }
 ): Promise<{ revealed: boolean; phrase_text?: string; deadline_ms?: number }> {
+  if (round.is_opened) {
+    const nextUserId = await getNextEligibleUserId(admin, sessionId, endingUserId, session);
+    if (!nextUserId) {
+      // Defensive fallback only — shouldn't happen with >= 2 players. Better to reveal than get stuck.
+      const phraseText = await getRoundSecret(admin, round.id);
+      await admin
+        .from("wheel_rounds")
+        .update({ status: "revealed", ended_at: new Date().toISOString(), active_user_id: null, turn_phase: "buzz_open" })
+        .eq("id", round.id);
+      await broadcast(admin, sessionId, "round_ended", { round_index: round.round_index, solved: false, revealed_phrase: phraseText });
+      return { revealed: true, phrase_text: phraseText };
+    }
+
+    const deadline = new Date(Date.now() + WHEEL_ACTION_WINDOW_MS).toISOString();
+    await admin
+      .from("wheel_rounds")
+      .update({
+        active_user_id: nextUserId,
+        turn_phase: "awaiting_action",
+        turn_deadline: deadline,
+        pending_wedge: null,
+        free_play_active: false,
+        locked_out_user_ids: [],
+      })
+      .eq("id", round.id);
+    await broadcast(admin, sessionId, "turn_passed", { from_user_id: endingUserId, to_user_id: nextUserId, deadline_ms: new Date(deadline).getTime() });
+    return { revealed: false, deadline_ms: new Date(deadline).getTime() };
+  }
+
   const eligible = await eligibleUserIds(admin, sessionId, session);
   const newLockedOut = Array.from(new Set([...round.locked_out_user_ids, endingUserId]));
 
@@ -437,14 +484,16 @@ Deno.serve(async (req) => {
 
         if (isHit) {
           // Any correct guess clears the whole lockout list, regardless of whose turn it is.
-          await admin.from("wheel_rounds").update({ guessed_letters: newGuessed, round_scores: roundScores, locked_out_user_ids: [] }).eq("id", round.id);
+          // is_opened flips permanently true here (harmless to re-set on later hits) — once
+          // any guess lands, the buzzer is done for this round; see resolveTurnEnd.
+          await admin.from("wheel_rounds").update({ guessed_letters: newGuessed, round_scores: roundScores, locked_out_user_ids: [], is_opened: true }).eq("id", round.id);
         } else {
           await admin.from("wheel_rounds").update({ guessed_letters: newGuessed }).eq("id", round.id);
         }
 
         await broadcast(admin, session_id, "consonant_called", { user_id: user.id, letter: upper, hit: isHit, occurrences, value, masked_phrase: masked });
 
-        const updatedRound = { ...round, guessed_letters: newGuessed, round_scores: roundScores, locked_out_user_ids: isHit ? [] : round.locked_out_user_ids };
+        const updatedRound = { ...round, guessed_letters: newGuessed, round_scores: roundScores, locked_out_user_ids: isHit ? [] : round.locked_out_user_ids, is_opened: isHit ? true : round.is_opened };
 
         if (fullyRevealed) {
           await resolveSolve(admin, session_id, updatedRound, user.id);

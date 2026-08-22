@@ -548,6 +548,7 @@ export type WheelSessionEvent =
   | { type: "solve_attempt_started"; user_id: string; deadline_ms: number }
   | { type: "solve_missed"; user_id: string; timed_out: boolean }
   | { type: "turn_ended"; ending_user_id: string; locked_out_user_ids: string[]; buzz_deadline_ms: number }
+  | { type: "turn_passed"; from_user_id: string; to_user_id: string; deadline_ms: number }
   | { type: "round_ended"; round_index: number; solved: boolean; solved_by_user_id?: string; points_won?: number; revealed_phrase: string }
   | { type: "bonus_setup"; winner_user_id: string; choices: WheelCategoryChoice[] }
   | { type: "bonus_category_chosen"; category_name: string; given_letters: string[]; phrase_length: number }

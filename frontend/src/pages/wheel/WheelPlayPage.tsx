@@ -176,6 +176,10 @@ export default function WheelPlayPage() {
         hydrate();
       })
       .on("broadcast", { event: "turn_ended" }, () => hydrate())
+      .on("broadcast", { event: "turn_passed" }, ({ payload }: { payload: WheelSessionEvent & { type: "turn_passed" } }) => {
+        showFlash(`${usernameFor(payload.to_user_id)}'s turn to spin!`);
+        hydrate();
+      })
       .on("broadcast", { event: "turn_timed_out" }, () => hydrate())
       .on("broadcast", { event: "round_ended" }, ({ payload }: { payload: WheelSessionEvent & { type: "round_ended" } }) => {
         if (payload.solved) sounds.roundSolved();
