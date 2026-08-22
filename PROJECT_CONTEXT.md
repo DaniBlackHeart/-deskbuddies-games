@@ -630,6 +630,17 @@ event was added (distinct from the pre-opening `turn_ended`) so the
 frontend can show "so-and-so's turn to spin!" instead of implying the
 buzzer reopened.
 
+**Same-day follow-up:** the `awaiting_action` decision ("Spin the wheel /
+Buy a vowel / Solve the puzzle") no longer carries a countdown at all —
+requested after playtesting showed a timer pressuring that choice, which
+wasn't wanted. Every transition into `awaiting_action` now sets
+`turn_deadline: null` instead of `now + WHEEL_ACTION_WINDOW_MS`; no
+frontend change was needed since the `Timer` there was already gated on
+`turn_deadline_ms` being non-null. Calling a consonant (after spinning),
+Mystery's choice, and solving still have their normal 10s/15s timers —
+this is scoped specifically to "what do you want to do next," not to
+anything with an actual clock-ticking answer already in motion.
+
 ## 8. Feature parity + cleanup flagged, not all resolved
 
 - **Bulk paste-import for question sets** — Trivia has it

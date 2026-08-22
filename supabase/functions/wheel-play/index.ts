@@ -123,20 +123,19 @@ async function resolveTurnEnd(
       return { revealed: true, phrase_text: phraseText };
     }
 
-    const deadline = new Date(Date.now() + WHEEL_ACTION_WINDOW_MS).toISOString();
     await admin
       .from("wheel_rounds")
       .update({
         active_user_id: nextUserId,
         turn_phase: "awaiting_action",
-        turn_deadline: deadline,
+        turn_deadline: null,
         pending_wedge: null,
         free_play_active: false,
         locked_out_user_ids: [],
       })
       .eq("id", round.id);
-    await broadcast(admin, sessionId, "turn_passed", { from_user_id: endingUserId, to_user_id: nextUserId, deadline_ms: new Date(deadline).getTime() });
-    return { revealed: false, deadline_ms: new Date(deadline).getTime() };
+    await broadcast(admin, sessionId, "turn_passed", { from_user_id: endingUserId, to_user_id: nextUserId });
+    return { revealed: false };
   }
 
   const eligible = await eligibleUserIds(admin, sessionId, session);
@@ -437,13 +436,12 @@ Deno.serve(async (req) => {
           return jsonResponse({ occurrences, solved: true });
         }
 
-        const deadline = new Date(Date.now() + WHEEL_ACTION_WINDOW_MS).toISOString();
         await admin
           .from("wheel_rounds")
-          .update({ guessed_letters: newGuessed, round_scores: newScores, turn_deadline: deadline })
+          .update({ guessed_letters: newGuessed, round_scores: newScores, turn_deadline: null })
           .eq("id", round.id);
-        await broadcast(admin, session_id, "vowel_bought", { user_id: user.id, letter: upper, occurrences, masked_phrase: masked, cost: WHEEL_VOWEL_COST, deadline_ms: new Date(deadline).getTime() });
-        return jsonResponse({ occurrences, solved: false, deadline_ms: new Date(deadline).getTime() });
+        await broadcast(admin, session_id, "vowel_bought", { user_id: user.id, letter: upper, occurrences, masked_phrase: masked, cost: WHEEL_VOWEL_COST });
+        return jsonResponse({ occurrences, solved: false });
       }
 
       case "call_consonant": {
@@ -512,17 +510,15 @@ Deno.serve(async (req) => {
         }
 
         if (isHit) {
-          const deadline = new Date(Date.now() + WHEEL_ACTION_WINDOW_MS).toISOString();
-          await admin.from("wheel_rounds").update({ turn_phase: "awaiting_action", pending_wedge: null, turn_deadline: deadline }).eq("id", round.id);
-          return jsonResponse({ hit: true, occurrences, solved: false, deadline_ms: new Date(deadline).getTime() });
+          await admin.from("wheel_rounds").update({ turn_phase: "awaiting_action", pending_wedge: null, turn_deadline: null }).eq("id", round.id);
+          return jsonResponse({ hit: true, occurrences, solved: false });
         }
 
         // Miss. Free Play protects this one call from ending the turn.
         if (round.free_play_active) {
-          const deadline = new Date(Date.now() + WHEEL_ACTION_WINDOW_MS).toISOString();
-          await admin.from("wheel_rounds").update({ turn_phase: "awaiting_action", pending_wedge: null, turn_deadline: deadline, free_play_active: false }).eq("id", round.id);
+          await admin.from("wheel_rounds").update({ turn_phase: "awaiting_action", pending_wedge: null, turn_deadline: null, free_play_active: false }).eq("id", round.id);
           await broadcast(admin, session_id, "free_play_saved", { user_id: user.id });
-          return jsonResponse({ hit: false, occurrences: 0, solved: false, free_play_saved: true, deadline_ms: new Date(deadline).getTime() });
+          return jsonResponse({ hit: false, occurrences: 0, solved: false, free_play_saved: true });
         }
 
         const result = await resolveTurnEnd(admin, session_id, updatedRound, user.id, session);
