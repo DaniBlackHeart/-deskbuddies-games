@@ -1,43 +1,35 @@
-# MANIFEST — Wheel of Fortune: persistent consonant/vowel tracker
+# MANIFEST — Wheel of Fortune: add the wheel graphic to the spectator view
 
-Frontend-only, four files. Merge into your repo root with `cp -r`.
+Frontend-only, one file. Merge into your repo root with `cp -r`.
 
 ## What's new
 
-A row of all 21 consonants and a row of all 5 vowels, shown right under
-the puzzle board — greyed out and struck through once a letter's been
-called (hit or miss). Visible to everyone, all the time, regardless of
-whose turn it is — no more needing to mentally track what's already been
-tried. Uses `round.guessed_letters`, which was already part of the public
-round data, so no backend or type changes were needed.
+Spectators now see the actual spinning wheel graphic when a player spins,
+not just a text status line. Wired to the same `spin_result` timing the
+player screen uses — the wheel animates for the full ~2.3s before the
+result (and the board update it causes) shows up, so spectators don't see
+the outcome leak in before the wheel visually finishes.
 
-Added to:
-- **The player screen** (`WheelPlayPage`) — right under the phrase board.
-- **The spectator screen** (`WheelSpectatorPage`) — same placement, so a
-  MOD watching sees exactly what players see.
+The letter tracker added last time was already live on this screen — this
+just adds the missing wheel visual alongside it.
 
-Not added to the host control screen — that page deliberately doesn't
-render the puzzle board at all (the host doesn't need the letters spelled
-out to run the game), so a letter tracker wouldn't fit there either. Say
-the word if you'd like it there too.
+## What changed
 
-## New file
-
-- `frontend/src/components/WheelLetterTracker.tsx`
-
-## Replaced files (full contents)
-
-- `frontend/src/styles/global.css` (appended a new section, everything
-  else untouched)
-- `frontend/src/pages/wheel/WheelPlayPage.tsx`
-- `frontend/src/pages/mod/WheelSpectatorPage.tsx`
+- **`frontend/src/pages/mod/WheelSpectatorPage.tsx`** — replaced the
+  single "hydrate on any broadcast" wildcard with a dedicated
+  `spin_result` handler (delayed hydrate, same pattern as
+  `WheelPlayPage`) plus a wildcard for everything else that explicitly
+  skips re-handling `spin_result`. Added `WheelSpinner` to the round
+  status card, shown whenever someone holds the floor. Clears the
+  displayed wedge result on a new round or whenever the turn changes
+  hands, so a stale result from the previous player never lingers.
 
 ## Commit
 
 ```bash
 cd deskbuddies-games
 git add .
-git commit -m "feat: show a persistent consonant/vowel tracker during Wheel of Fortune rounds"
+git commit -m "feat: show the spinning wheel graphic in the Wheel of Fortune spectator view"
 git push
 ```
 

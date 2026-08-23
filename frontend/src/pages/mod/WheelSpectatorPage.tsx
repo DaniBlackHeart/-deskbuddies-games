@@ -1,17 +1,24 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import WheelBoard from "../../components/WheelBoard";
 import WheelLetterTracker from "../../components/WheelLetterTracker";
+import WheelSpinner from "../../components/WheelSpinner";
 import WheelScoreboard from "../../components/WheelScoreboard";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
-import type { WheelParticipant, WheelRoundPublic, WheelSessionPublic } from "../../types";
+import { wedgeLabel } from "../../lib/wheelConstants";
+import type { WheelParticipant, WheelRoundPublic, WheelSessionPublic, WheelWedge } from "../../types";
 
 type WheelState = {
   session: WheelSessionPublic;
   roster: WheelParticipant[];
   round: WheelRoundPublic | null;
 };
+
+// Matches the CSS transition duration on .wheel-spinner in global.css —
+// same constant WheelPlayPage uses, kept in sync so the spectator's wheel
+// finishes spinning at the same moment a player's would.
+const SPIN_ANIMATION_MS = 2300;
 
 export default function WheelSpectatorPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -20,6 +27,9 @@ export default function WheelSpectatorPage() {
   const [state, setState] = useState<WheelState | null>(null);
   const [loading, setLoading] = useState(true);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [spinning, setSpinning] = useState(false);
+  const [lastWedge, setLastWedge] = useState<WheelWedge | null>(null);
+  const spinTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hydrate = useCallback(async () => {
     if (!sessionId) return;
@@ -49,12 +59,32 @@ export default function WheelSpectatorPage() {
 
     const channel = supabase
       .channel(`wheel-session-${sessionId}`)
-      .on("broadcast", { event: "*" }, () => hydrate())
+      .on("broadcast", { event: "spin_result" }, ({ payload }: { payload: { wedge: WheelWedge } }) => {
+        setSpinning(true);
+        setLastWedge(null);
+        if (spinTimeout.current) clearTimeout(spinTimeout.current);
+        spinTimeout.current = setTimeout(() => {
+          setSpinning(false);
+          setLastWedge(payload.wedge);
+          hydrate();
+        }, SPIN_ANIMATION_MS);
+      })
+      .on("broadcast", { event: "*" }, (message: { event: string }) => {
+        // spin_result is handled above with a delay, so the board doesn't
+        // reveal the outcome before the wheel visually finishes spinning.
+        if (message.event === "spin_result") return;
+        if (["round_started", "turn_ended", "turn_passed", "turn_timed_out"].includes(message.event)) {
+          setLastWedge(null);
+          setSpinning(false);
+        }
+        hydrate();
+      })
       .subscribe();
 
     return () => {
       cancelled = true;
       supabase.removeChannel(channel);
+      if (spinTimeout.current) clearTimeout(spinTimeout.current);
       invokeFunction("wheel-host", { action: "release_spectator", session_id: sessionId });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -107,9 +137,12 @@ export default function WheelSpectatorPage() {
             <WheelLetterTracker guessedLetters={round.guessed_letters} />
             <div className="card text-center">
               {round.status === "active" ? (
-                <p style={{ margin: 0 }}>
-                  {round.turn_phase === "buzz_open" ? "Buzzer's open…" : `${usernameFor(round.active_user_id)}'s turn`}
-                </p>
+                <>
+                  <p style={{ margin: 0 }}>
+                    {round.turn_phase === "buzz_open" ? "Buzzer's open…" : `${usernameFor(round.active_user_id)}'s turn`}
+                  </p>
+                  {round.active_user_id && <WheelSpinner spinning={spinning} resultLabel={!spinning ? wedgeLabel(round.pending_wedge ?? lastWedge) : null} />}
+                </>
               ) : (
                 <p style={{ margin: 0 }}>Round finished.</p>
               )}
