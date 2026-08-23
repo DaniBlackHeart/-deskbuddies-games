@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import WheelBoard from "../../components/WheelBoard";
+import WheelLetterTracker from "../../components/WheelLetterTracker";
 import WheelScoreboard from "../../components/WheelScoreboard";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { WheelParticipant, WheelRoundPublic, WheelSessionPublic } from "../../types";
@@ -103,6 +104,7 @@ export default function WheelSpectatorPage() {
               {round.is_tiebreaker ? "Do-or-Die Tiebreaker" : `Round ${round.round_index + 1} of 5`}
             </p>
             <WheelBoard maskedPhrase={round.masked_phrase} categoryName={round.category_name} />
+            <WheelLetterTracker guessedLetters={round.guessed_letters} />
             <div className="card text-center">
               {round.status === "active" ? (
                 <p style={{ margin: 0 }}>

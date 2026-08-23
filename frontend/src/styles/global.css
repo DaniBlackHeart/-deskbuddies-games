@@ -1083,3 +1083,43 @@ button {
 .wheel-wedge-flash--mystery {
   color: var(--color-warning);
 }
+
+/* Persistent letter tracker — every consonant/vowel, greyed out once
+   called (hit or miss), shown to everyone regardless of whose turn it
+   is. Small chips rather than the full wheel-keypad size since this is a
+   reference display, not something anyone taps. */
+.wheel-letter-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--space-4);
+}
+.wheel-letter-tracker__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+}
+.wheel-letter-tracker__letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface-raised);
+  font-weight: 800;
+  font-size: 0.8rem;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.wheel-letter-tracker__letter--vowel {
+  background: var(--color-secondary-soft);
+  border-color: var(--color-secondary);
+}
+.wheel-letter-tracker__letter--used {
+  opacity: 0.35;
+  text-decoration: line-through;
+  background: var(--color-bg-alt);
+  border-color: var(--color-border-soft);
+}

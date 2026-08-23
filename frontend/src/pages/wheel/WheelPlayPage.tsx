@@ -4,6 +4,7 @@ import AppHeader from "../../components/AppHeader";
 import Timer from "../../components/Timer";
 import Buzzer from "../../components/Buzzer";
 import WheelBoard from "../../components/WheelBoard";
+import WheelLetterTracker from "../../components/WheelLetterTracker";
 import WheelSpinner from "../../components/WheelSpinner";
 import WheelScoreboard from "../../components/WheelScoreboard";
 import { supabase } from "../../lib/supabaseClient";
@@ -426,6 +427,7 @@ export default function WheelPlayPage() {
         </p>
 
         {round && <WheelBoard maskedPhrase={round.masked_phrase} categoryName={round.category_name} />}
+        {round && <WheelLetterTracker guessedLetters={round.guessed_letters} />}
 
         {round?.status !== "active" && roundEndBanner && (
           <div className="card text-center" style={{ marginBottom: "16px" }}>
