@@ -661,6 +661,27 @@ with a mirror-opposite special directly across the wheel. Point-value
 frequencies were preserved as closely as reasonable (18 point wedges,
 300-900, same rough spread as before) — only the arrangement changed.
 
+**Same-day follow-up, take three — a real bug, not a missing button:**
+reported as "Wheel of Fortune doesn't have an end game session button like
+the other games once the game is finished." The actual cause: `wheel-play`
+never called `releaseSessionLock` anywhere. Every other game's `-play`
+function does this on its natural (non-MOD-triggered) win condition —
+`impostor-play` on both `vote_resolved` branches, `uno-play` on the
+winning play — but Wheel's only ever released the lock from
+`wheel-host`'s `end_session` (the MOD's manual cancel). Since a Bonus
+Round resolving (`bonus_solve`/`bonus_solve_timeout`) is the *only* way a
+Wheel session ends on its own, this meant `active_session_lock` stayed
+stranded on every completed game — the game genuinely looked over
+(`status: 'ended'`, results screen and all), but no new session (Wheel or
+any other game, since the lock is cross-game) could start until a MOD
+found their way to "Force-clear stuck session lock" in Troubleshooting,
+with nothing on the Wheel host screen surfacing that anything was wrong.
+Fixed by adding the same `releaseSessionLock` call, in the same place
+(right after setting `status: 'ended'`), that every other game already
+has. No new UI was added — like Impostor/UNO, ending naturally releases
+the lock automatically; there was never meant to be a visible "end
+session" button once a game's already over on its own.
+
 ## 8. Feature parity + cleanup flagged, not all resolved
 
 - **Bulk paste-import for question sets** — Trivia has it

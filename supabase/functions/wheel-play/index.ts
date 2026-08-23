@@ -27,6 +27,7 @@ import {
   handleOptions,
   getAdminClient,
   requireMember,
+  releaseSessionLock,
   spinWheel,
   maskWheelPhrase,
   countWheelLetterOccurrences,
@@ -668,6 +669,7 @@ Deno.serve(async (req) => {
           .from("wheel_sessions")
           .update({ status: "ended", ended_at: new Date().toISOString(), bonus_won: won, bonus_points_awarded: prize, bonus_solved_phrase: phraseText, spectator_id: null })
           .eq("id", session_id);
+        await releaseSessionLock(admin, session_id);
 
         await broadcast(admin, session_id, "bonus_resolved", { won, prize_points: prize, phrase: phraseText, timed_out: isTimeout });
         return jsonResponse({ won, prize_points: prize });
