@@ -7,11 +7,18 @@ type WheelSpinnerProps = {
   resultLabel?: string | null;
 };
 
-const SIZE = 260;
+const SIZE = 390; // 1.5x the original 260 — bumped up after playtesting felt it read too small
 const CENTER = SIZE / 2;
-const RADIUS = SIZE / 2 - 6;
+const RADIUS = SIZE / 2 - 9;
 const WEDGE_COUNT = WHEEL_WEDGE_LAYOUT.length;
 const WEDGE_ANGLE = 360 / WEDGE_COUNT;
+// Font/stroke sizes as ratios of SIZE (matching the original 260px design)
+// rather than fixed numbers, so they scale proportionally with the wheel
+// instead of looking undersized against bigger wedges.
+const SPECIAL_FONT_SIZE = SIZE * (7 / 260);
+const POINTS_FONT_SIZE = SIZE * (11 / 260);
+const WEDGE_STROKE_WIDTH = SIZE * (1.5 / 260);
+const RIM_STROKE_WIDTH = SIZE * (3 / 260);
 
 function polarToCartesian(angleDeg: number, radius: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
@@ -70,12 +77,12 @@ export default function WheelSpinner({ spinning, resultLabel }: WheelSpinnerProp
             const isSpecial = wedge.type !== "points";
             return (
               <g key={i}>
-                <path d={wedgePath(startAngle, endAngle)} fill={wedgeFillColor(wedge, i)} stroke="#fffaf3" strokeWidth="1.5" />
+                <path d={wedgePath(startAngle, endAngle)} fill={wedgeFillColor(wedge, i)} stroke="#fffaf3" strokeWidth={WEDGE_STROKE_WIDTH} />
                 <text
                   x={labelPos.x}
                   y={labelPos.y}
                   fill="#fffaf3"
-                  fontSize={isSpecial ? 7 : 11}
+                  fontSize={isSpecial ? SPECIAL_FONT_SIZE : POINTS_FONT_SIZE}
                   fontWeight={800}
                   textAnchor="middle"
                   dominantBaseline="middle"
@@ -86,7 +93,7 @@ export default function WheelSpinner({ spinning, resultLabel }: WheelSpinnerProp
               </g>
             );
           })}
-          <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="#fffaf3" strokeWidth="3" />
+          <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="#fffaf3" strokeWidth={RIM_STROKE_WIDTH} />
         </svg>
         <div className="wheel-spinner__hub">🎡</div>
       </div>

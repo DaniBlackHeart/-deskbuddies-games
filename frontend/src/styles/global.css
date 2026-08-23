@@ -959,16 +959,16 @@ button {
 }
 .wheel-spinner__pointer {
   color: var(--color-primary);
-  font-size: 1.5rem;
-  margin-bottom: -10px;
+  font-size: 2.25rem;
+  margin-bottom: -15px;
   z-index: 1;
 }
 .wheel-spinner {
   position: relative;
-  width: 260px;
-  height: 260px;
-  max-width: 90vw;
-  max-height: 90vw;
+  width: 390px;
+  height: 390px;
+  max-width: 92vw;
+  max-height: 92vw;
   border-radius: 50%;
   box-shadow: var(--shadow-lg);
   transition: transform 2.2s cubic-bezier(0.17, 0.67, 0.17, 1);
@@ -979,13 +979,13 @@ button {
   left: 50%;
   transform: translate(-50%, -50%);
   background: var(--color-surface-raised);
-  width: 46px;
-  height: 46px;
+  width: 69px;
+  height: 69px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 2.1rem;
   box-shadow: var(--shadow-sm);
 }
 .wheel-spinner__result {
