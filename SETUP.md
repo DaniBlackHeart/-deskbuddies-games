@@ -79,7 +79,7 @@ You should now also have: **Client ID**, **Client Secret** (from App B).
    haven't already.
 2. **SQL Editor** → paste the contents of `supabase/migrations/0001_init.sql`
    → Run, then repeat in order for every later migration file
-   (`0002` ... currently up to `0018`). (Or, if you use the Supabase CLI:
+   (`0002` ... currently up to `0019`). (Or, if you use the Supabase CLI:
    `supabase link --project-ref <ref>` then `supabase db push` — but see the
    note below if you're picking up an existing project that already had
    migrations pasted manually.)

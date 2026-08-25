@@ -21,6 +21,7 @@ export default function WheelCategoriesPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [startingGame, setStartingGame] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [gameMode, setGameMode] = useState<"solo" | "team">("solo");
 
   async function loadCategories() {
     setLoading(true);
@@ -106,7 +107,7 @@ export default function WheelCategoriesPage() {
 
   async function handleStartGame() {
     setStartingGame(true);
-    const { data, error } = await invokeFunction("wheel-host", { action: "create_session" });
+    const { data, error } = await invokeFunction("wheel-host", { action: "create_session", game_mode: gameMode });
     setStartingGame(false);
     if (error) {
       alert(error);
@@ -136,6 +137,20 @@ export default function WheelCategoriesPage() {
             <p className="hint" style={{ margin: 0 }}>
               🎡 Every round randomizes its own category and phrase — nothing to pick up front.
             </p>
+          </div>
+          <div className="row" style={{ marginTop: "10px", flexWrap: "wrap", gap: "8px" }}>
+            <button
+              className={gameMode === "solo" ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}
+              onClick={() => setGameMode("solo")}
+            >
+              🧍 Solo — 2-10 players
+            </button>
+            <button
+              className={gameMode === "team" ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}
+              onClick={() => setGameMode("team")}
+            >
+              👥 Teams — 3-12 teams of 2-3
+            </button>
             <button className="btn btn-secondary btn-sm" onClick={handleStartGame} disabled={startingGame || categories.length === 0}>
               {startingGame ? <span className="spinner" /> : "▶ Start new game"}
             </button>

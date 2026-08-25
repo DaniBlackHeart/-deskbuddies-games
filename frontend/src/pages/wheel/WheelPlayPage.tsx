@@ -7,16 +7,19 @@ import WheelBoard from "../../components/WheelBoard";
 import WheelLetterTracker from "../../components/WheelLetterTracker";
 import WheelSpinner from "../../components/WheelSpinner";
 import WheelScoreboard from "../../components/WheelScoreboard";
+import WheelTeamScoreboard from "../../components/WheelTeamScoreboard";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { sounds } from "../../lib/sounds";
 import { recordServerTime } from "../../lib/clockSync";
 import { WHEEL_CONSONANTS, WHEEL_VOWELS, WHEEL_VOWEL_COST, wedgeLabel } from "../../lib/wheelConstants";
-import type { WheelParticipant, WheelRoundPublic, WheelSessionEvent, WheelSessionPublic, WheelWedge } from "../../types";
+import type { WheelParticipant, WheelRoundPublic, WheelSessionEvent, WheelSessionPublic, WheelTeam, WheelWedge } from "../../types";
 
 type WheelState = {
   session: WheelSessionPublic;
   roster: WheelParticipant[];
+  teams: WheelTeam[];
+  my_team_id: string | null;
   round: WheelRoundPublic | null;
   is_playing: boolean;
 };
@@ -105,6 +108,11 @@ export default function WheelPlayPage() {
   function usernameFor(userId: string | null | undefined): string {
     if (!userId) return "";
     return state?.roster.find((p) => p.user_id === userId)?.profiles?.username ?? "Someone";
+  }
+
+  function teamNameFor(teamId: string | null | undefined): string {
+    if (!teamId) return "";
+    return state?.teams.find((t) => t.id === teamId)?.name ?? "A team";
   }
 
   useEffect(() => {
@@ -242,29 +250,40 @@ export default function WheelPlayPage() {
     );
   }
 
-  const { session, roster, round, is_playing } = state;
+  const { session, roster, teams, my_team_id, round, is_playing } = state;
   const myId = profile?.id;
+  const isTeamMode = session.game_mode === "team";
   const isMyTurn = round?.active_user_id === myId;
-  const iAmLockedOut = !!round?.locked_out_user_ids.includes(myId ?? "");
+  const myTeam = teams.find((t) => t.id === my_team_id);
+  const isMyTurnToRepresent = !!myTeam && myTeam.members.find((m) => m.line_position === myTeam.current_rep_index)?.user_id === myId;
+  const iAmLockedOut = isTeamMode ? !!round?.locked_out_team_ids.includes(my_team_id ?? "") : !!round?.locked_out_user_ids.includes(myId ?? "");
   const iAmWinner = session.winner_user_id === myId;
-  const myRoundScore = round?.round_scores?.[myId ?? ""] ?? 0;
+  const scoreKey = isTeamMode ? my_team_id ?? "" : myId ?? "";
+  const myRoundScore = round?.round_scores?.[scoreKey] ?? 0;
   const usedVowelSet = new Set(round?.guessed_letters ?? []);
   const usedConsonantSet = new Set(round?.guessed_letters ?? []);
 
   // ---------------- Ended screen ----------------
   if (session.status === "ended") {
-    const winnerScore = roster.find((p) => p.user_id === session.winner_user_id)?.total_points ?? 0;
+    const winnerTotal = isTeamMode
+      ? teams.find((t) => t.id === session.winner_team_id)?.total_points ?? 0
+      : roster.find((p) => p.user_id === session.winner_user_id)?.total_points ?? 0;
+    const winnerLabel = isTeamMode
+      ? session.winner_team_id
+        ? `${teamNameFor(session.winner_team_id)} (${usernameFor(session.winner_user_id)})`
+        : null
+      : session.winner_user_id
+        ? usernameFor(session.winner_user_id)
+        : null;
     return (
       <div className="app-shell">
         <AppHeader />
         <div className="container container--narrow">
           <div className="card text-center">
-            <h2 style={{ marginTop: 0 }}>
-              {session.winner_user_id ? `🎉 ${usernameFor(session.winner_user_id)} won the game!` : "Game ended"}
-            </h2>
-            {session.winner_user_id && (
+            <h2 style={{ marginTop: 0 }}>{winnerLabel ? `🎉 ${winnerLabel} won the game!` : "Game ended"}</h2>
+            {winnerLabel && (
               <p className="text-muted">
-                Final score before the Bonus Round: <strong>{winnerScore - (session.bonus_won ? session.bonus_points_awarded ?? 0 : 0)}</strong>
+                Final score before the Bonus Round: <strong>{winnerTotal - (session.bonus_won ? session.bonus_points_awarded ?? 0 : 0)}</strong>
               </p>
             )}
             {session.bonus_won !== null && (
@@ -279,9 +298,7 @@ export default function WheelPlayPage() {
               Back to games
             </button>
           </div>
-          <div style={{ marginTop: "16px" }}>
-            <WheelScoreboard roster={roster} />
-          </div>
+          <div style={{ marginTop: "16px" }}>{isTeamMode ? <WheelTeamScoreboard teams={teams} /> : <WheelScoreboard roster={roster} />}</div>
         </div>
       </div>
     );
@@ -301,7 +318,7 @@ export default function WheelPlayPage() {
           <div className="card text-center" style={{ marginBottom: "16px" }}>
             <h2 style={{ marginTop: 0 }}>🎁 Bonus Round</h2>
             <p className="text-muted">
-              {usernameFor(session.winner_user_id)} is playing for the grand prize!
+              {isTeamMode ? `${teamNameFor(session.winner_team_id)}'s ${usernameFor(session.winner_user_id)}` : usernameFor(session.winner_user_id)} is playing for the grand prize!
             </p>
           </div>
 
@@ -442,16 +459,20 @@ export default function WheelPlayPage() {
         {round?.status === "active" && round.turn_phase === "buzz_open" && (
           <div className="card text-center">
             {round.turn_deadline_ms && <Timer deadline={round.turn_deadline_ms} onExpire={() => callPlay("buzz_timeout")} />}
-            {!is_playing || !round.eligible_user_ids.includes(myId ?? "") ? (
+            {!is_playing || (isTeamMode ? !round.eligible_team_ids.includes(my_team_id ?? "") : !round.eligible_user_ids.includes(myId ?? "")) ? (
               <p className="text-muted">
                 {!is_playing
                   ? "Just watching this round."
                   : round.is_tiebreaker
-                    ? "You're not tied for the lead, so you're just watching this tiebreaker."
+                    ? "Your team isn't tied for the lead, so you're just watching this tiebreaker."
                     : "Just watching this round."}
               </p>
             ) : iAmLockedOut ? (
-              <p className="text-muted">You're locked out until someone else guesses a correct consonant.</p>
+              <p className="text-muted">{isTeamMode ? "Your team is" : "You're"} locked out until {isTeamMode ? "another team" : "someone else"} guesses a correct consonant.</p>
+            ) : isTeamMode && !isMyTurnToRepresent ? (
+              <p className="text-muted">
+                Waiting on your teammate {usernameFor(myTeam?.members.find((m) => m.line_position === myTeam.current_rep_index)?.user_id)} to buzz in for {myTeam?.name}…
+              </p>
             ) : (
               <Buzzer onBuzz={() => callPlay("buzz")} disabled={busy} label="BUZZ IN" />
             )}
@@ -581,18 +602,17 @@ export default function WheelPlayPage() {
         {round?.status === "active" && round.turn_phase !== "buzz_open" && !isMyTurn && (
           <div className="card text-center">
             <p className="text-muted" style={{ margin: 0 }}>
-              {usernameFor(round.active_user_id)}'s turn…
+              {isTeamMode ? `${teamNameFor(round.active_team_id)} (${usernameFor(round.active_user_id)})'s turn…` : `${usernameFor(round.active_user_id)}'s turn…`}
             </p>
           </div>
         )}
 
         <div style={{ marginTop: "16px" }}>
-          <WheelScoreboard
-            roster={roster}
-            roundScores={round?.round_scores}
-            activeUserId={round?.active_user_id}
-            lockedOutUserIds={round?.locked_out_user_ids}
-          />
+          {isTeamMode ? (
+            <WheelTeamScoreboard teams={teams} roundScores={round?.round_scores} activeTeamId={round?.active_team_id} lockedOutTeamIds={round?.locked_out_team_ids} />
+          ) : (
+            <WheelScoreboard roster={roster} roundScores={round?.round_scores} activeUserId={round?.active_user_id} lockedOutUserIds={round?.locked_out_user_ids} />
+          )}
         </div>
 
         {!is_playing && <p className="hint text-center" style={{ marginTop: "16px" }}>You're spectating this game from the play screen.</p>}

@@ -14,6 +14,10 @@ export const WHEEL_CONSONANTS = [
 export const WHEEL_VOWEL_COST = 350;
 export const WHEEL_MIN_PLAYERS = 2;
 export const WHEEL_MAX_PLAYERS = 10;
+export const WHEEL_MIN_TEAMS = 3;
+export const WHEEL_MAX_TEAMS = 12;
+export const WHEEL_MIN_TEAM_SIZE = 2;
+export const WHEEL_MAX_TEAM_SIZE = 3;
 export const WHEEL_MAIN_ROUNDS = 5;
 export const WHEEL_BONUS_GIVEN_LETTERS = ["R", "S", "T", "L", "N", "E"];
 

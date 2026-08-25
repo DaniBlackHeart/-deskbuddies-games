@@ -468,6 +468,7 @@ export type WheelPhrase = {
 };
 
 export type WheelSessionStatus = "lobby" | "live" | "tiebreaker" | "bonus_category_choice" | "bonus_letter_choice" | "bonus_solving" | "ended";
+export type WheelGameMode = "solo" | "team";
 export type WheelTurnPhase = "buzz_open" | "awaiting_action" | "awaiting_consonant" | "awaiting_mystery_choice" | "awaiting_solve_guess";
 export type WheelRoundStatus = "active" | "solved" | "revealed";
 
@@ -486,8 +487,10 @@ export type WheelCategoryChoice = { id: string; name: string };
 export type WheelSessionPublic = {
   id: string;
   status: WheelSessionStatus;
+  game_mode: WheelGameMode;
   current_round_index: number;
   winner_user_id: string | null;
+  winner_team_id: string | null;
   bonus_category_choices: WheelCategoryChoice[] | null;
   bonus_category_id: string | null;
   bonus_category_name: string | null;
@@ -506,7 +509,21 @@ export type WheelParticipant = {
   user_id: string;
   seat_order: number;
   total_points: number;
+  team_id: string | null;
+  line_position: number | null;
   profiles: { username: string; avatar_url: string | null } | null;
+};
+
+// A team in a Team mode session — current_rep_index is which line_position
+// within the team is up next to actually act (see wheel-play's
+// advanceTeamRepAndGetNext for how it advances).
+export type WheelTeam = {
+  id: string;
+  name: string;
+  seat_order: number;
+  current_rep_index: number;
+  total_points: number;
+  members: { user_id: string; line_position: number; profiles: { username: string; avatar_url: string | null } | null }[];
 };
 
 // The current round, as returned by get-wheel-state — masked_phrase is
@@ -521,7 +538,9 @@ export type WheelRoundPublic = {
   solved_by_user_id: string | null;
   guessed_letters: string[];
   locked_out_user_ids: string[];
+  locked_out_team_ids: string[];
   active_user_id: string | null;
+  active_team_id: string | null;
   turn_phase: WheelTurnPhase;
   turn_deadline_ms: number | null;
   pending_wedge: WheelWedge | null;
@@ -529,14 +548,16 @@ export type WheelRoundPublic = {
   round_scores: Record<string, number>;
   masked_phrase: string;
   eligible_user_ids: string[];
+  eligible_team_ids: string[];
 };
 
 // --- Realtime broadcast payload shapes (wheel-session-{id} channel) ---
 
+
 export type WheelSessionEvent =
   | { type: "game_started"; round_index: 0 }
   | { type: "round_started"; round_index: number; is_tiebreaker: boolean; category_name: string; masked_phrase: string; buzz_deadline_ms: number }
-  | { type: "tiebreaker_started"; eligible_user_ids: string[] }
+  | { type: "tiebreaker_started"; eligible_user_ids?: string[]; eligible_team_ids?: string[] }
   | { type: "buzz_won"; user_id: string; deadline_ms: number }
   | { type: "spin_result"; user_id: string; wedge: WheelWedge; deadline_ms?: number }
   | { type: "mystery_resolved"; user_id: string; choice: "take" | "risk"; outcome: "face_value" | "big_win" | "bankrupt"; value?: number; deadline_ms?: number }
@@ -547,10 +568,10 @@ export type WheelSessionEvent =
   | { type: "turn_timed_out"; user_id: string }
   | { type: "solve_attempt_started"; user_id: string; deadline_ms: number }
   | { type: "solve_missed"; user_id: string; timed_out: boolean }
-  | { type: "turn_ended"; ending_user_id: string; locked_out_user_ids: string[]; buzz_deadline_ms: number }
-  | { type: "turn_passed"; from_user_id: string; to_user_id: string; deadline_ms: number }
+  | { type: "turn_ended"; ending_user_id: string; locked_out_user_ids?: string[]; locked_out_team_ids?: string[]; buzz_deadline_ms: number }
+  | { type: "turn_passed"; from_user_id: string; to_user_id: string }
   | { type: "round_ended"; round_index: number; solved: boolean; solved_by_user_id?: string; points_won?: number; revealed_phrase: string }
-  | { type: "bonus_setup"; winner_user_id: string; choices: WheelCategoryChoice[] }
+  | { type: "bonus_setup"; winner_user_id: string; winner_team_id: string | null; choices: WheelCategoryChoice[] }
   | { type: "bonus_category_chosen"; category_name: string; given_letters: string[]; phrase_length: number }
   | { type: "bonus_board_revealed"; masked_phrase: string; deadline_ms: number }
   | { type: "bonus_resolved"; won: boolean; prize_points: number; phrase: string; timed_out: boolean }

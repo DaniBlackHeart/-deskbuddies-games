@@ -5,13 +5,15 @@ import WheelBoard from "../../components/WheelBoard";
 import WheelLetterTracker from "../../components/WheelLetterTracker";
 import WheelSpinner from "../../components/WheelSpinner";
 import WheelScoreboard from "../../components/WheelScoreboard";
+import WheelTeamScoreboard from "../../components/WheelTeamScoreboard";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { wedgeLabel } from "../../lib/wheelConstants";
-import type { WheelParticipant, WheelRoundPublic, WheelSessionPublic, WheelWedge } from "../../types";
+import type { WheelParticipant, WheelRoundPublic, WheelSessionPublic, WheelTeam, WheelWedge } from "../../types";
 
 type WheelState = {
   session: WheelSessionPublic;
   roster: WheelParticipant[];
+  teams: WheelTeam[];
   round: WheelRoundPublic | null;
 };
 
@@ -115,18 +117,26 @@ export default function WheelSpectatorPage() {
   }
 
   if (!state) return null;
-  const { session, roster, round } = state;
+  const { session, roster, teams, round } = state;
+  const isTeamMode = session.game_mode === "team";
 
   function usernameFor(userId: string | null | undefined): string {
     if (!userId) return "";
     return roster.find((p) => p.user_id === userId)?.profiles?.username ?? "Someone";
   }
 
+  function teamNameFor(teamId: string | null | undefined): string {
+    if (!teamId) return "";
+    return teams.find((t) => t.id === teamId)?.name ?? "A team";
+  }
+
   return (
     <div className="app-shell">
       <AppHeader />
       <div className="container container--narrow">
-        <div className="badge badge-neutral" style={{ marginBottom: "12px" }}>👁 Spectating</div>
+        <div className="badge badge-neutral" style={{ marginBottom: "12px" }}>
+          👁 Spectating {isTeamMode && "· Team mode"}
+        </div>
 
         {(session.status === "live" || session.status === "tiebreaker") && round && (
           <>
@@ -139,7 +149,11 @@ export default function WheelSpectatorPage() {
               {round.status === "active" ? (
                 <>
                   <p style={{ margin: 0 }}>
-                    {round.turn_phase === "buzz_open" ? "Buzzer's open…" : `${usernameFor(round.active_user_id)}'s turn`}
+                    {round.turn_phase === "buzz_open"
+                      ? "Buzzer's open…"
+                      : isTeamMode
+                        ? `${teamNameFor(round.active_team_id)} (${usernameFor(round.active_user_id)})'s turn`
+                        : `${usernameFor(round.active_user_id)}'s turn`}
                   </p>
                   {round.active_user_id && <WheelSpinner spinning={spinning} resultLabel={!spinning ? wedgeLabel(round.pending_wedge ?? lastWedge) : null} />}
                 </>
@@ -153,7 +167,9 @@ export default function WheelSpectatorPage() {
         {(session.status === "bonus_category_choice" || session.status === "bonus_letter_choice") && (
           <div className="card text-center">
             <h2 style={{ marginTop: 0 }}>🎁 Bonus Round</h2>
-            <p className="text-muted">{usernameFor(session.winner_user_id)} is choosing…</p>
+            <p className="text-muted">
+              {isTeamMode ? `${teamNameFor(session.winner_team_id)}'s ${usernameFor(session.winner_user_id)}` : usernameFor(session.winner_user_id)} is choosing…
+            </p>
           </div>
         )}
 
@@ -161,14 +177,24 @@ export default function WheelSpectatorPage() {
           <>
             <WheelBoard maskedPhrase={session.bonus_masked_phrase ?? ""} categoryName={session.bonus_category_name ?? ""} />
             <div className="card text-center">
-              <p style={{ margin: 0 }}>{usernameFor(session.winner_user_id)} is solving the Bonus Round…</p>
+              <p style={{ margin: 0 }}>
+                {isTeamMode ? `${teamNameFor(session.winner_team_id)}'s ${usernameFor(session.winner_user_id)}` : usernameFor(session.winner_user_id)} is solving the Bonus Round…
+              </p>
             </div>
           </>
         )}
 
         {session.status === "ended" && (
           <div className="card text-center">
-            <h2 style={{ marginTop: 0 }}>{session.winner_user_id ? `🎉 ${usernameFor(session.winner_user_id)} won!` : "Game ended"}</h2>
+            <h2 style={{ marginTop: 0 }}>
+              {isTeamMode
+                ? session.winner_team_id
+                  ? `🎉 ${teamNameFor(session.winner_team_id)} won!`
+                  : "Game ended"
+                : session.winner_user_id
+                  ? `🎉 ${usernameFor(session.winner_user_id)} won!`
+                  : "Game ended"}
+            </h2>
             {session.bonus_won !== null && (
               <p style={{ fontWeight: 700 }}>{session.bonus_won ? `Solved the Bonus Round for ${session.bonus_points_awarded} points!` : "Didn't solve the Bonus Round."}</p>
             )}
@@ -176,7 +202,11 @@ export default function WheelSpectatorPage() {
         )}
 
         <div style={{ marginTop: "16px" }}>
-          <WheelScoreboard roster={roster} roundScores={round?.round_scores} activeUserId={round?.active_user_id} lockedOutUserIds={round?.locked_out_user_ids} />
+          {isTeamMode ? (
+            <WheelTeamScoreboard teams={teams} roundScores={round?.round_scores} activeTeamId={round?.active_team_id} lockedOutTeamIds={round?.locked_out_team_ids} />
+          ) : (
+            <WheelScoreboard roster={roster} roundScores={round?.round_scores} activeUserId={round?.active_user_id} lockedOutUserIds={round?.locked_out_user_ids} />
+          )}
         </div>
       </div>
     </div>

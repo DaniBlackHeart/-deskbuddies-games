@@ -1123,3 +1123,60 @@ button {
   background: var(--color-bg-alt);
   border-color: var(--color-border-soft);
 }
+
+/* Team mode scoreboard — each team card shows its total, this round's
+   running stake, and its roster with the current representative (whoever
+   is "up" per that team's line rotation) marked with an arrow. */
+.wheel-team-scoreboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wheel-team-scoreboard__team {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  border: 1.5px solid var(--color-border-soft);
+}
+.wheel-team-scoreboard__team--active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+.wheel-team-scoreboard__team--locked {
+  opacity: 0.55;
+}
+.wheel-team-scoreboard__name {
+  font-weight: 800;
+}
+.wheel-team-scoreboard__members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 6px;
+}
+.wheel-team-scoreboard__member {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+.wheel-team-scoreboard__member--up {
+  color: var(--color-primary-hover);
+  font-weight: 700;
+}
+
+/* Team lobby — creating/joining a team before a Team mode game starts. */
+.wheel-team-card {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-raised);
+}
+.wheel-team-card--mine {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+.wheel-team-card__members {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: var(--space-2) 0;
+}

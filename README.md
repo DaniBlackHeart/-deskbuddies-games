@@ -13,7 +13,9 @@ MODs come up with. Five so far:
   rounds of typed clues, then a multiple-choice vote on who's faking it.
 - **Wheel of Fortune** — buzz in to call a consonant, spin the wheel, buy
   vowels, and solve the puzzle across 5 rounds (plus a Do-or-Die tiebreaker
-  if needed), then the leader plays the Bonus Round. 2–10 players.
+  if needed), then the leader plays the Bonus Round. Two modes: **Solo**
+  (2–10 players, free-for-all) or **Team** (3–12 self-picked teams of 2–3,
+  with strict rotation through teammates one at a time).
 
 Members sign in with Discord and must be a member of the DeskBuddies server. MODs
 (auto-detected from a Discord role) get extra controls to write questions and host

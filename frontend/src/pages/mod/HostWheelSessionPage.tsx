@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import WheelScoreboard from "../../components/WheelScoreboard";
+import WheelTeamScoreboard from "../../components/WheelTeamScoreboard";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
-import { WHEEL_MIN_PLAYERS } from "../../lib/wheelConstants";
-import type { WheelParticipant, WheelRoundPublic, WheelSessionPublic } from "../../types";
+import { WHEEL_MIN_PLAYERS, WHEEL_MIN_TEAM_SIZE, WHEEL_MIN_TEAMS } from "../../lib/wheelConstants";
+import type { WheelParticipant, WheelRoundPublic, WheelSessionPublic, WheelTeam } from "../../types";
 
 const STATUS_LABELS: Record<string, string> = {
   lobby: "Waiting in the lobby",
@@ -22,9 +23,12 @@ export default function HostWheelSessionPage() {
 
   const [session, setSession] = useState<WheelSessionPublic | null>(null);
   const [roster, setRoster] = useState<WheelParticipant[]>([]);
+  const [teams, setTeams] = useState<WheelTeam[]>([]);
   const [round, setRound] = useState<WheelRoundPublic | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+
+  const isTeamMode = session?.game_mode === "team";
 
   async function loadSession() {
     const { data } = await supabase.from("wheel_sessions").select("*").eq("id", sessionId).single();
@@ -35,8 +39,10 @@ export default function HostWheelSessionPage() {
     setSession({
       id: data.id,
       status: data.status,
+      game_mode: data.game_mode,
       current_round_index: data.current_round_index,
       winner_user_id: data.winner_user_id,
+      winner_team_id: data.winner_team_id,
       bonus_category_choices: data.bonus_category_choices,
       bonus_category_id: data.bonus_category_id,
       bonus_category_name: data.bonus_category_name,
@@ -70,7 +76,9 @@ export default function HostWheelSessionPage() {
               solved_by_user_id: roundRow.solved_by_user_id,
               guessed_letters: roundRow.guessed_letters,
               locked_out_user_ids: roundRow.locked_out_user_ids,
+              locked_out_team_ids: roundRow.locked_out_team_ids,
               active_user_id: roundRow.active_user_id,
+              active_team_id: roundRow.active_team_id,
               turn_phase: roundRow.turn_phase,
               turn_deadline_ms: roundRow.turn_deadline ? new Date(roundRow.turn_deadline).getTime() : null,
               pending_wedge: roundRow.pending_wedge,
@@ -78,6 +86,7 @@ export default function HostWheelSessionPage() {
               round_scores: roundRow.round_scores,
               masked_phrase: "", // host doesn't need the letters spelled out — just progress/status
               eligible_user_ids: [],
+              eligible_team_ids: [],
             }
           : null
       );
@@ -89,15 +98,34 @@ export default function HostWheelSessionPage() {
   async function loadRoster() {
     const { data } = await supabase
       .from("wheel_participants")
-      .select("user_id, seat_order, total_points, profiles(username, avatar_url)")
+      .select("user_id, seat_order, total_points, team_id, line_position, profiles(username, avatar_url)")
       .eq("session_id", sessionId)
       .order("seat_order");
     setRoster((data as unknown as WheelParticipant[]) ?? []);
   }
 
+  async function loadTeams() {
+    const [{ data: teamRows }, { data: participantRows }] = await Promise.all([
+      supabase.from("wheel_teams").select("*").eq("session_id", sessionId).order("seat_order"),
+      supabase.from("wheel_participants").select("user_id, team_id, line_position, profiles(username, avatar_url)").eq("session_id", sessionId),
+    ]);
+    const built: WheelTeam[] = (teamRows ?? []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      seat_order: t.seat_order,
+      current_rep_index: t.current_rep_index,
+      total_points: t.total_points,
+      members: (participantRows ?? [])
+        .filter((p: any) => p.team_id === t.id)
+        .sort((a: any, b: any) => (a.line_position ?? 0) - (b.line_position ?? 0))
+        .map((p: any) => ({ user_id: p.user_id, line_position: p.line_position ?? 0, profiles: p.profiles })),
+    }));
+    setTeams(built);
+  }
+
   async function loadAll() {
     setLoading(true);
-    await Promise.all([loadSession(), loadRoster()]);
+    await Promise.all([loadSession(), loadRoster(), loadTeams()]);
     setLoading(false);
   }
 
@@ -107,7 +135,11 @@ export default function HostWheelSessionPage() {
     const channel = supabase
       .channel(`wheel-host-watch-${sessionId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "wheel_sessions", filter: `id=eq.${sessionId}` }, loadSession)
-      .on("postgres_changes", { event: "*", schema: "public", table: "wheel_participants", filter: `session_id=eq.${sessionId}` }, loadRoster)
+      .on("postgres_changes", { event: "*", schema: "public", table: "wheel_participants", filter: `session_id=eq.${sessionId}` }, () => {
+        loadRoster();
+        loadTeams();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "wheel_teams", filter: `session_id=eq.${sessionId}` }, loadTeams)
       .on("postgres_changes", { event: "*", schema: "public", table: "wheel_rounds", filter: `session_id=eq.${sessionId}` }, loadSession)
       .subscribe();
 
@@ -120,6 +152,11 @@ export default function HostWheelSessionPage() {
   function usernameFor(userId: string | null | undefined): string {
     if (!userId) return "";
     return roster.find((p) => p.user_id === userId)?.profiles?.username ?? "Someone";
+  }
+
+  function teamNameFor(teamId: string | null | undefined): string {
+    if (!teamId) return "";
+    return teams.find((t) => t.id === teamId)?.name ?? "A team";
   }
 
   async function callHost(action: string, extra: Record<string, unknown> = {}) {
@@ -147,6 +184,9 @@ export default function HostWheelSessionPage() {
     return "Continue to results →";
   }
 
+  const shortTeams = teams.filter((t) => t.members.length < WHEEL_MIN_TEAM_SIZE);
+  const canStartTeamGame = teams.length >= WHEEL_MIN_TEAMS && shortTeams.length === 0;
+
   if (loading || !session) {
     return (
       <div className="center-screen">
@@ -160,7 +200,7 @@ export default function HostWheelSessionPage() {
       <AppHeader />
       <div className="container">
         <div className="row-between">
-          <h1>🎡 Hosting Wheel of Fortune</h1>
+          <h1>🎡 Hosting Wheel of Fortune {isTeamMode && <span className="badge badge-neutral">Team mode</span>}</h1>
           {session.status !== "ended" && (
             <button className="btn btn-danger btn-sm" disabled={busy} onClick={handleEndSession}>
               {session.status === "lobby" ? "Cancel game" : "End game"}
@@ -170,7 +210,7 @@ export default function HostWheelSessionPage() {
 
         {session.status !== "ended" && <p className="hint">{STATUS_LABELS[session.status] ?? session.status}</p>}
 
-        {session.status === "lobby" && (
+        {session.status === "lobby" && !isTeamMode && (
           <div className="card">
             <p className="text-muted">
               Players join from the Wheel of Fortune lobby. Need {WHEEL_MIN_PLAYERS}-10 to start.
@@ -200,6 +240,41 @@ export default function HostWheelSessionPage() {
           </div>
         )}
 
+        {session.status === "lobby" && isTeamMode && (
+          <div className="card">
+            <p className="text-muted">
+              Members create or join teams from the Wheel of Fortune lobby. Need {WHEEL_MIN_TEAMS}+ teams, each with{" "}
+              {WHEEL_MIN_TEAM_SIZE}+ members, to start.
+            </p>
+            <div className="stack" style={{ marginTop: "12px" }}>
+              {teams.length === 0 && <p className="hint">No teams yet</p>}
+              {teams.map((t) => (
+                <div key={t.id} className="card card--tight">
+                  <div className="row-between">
+                    <strong>{t.name}</strong>
+                    <span className={`badge ${t.members.length < WHEEL_MIN_TEAM_SIZE ? "badge-live" : "badge-neutral"}`}>{t.members.length} member{t.members.length === 1 ? "" : "s"}</span>
+                  </div>
+                  <div className="stack" style={{ marginTop: "6px" }}>
+                    {t.members.map((m) => (
+                      <div key={m.user_id} className="row-between">
+                        <span className="hint" style={{ margin: 0 }}>{m.profiles?.username}</span>
+                        <button className="btn btn-ghost btn-sm" onClick={() => callHost("remove_player", { user_id: m.user_id })}>
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button className="btn btn-primary btn-block" style={{ marginTop: "16px" }} disabled={!canStartTeamGame || busy} onClick={() => callHost("start_game")}>
+              ▶ Start game
+            </button>
+            {teams.length > 0 && teams.length < WHEEL_MIN_TEAMS && <p className="hint">Need at least {WHEEL_MIN_TEAMS} teams.</p>}
+            {shortTeams.length > 0 && <p className="hint">These teams need {WHEEL_MIN_TEAM_SIZE}+ members: {shortTeams.map((t) => t.name).join(", ")}</p>}
+          </div>
+        )}
+
         {(session.status === "live" || session.status === "tiebreaker") && (
           <div className="card">
             <p className="text-center" style={{ fontWeight: 700 }}>
@@ -208,7 +283,11 @@ export default function HostWheelSessionPage() {
             </p>
             {round?.status === "active" ? (
               <p className="text-center text-muted" style={{ margin: 0 }}>
-                {round.turn_phase === "buzz_open" ? "Buzzer's open — waiting for a player…" : `${usernameFor(round.active_user_id)} is taking their turn…`}
+                {round.turn_phase === "buzz_open"
+                  ? "Buzzer's open — waiting for a player…"
+                  : isTeamMode
+                    ? `${teamNameFor(round.active_team_id)} (${usernameFor(round.active_user_id)}) is taking their turn…`
+                    : `${usernameFor(round.active_user_id)} is taking their turn…`}
               </p>
             ) : (
               <p className="text-center text-muted" style={{ margin: 0 }}>Round finished — ready to continue.</p>
@@ -234,14 +313,23 @@ export default function HostWheelSessionPage() {
         {(session.status === "bonus_category_choice" || session.status === "bonus_letter_choice" || session.status === "bonus_solving") && (
           <div className="card text-center">
             <p style={{ margin: 0 }}>
-              🎁 {usernameFor(session.winner_user_id)} is playing the Bonus Round — {STATUS_LABELS[session.status]}
+              🎁 {isTeamMode ? `${teamNameFor(session.winner_team_id)} (${usernameFor(session.winner_user_id)})` : usernameFor(session.winner_user_id)} is playing the Bonus Round —{" "}
+              {STATUS_LABELS[session.status]}
             </p>
           </div>
         )}
 
         {session.status === "ended" && (
           <div className="card text-center">
-            <h2>{session.winner_user_id ? `🎉 ${usernameFor(session.winner_user_id)} won!` : "Game cancelled"}</h2>
+            <h2>
+              {isTeamMode
+                ? session.winner_team_id
+                  ? `🎉 ${teamNameFor(session.winner_team_id)} won!`
+                  : "Game cancelled"
+                : session.winner_user_id
+                  ? `🎉 ${usernameFor(session.winner_user_id)} won!`
+                  : "Game cancelled"}
+            </h2>
             {session.bonus_won !== null && (
               <p style={{ fontWeight: 700 }}>
                 {session.bonus_won ? `Solved the Bonus Round for ${session.bonus_points_awarded} points!` : "Didn't solve the Bonus Round."}
@@ -253,9 +341,15 @@ export default function HostWheelSessionPage() {
           </div>
         )}
 
-        {roster.length > 0 && session.status !== "lobby" && (
+        {session.status !== "lobby" && (
           <div style={{ marginTop: "16px" }}>
-            <WheelScoreboard roster={roster} roundScores={round?.round_scores} activeUserId={round?.active_user_id} lockedOutUserIds={round?.locked_out_user_ids} />
+            {isTeamMode ? (
+              <WheelTeamScoreboard teams={teams} roundScores={round?.round_scores} activeTeamId={round?.active_team_id} lockedOutTeamIds={round?.locked_out_team_ids} />
+            ) : (
+              roster.length > 0 && (
+                <WheelScoreboard roster={roster} roundScores={round?.round_scores} activeUserId={round?.active_user_id} lockedOutUserIds={round?.locked_out_user_ids} />
+              )
+            )}
           </div>
         )}
       </div>

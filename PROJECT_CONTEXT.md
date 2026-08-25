@@ -11,12 +11,11 @@
 > it, download the result, and re-upload it to Project Knowledge. Claude
 > can't write back to Project Knowledge on its own.
 
-Last reconciled: 2026-08-21, three rounds of same-day playtest fixes on
-Wheel of Fortune (0017, shipped earlier the same day): buzzing was
-spinning before naming a consonant (§6c-i), then the buzzer was reopening
-on every miss for a round's entire duration instead of just once to open
-it (§6c-ii, migration `0018`) — on top of the Impostor WHO?/UNO
-reconciliation described below.
+Last reconciled: 2026-08-25, adding Wheel of Fortune Team mode (0019) —
+3-12 self-picked teams of 2-3, strict per-teammate rotation mirroring
+Family Feud's line order — on top of the 2026-08-21 playtest fixes
+(§6c-i, §6c-ii, migration `0018`) and the Impostor WHO?/UNO reconciliation
+described below.
 
 ---
 
@@ -81,7 +80,7 @@ frontend/
                                       paste parsers, feeding each game's import modal)
     styles/tokens.css, global.css
 supabase/
-  migrations/                        numbered SQL files, currently up to 0018
+  migrations/                        numbered SQL files, currently up to 0019
   functions/
     _shared/utils.ts                 shared helpers (see §6) — includes UNO's deck/shuffle/legality
                                       helpers, reused as-is by Impostor for seat rotation (nextUnoSeat
@@ -232,6 +231,7 @@ no reason to copy a known-dead pattern into a new table.
 | 0016 | Family Feud tiebreaker round (`feud_round_questions.is_tiebreaker`, `feud_sessions.status` gains `'tiebreaker'`) — MOD-flagged tiebreaker-only content, pulled in only if the main game ends tied, replayed through the same face-off/board/steal mechanics as any other round | confirmed — full file in Project Knowledge |
 | 0017 | Wheel of Fortune schema (`wheel_categories`, `wheel_phrases`, `wheel_sessions`, `wheel_bonus_secrets`, `wheel_participants`, `wheel_rounds`, `wheel_round_secrets`) — see §6c | confirmed — full file in Project Knowledge |
 | 0018 | Wheel of Fortune round rotation fix (`wheel_rounds.is_opened`) — see §6c-ii | confirmed — full file in Project Knowledge |
+| 0019 | Wheel of Fortune Team mode (`wheel_sessions.game_mode`/`winner_team_id`/`tiebreak_eligible_team_ids`, `wheel_teams`, `wheel_participants.team_id`/`line_position`, `wheel_rounds.active_team_id`/`locked_out_team_ids`) — see §6c-iii | confirmed — full file in Project Knowledge |
 
 **Caveat:** only 0001 is present verbatim in Project Knowledge. Everything
 else is reconstructed from chat summaries that described *what* a migration
@@ -681,6 +681,83 @@ Fixed by adding the same `releaseSessionLock` call, in the same place
 has. No new UI was added — like Impostor/UNO, ending naturally releases
 the lock automatically; there was never meant to be a visible "end
 session" button once a game's already over on its own.
+
+## 6c-iii. Wheel of Fortune — Team mode (2026-08-25)
+
+Second mode alongside the original free-for-all ("solo," unchanged and
+still the default): 3-12 teams of 2-3 members, self-picked at join time
+(not MOD-assigned, unlike Family Feud's fixed two teams). Built against
+three explicit answers from Dani before writing any schema:
+
+- **Team count**: minimum 3, maximum 12 — not Feud's fixed 2.
+- **Formation**: members create or join teams themselves in the lobby
+  (`create_team`/`join_team` in wheel-play), not MOD-assigned.
+- **Within a team's turn**: strict rotation through teammates one at a
+  time, explicitly "like Family Feud's line order" — confirmed by reading
+  feud-play's actual `current_turn_user_id` advancement (it moves to the
+  next roster member after *every* guess, hit or miss, not just misses).
+
+**The turn model gained a second layer, not a replacement.** TEAM-level
+control works exactly like solo's individual control always did — a
+buzz-off opens each round (`wheel_teams`/`locked_out_team_ids`/
+`tiebreak_eligible_team_ids` mirror the solo columns 1:1), and a miss
+(once opened) passes control to the next team in `seat_order`, wrapping.
+The new piece is entirely WITHIN a team's held control:
+`wheel_teams.current_rep_index` tracks whose line turn it is, and it
+advances after every fully-resolved action that team takes — spin+call,
+buying a vowel, or a solve attempt — regardless of whether that action hit
+or missed. This is a genuine departure from solo mode's "same player
+keeps going while they're hot": in team mode the TEAM keeps control while
+hot, but a *different* teammate is handed the wheel each time. It never
+resets between rounds, so turns even out across a whole game rather than
+always starting from the front of the line.
+
+**Why almost none of the existing per-action authorization checks needed
+to change**: `active_user_id` still means exactly what it always meant —
+the one specific person allowed to act right now. In team mode that's
+simply whichever teammate `current_rep_index` currently points to. Every
+`if (round.active_user_id !== user.id)` check in wheel-play is completely
+unaffected; only the *scoring* (round_scores/totals key off `team_id`
+instead of `user_id` — `scoreKeyFor()`) and the *transition* logic
+(`continueControl()` for hits, the team branch of `resolveTurnEnd()` for
+misses) needed team-mode branches.
+
+**Judgment calls made while building this, not explicitly specified:**
+
+- **Buzzing is per-representative, not per-team-member-race.** Only the
+  team's *current* rep (by `current_rep_index`) may buzz — a teammate
+  further back in line can't jump the queue by clicking faster. This
+  keeps "who acts" consistently owned by the rotation pointer at every
+  stage, including the opening face-off, not just post-opening turns.
+- **Wild Card's second call and Mystery's choice-then-call stay with the
+  same individual** — these are one combined action-sequence (matching
+  how they already worked in solo mode), so rotation to the next teammate
+  only happens once the *whole* sequence resolves, not mid-sequence.
+- **The Bonus Round is played by one individual**, not the whole team
+  collaboratively — specifically the winning team's current representative
+  at the moment the main game ends (or the tiebreaker resolves). Mirrors
+  Family Feud's Fast Money being played by individuals rather than the
+  team at once. `wheel_sessions.winner_team_id` is new (parallel to the
+  existing `winner_user_id`, which still points at the actual individual
+  playing) so the team gets credit/history even though one person solves.
+- **Team names must be unique per-session** (DB constraint, not just a
+  UI nicety) — surfaced as a friendly "a team with that name already
+  exists" error on the Postgres `23505` unique-violation code.
+- **Known race condition, accepted rather than engineered around**:
+  `join_team`'s capacity check (count, then insert) has a TOCTOU gap — two
+  people joining the exact same team in the same instant could in theory
+  both slip in past the 3-member cap. Same shape of trade-off already
+  accepted elsewhere in this codebase for low-likelihood simultaneous
+  actions; worth revisiting only if it actually happens in practice.
+
+Schema: migration `0019_wheel_team_mode.sql` — `wheel_sessions.game_mode`
+(`'solo' | 'team'`, defaults `'solo'`, so every existing solo game is
+unaffected), `wheel_teams` (new table), `wheel_participants.team_id` /
+`line_position` (nullable, solo rows stay null), `wheel_rounds.active_team_id`
+/ `locked_out_team_ids`. `wheel_sessions.winner_team_id` and
+`tiebreak_eligible_team_ids` are separate columns from the solo ones
+(never repurposed) so a `uuid[]` of team ids can never be mistaken for one
+of user ids.
 
 ## 8. Feature parity + cleanup flagged, not all resolved
 
