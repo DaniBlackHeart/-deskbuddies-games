@@ -31,7 +31,15 @@ export default function WheelSpectatorPage() {
   const [claimError, setClaimError] = useState<string | null>(null);
   const [spinning, setSpinning] = useState(false);
   const [lastWedge, setLastWedge] = useState<WheelWedge | null>(null);
+  const [spinTargetWedge, setSpinTargetWedge] = useState<WheelWedge | null>(null);
   const spinTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Same reasoning as WheelPlayPage: Bankrupt/Lose a Turn resolve
+  // server-side the instant the spin lands, so the very next broadcast
+  // can arrive before the ~2.3s spin animation has actually finished.
+  // Anything that would update state while a spin is still visually
+  // playing gets queued here instead, and runs once the spin's own
+  // timeout completes.
+  const postSpinQueue = useRef<Array<() => void>>([]);
 
   const hydrate = useCallback(async () => {
     if (!sessionId) return;
@@ -64,22 +72,40 @@ export default function WheelSpectatorPage() {
       .on("broadcast", { event: "spin_result" }, ({ payload }: { payload: { wedge: WheelWedge } }) => {
         setSpinning(true);
         setLastWedge(null);
+        setSpinTargetWedge(payload.wedge);
         if (spinTimeout.current) clearTimeout(spinTimeout.current);
         spinTimeout.current = setTimeout(() => {
           setSpinning(false);
           setLastWedge(payload.wedge);
           hydrate();
+          spinTimeout.current = null;
+          const queued = postSpinQueue.current;
+          postSpinQueue.current = [];
+          queued.forEach((fn) => fn());
         }, SPIN_ANIMATION_MS);
       })
       .on("broadcast", { event: "*" }, (message: { event: string }) => {
         // spin_result is handled above with a delay, so the board doesn't
         // reveal the outcome before the wheel visually finishes spinning.
         if (message.event === "spin_result") return;
-        if (["round_started", "turn_ended", "turn_passed", "turn_timed_out"].includes(message.event)) {
-          setLastWedge(null);
-          setSpinning(false);
+
+        const run = () => {
+          if (["round_started", "turn_ended", "turn_passed", "turn_timed_out"].includes(message.event)) {
+            setLastWedge(null);
+            setSpinning(false);
+          }
+          hydrate();
+        };
+
+        // Bankrupt/Lose a Turn's immediate follow-up events must wait for
+        // the spin to actually finish, same as WheelPlayPage — otherwise
+        // this would cut the animation short via the setSpinning(false)
+        // above, well before the wheel visually stops.
+        if (spinTimeout.current && ["turn_ended", "turn_passed", "turn_timed_out", "round_ended"].includes(message.event)) {
+          postSpinQueue.current.push(run);
+          return;
         }
-        hydrate();
+        run();
       })
       .subscribe();
 
@@ -87,6 +113,7 @@ export default function WheelSpectatorPage() {
       cancelled = true;
       supabase.removeChannel(channel);
       if (spinTimeout.current) clearTimeout(spinTimeout.current);
+      postSpinQueue.current = [];
       invokeFunction("wheel-host", { action: "release_spectator", session_id: sessionId });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -155,7 +182,7 @@ export default function WheelSpectatorPage() {
                         ? `${teamNameFor(round.active_team_id)} (${usernameFor(round.active_user_id)})'s turn`
                         : `${usernameFor(round.active_user_id)}'s turn`}
                   </p>
-                  {round.active_user_id && <WheelSpinner spinning={spinning} resultLabel={!spinning ? wedgeLabel(round.pending_wedge ?? lastWedge) : null} />}
+                  {round.active_user_id && <WheelSpinner spinning={spinning} targetWedge={spinTargetWedge} resultLabel={!spinning ? wedgeLabel(round.pending_wedge ?? lastWedge) : null} />}
                 </>
               ) : (
                 <p style={{ margin: 0 }}>Round finished.</p>

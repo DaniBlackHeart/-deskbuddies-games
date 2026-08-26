@@ -62,6 +62,7 @@ export default function WheelPlayPage() {
   const [flash, setFlash] = useState<string | null>(null);
   const [spinning, setSpinning] = useState(false);
   const [lastWedge, setLastWedge] = useState<WheelWedge | null>(null);
+  const [spinTargetWedge, setSpinTargetWedge] = useState<WheelWedge | null>(null);
   const [showVowelPicker, setShowVowelPicker] = useState(false);
   const [solveDraft, setSolveDraft] = useState("");
   const [bonusConsonants, setBonusConsonants] = useState<string[]>([]);
@@ -71,6 +72,22 @@ export default function WheelPlayPage() {
 
   const flashTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spinTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Bankrupt/Lose a Turn resolve server-side the instant the spin lands —
+  // the very next broadcast (turn_ended/turn_passed/round_ended) can arrive
+  // within milliseconds of spin_result, well before the ~2.3s spin
+  // animation has actually finished. Anything that would otherwise update
+  // state or hydrate while a spin is still visually playing gets queued
+  // here instead, and runs once the spin's own timeout completes — so the
+  // board never shows "whose turn it is now" before the wheel has stopped.
+  const postSpinQueue = useRef<Array<() => void>>([]);
+
+  function runOrQueue(fn: () => void) {
+    if (spinTimeout.current) {
+      postSpinQueue.current.push(fn);
+    } else {
+      fn();
+    }
+  }
 
   const showFlash = useCallback((msg: string) => {
     setFlash(msg);
@@ -142,6 +159,7 @@ export default function WheelPlayPage() {
       .on("broadcast", { event: "spin_result" }, ({ payload }: { payload: WheelSessionEvent & { type: "spin_result" } }) => {
         setSpinning(true);
         setLastWedge(null);
+        setSpinTargetWedge(payload.wedge);
         setShowVowelPicker(false);
         if (spinTimeout.current) clearTimeout(spinTimeout.current);
         spinTimeout.current = setTimeout(() => {
@@ -149,6 +167,10 @@ export default function WheelPlayPage() {
           setLastWedge(payload.wedge);
           wedgeSound(payload.wedge);
           hydrate();
+          spinTimeout.current = null;
+          const queued = postSpinQueue.current;
+          postSpinQueue.current = [];
+          queued.forEach((fn) => fn());
         }, SPIN_ANIMATION_MS);
       })
       .on("broadcast", { event: "mystery_resolved" }, ({ payload }: { payload: WheelSessionEvent & { type: "mystery_resolved" } }) => {
@@ -184,22 +206,26 @@ export default function WheelPlayPage() {
         sounds.wrong();
         hydrate();
       })
-      .on("broadcast", { event: "turn_ended" }, () => hydrate())
+      .on("broadcast", { event: "turn_ended" }, () => runOrQueue(() => hydrate()))
       .on("broadcast", { event: "turn_passed" }, ({ payload }: { payload: WheelSessionEvent & { type: "turn_passed" } }) => {
-        showFlash(`${usernameFor(payload.to_user_id)}'s turn to spin!`);
-        hydrate();
-      })
-      .on("broadcast", { event: "turn_timed_out" }, () => hydrate())
-      .on("broadcast", { event: "round_ended" }, ({ payload }: { payload: WheelSessionEvent & { type: "round_ended" } }) => {
-        if (payload.solved) sounds.roundSolved();
-        else sounds.noAnswer();
-        setRoundEndBanner({
-          solved: payload.solved,
-          solverName: payload.solved_by_user_id ? usernameFor(payload.solved_by_user_id) : undefined,
-          points: payload.points_won,
-          phrase: payload.revealed_phrase,
+        runOrQueue(() => {
+          showFlash(`${usernameFor(payload.to_user_id)}'s turn to spin!`);
+          hydrate();
         });
-        hydrate();
+      })
+      .on("broadcast", { event: "turn_timed_out" }, () => runOrQueue(() => hydrate()))
+      .on("broadcast", { event: "round_ended" }, ({ payload }: { payload: WheelSessionEvent & { type: "round_ended" } }) => {
+        runOrQueue(() => {
+          if (payload.solved) sounds.roundSolved();
+          else sounds.noAnswer();
+          setRoundEndBanner({
+            solved: payload.solved,
+            solverName: payload.solved_by_user_id ? usernameFor(payload.solved_by_user_id) : undefined,
+            points: payload.points_won,
+            phrase: payload.revealed_phrase,
+          });
+          hydrate();
+        });
       })
       .on("broadcast", { event: "bonus_setup" }, () => {
         sounds.suspenseReveal();
@@ -223,6 +249,7 @@ export default function WheelPlayPage() {
     return () => {
       supabase.removeChannel(channel);
       if (spinTimeout.current) clearTimeout(spinTimeout.current);
+      postSpinQueue.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, hydrate, showFlash, profile?.id]);
@@ -492,7 +519,7 @@ export default function WheelPlayPage() {
 
             {round.turn_phase === "awaiting_action" && (
               <>
-                <WheelSpinner spinning={spinning} resultLabel={lastWedge ? wedgeLabel(lastWedge) : null} />
+                <WheelSpinner spinning={spinning} targetWedge={spinTargetWedge} resultLabel={lastWedge ? wedgeLabel(lastWedge) : null} />
                 <p className="text-center text-muted" style={{ margin: "8px 0" }}>Your round total: {myRoundScore}</p>
                 {!showVowelPicker ? (
                   <div className="stack">

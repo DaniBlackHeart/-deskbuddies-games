@@ -759,6 +759,51 @@ unaffected), `wheel_teams` (new table), `wheel_participants.team_id` /
 (never repurposed) so a `uuid[]` of team ids can never be mistaken for one
 of user ids.
 
+## 6c-iv. Correction log — the spin animation was getting cut short, and the wheel landed nowhere real (2026-08-26)
+
+Two real bugs from the same playtest report, both about the wheel-spin
+moment specifically.
+
+**Bug 1 — Bankrupt/Lose a Turn revealed the next turn before the wheel
+stopped spinning.** Those two wedges resolve server-side the instant the
+spin lands — `spin`'s handler broadcasts `spin_result` and then
+*immediately* (no delay) calls `resolveTurnEnd`, which broadcasts
+`turn_ended`/`turn_passed`/`round_ended` right behind it. The frontend's
+`spin_result` handler correctly held its own reveal back for the ~2.3s
+animation, but `turn_ended`/`turn_passed`/`round_ended` each had their own
+separate handler that hydrated *immediately* — so the board would jump to
+"so-and-so's turn now" while the wheel graphic was still visibly spinning
+for everyone. Every other wedge type (points, Wild Card, Free Play,
+Mystery) is naturally safe from this because they all require a distinct
+follow-up player action (calling a consonant, making a choice) before
+anything else can happen — Bankrupt and Lose a Turn are the only two
+outcomes with no human in the loop between the spin and the next state
+change.
+
+Fixed with a small deferred-action queue (`postSpinQueue` in both
+`WheelPlayPage` and `WheelSpectatorPage`): while a spin's reveal timeout
+is pending, `turn_ended`/`turn_passed`/`turn_timed_out`/`round_ended`
+queue their work instead of running it, and the queue drains right after
+the spin's own timeout fires. Nothing else needed to change — hydrate()
+always fetches complete fresh state regardless of which event triggered
+it, so deferring is lossless.
+
+**Bug 2 — the wheel didn't actually land on its own announced outcome.**
+`WheelSpinner` was explicitly designed to spin to a *decorative* random
+angle (see the component's original comment) on the theory that the text
+result below it was the real information. Playtesting showed that's not
+good enough — a screenshot showed the wheel stopped with the pointer
+between wedges, and the text below it and where the arrow physically
+landed had nothing to do with each other. Fixed: `WheelSpinner` now takes
+a `targetWedge` prop and computes the actual rotation needed to land a
+*matching* wedge (same type, same value for point-bearing wedges — chosen
+at random among any ties, e.g. one of the four 500-point wedges) precisely
+under the fixed pointer, always spinning forward from the current angle
+plus a few extra full turns for flourish. `WheelPlayPage`/
+`WheelSpectatorPage` now pass the real wedge from the `spin_result`
+broadcast in as `targetWedge` the moment a spin starts, so what the arrow
+points at and what the game announces are finally the same thing.
+
 ## 8. Feature parity + cleanup flagged, not all resolved
 
 - **Bulk paste-import for question sets** — Trivia has it
