@@ -266,6 +266,19 @@ export default function WheelPlayPage() {
       hydrate();
       return null;
     }
+    // Buzzing, calling a consonant, buying a vowel, attempting to solve,
+    // etc. all need the ACTING client's own screen to reflect the result
+    // right away — it shouldn't have to wait on its own broadcast (buzz_won,
+    // consonant_called, ...) to round-trip back to itself before it can
+    // show the next prompt. That dependency is what made the buzzer look
+    // stuck after being pressed: it worked server-side (turn_phase moved
+    // to "awaiting_consonant"), but nothing refetched locally until the
+    // broadcast arrived. "spin" is the deliberate exception — its outcome
+    // must stay hidden until the wheel animation finishes, which the
+    // spin_result broadcast + SPIN_ANIMATION_MS timeout below already
+    // handles; hydrating immediately here would reveal the wedge before
+    // the wheel visually stops spinning.
+    if (action !== "spin") runOrQueue(() => hydrate());
     return data;
   }
 
