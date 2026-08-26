@@ -123,9 +123,13 @@ export default function HostWheelSessionPage() {
     setTeams(built);
   }
 
+  async function refreshAll() {
+    await Promise.all([loadSession(), loadRoster(), loadTeams()]);
+  }
+
   async function loadAll() {
     setLoading(true);
-    await Promise.all([loadSession(), loadRoster(), loadTeams()]);
+    await refreshAll();
     setLoading(false);
   }
 
@@ -162,11 +166,13 @@ export default function HostWheelSessionPage() {
   async function callHost(action: string, extra: Record<string, unknown> = {}) {
     setBusy(true);
     const { data, error } = await invokeFunction("wheel-host", { action, session_id: sessionId, ...extra });
-    setBusy(false);
     if (error) {
+      setBusy(false);
       alert(error);
       return null;
     }
+    await refreshAll();
+    setBusy(false);
     return data;
   }
 
@@ -174,7 +180,6 @@ export default function HostWheelSessionPage() {
     const message = session?.status === "lobby" ? "Cancel this game before it starts?" : "End the game for everyone?";
     if (!confirm(message)) return;
     await callHost("end_session");
-    loadSession();
   }
 
   function advanceButtonLabel(): string {

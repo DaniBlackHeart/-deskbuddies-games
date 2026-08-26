@@ -1,61 +1,63 @@
-# MANIFEST — fix: spin animation was getting cut short, and the wheel landed nowhere real
+# Wheel of Fortune — fix "stuck until reload" (Solo join, Team create, MOD start)
 
-Frontend-only, three files. Merge into your repo root with `cp -r`.
+## Root causes found
 
-## Bug 1 — Bankrupt/Lose a Turn revealed the next turn before the wheel stopped spinning
+1. **`wheel_teams` was never added to the Realtime publication.** `0019_wheel_team_mode.sql`
+   created the table with RLS enabled and a read policy, but — unlike every other live-state
+   table in this project — skipped `alter publication supabase_realtime add table ...`. No
+   client (including the team's own creator) ever got a live update when a team was created;
+   only a manual reload, which re-queries directly, showed it. This is the exact bug pattern
+   already logged in `PROJECT_CONTEXT.md` §7.
 
-Those two wedges resolve server-side the instant the spin lands — no
-consonant call, no player choice, nothing in between. The very next
-broadcast (whose turn it is now) could arrive within milliseconds of the
-spin result, well before the ~2.3s spin animation actually finished. Every
-other wedge (points, Wild Card, Free Play, Mystery) is naturally immune to
-this because they all require a distinct follow-up action from a real
-person first.
+2. **Solo join and MOD "Start game" (plus advance/force-reveal/remove-player) relied *only*
+   on the realtime broadcast reaching the acting client's own screen.** Nothing directly
+   refetched state after the action succeeded — they waited on the same postgres_changes
+   event other spectators rely on. `handleEndSession` in the host page already worked around
+   this (it explicitly calls a refetch right after the action), but that pattern wasn't
+   applied to `start_game`/`advance_round`/`force_end_round`/`remove_player`, or to any of
+   the lobby actions (join/leave/create team/join team) — which is exactly the set of actions
+   you reported as stuck.
 
-**Fixed**: a small deferred-action queue in both `WheelPlayPage` and
-`WheelSpectatorPage`. While a spin's reveal is still pending, the
-"turn ended/passed/timed out/round ended" events queue their work instead
-of running it immediately, and the queue drains the moment the spin's own
-timeout completes.
+## Fix
 
-## Bug 2 — the wheel didn't land on its own announced outcome
+- New migration `0020_wheel_teams_realtime.sql` — adds `wheel_teams` to the realtime publication.
+- `WheelLobbyPage.tsx` — every lobby action (`join_game`, `leave_lobby`, `create_team`,
+  `join_team`) now goes through a shared `callPlay()` helper that refetches roster/teams
+  directly right after a successful call, instead of waiting on the broadcast to round-trip
+  back to the same client that triggered it.
+- `HostWheelSessionPage.tsx` — `callHost()` now refetches session/roster/teams directly after
+  every successful host action (start game, advance round, force-reveal, remove player, end
+  session), matching the pattern `handleEndSession` already used — just applied consistently
+  instead of only in one place.
 
-The wheel was explicitly built to spin to a decorative random angle,
-trusting the text result below it to carry the real information. Your
-screenshot showed why that's not good enough — the arrow stopped between
-wedges, unrelated to what the game was announcing.
+The realtime subscriptions are left in place — they're still what updates everyone else
+watching the lobby/host screen live. This just stops the *acting* client from depending on
+that same round-trip to see the result of their own action.
 
-**Fixed**: `WheelSpinner` now takes the real wedge as a `targetWedge` prop
-and computes the exact rotation needed to land a matching wedge (same
-type, same value where relevant — picked at random among ties, e.g. one
-of the four 500-point wedges) precisely under the pointer. Always spins
-forward from wherever it currently sits, plus a few extra full turns for
-flourish, so it never looks like it snapped backward.
+## Validation
 
-## What changed
+- `npx tsc -b` — 0 errors (clean before and after).
+- `npx oxlint` — 6 warnings, same as baseline before these changes (no new warnings).
+- No Edge Functions were touched, so no `deno check` needed for this delivery.
 
-- `frontend/src/components/WheelSpinner.tsx` — real wedge-landing math
-- `frontend/src/pages/wheel/WheelPlayPage.tsx` — deferred-action queue,
-  passes the real wedge into the spinner
-- `frontend/src/pages/mod/WheelSpectatorPage.tsx` — same two fixes,
-  mirrored for the spectator view
-- `PROJECT_CONTEXT.md` — correction log (§6c-iv) with the full writeup
-
-## Commit
+## Deploy steps
 
 ```bash
-cd deskbuddies-games
+cd deskbuddies-games       # your actual project root
+npx supabase db push
 git add .
-git commit -m "fix: hold spin outcomes until the wheel actually stops, and land it on the real wedge"
+git commit -m "fix: refetch wheel lobby/host state directly after actions instead of relying solely on realtime, and register wheel_teams for realtime"
 git push
 ```
 
-Frontend-only — no `supabase db push`, no function redeploy.
+No Edge Function redeploy needed this time — only a migration and two frontend files changed.
 
-Validated: `npx tsc -b` → 0 errors, `npx oxlint` → 0 new warnings (same 6
-pre-existing ones as every prior delivery).
+## Files in this delivery
 
-The general "lag" you mentioned may well have been a symptom of Bug 1 —
-the board jumping to a new state mid-animation reads as jank/lag even
-though nothing was actually slow. Worth checking if it's gone once this
-is in; let me know if something separate is still there.
+```
+supabase/migrations/0020_wheel_teams_realtime.sql   (new)
+frontend/src/pages/wheel/WheelLobbyPage.tsx          (modified)
+frontend/src/pages/mod/HostWheelSessionPage.tsx      (modified)
+```
+
+Merge into your repo root with the usual `cp -r` convention.

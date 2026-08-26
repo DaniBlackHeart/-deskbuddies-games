@@ -127,40 +127,46 @@ export default function WheelLobbyPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.status, joined]);
 
-  async function handleJoin() {
-    if (!session) return;
+  // Wraps every wheel-play lobby action so the ACTING client's own screen
+  // updates immediately from a direct refetch, rather than waiting on the
+  // postgres_changes broadcast to round-trip back to itself. That
+  // broadcast still runs (it's what updates everyone ELSE watching the
+  // lobby), but the person who just took the action shouldn't have to
+  // depend on realtime delivery timing just to see their own change —
+  // that dependency is what made "join"/"create team" look stuck until a
+  // manual reload forced a fresh query.
+  async function callPlay(action: string, extra: Record<string, unknown> = {}) {
+    if (!session) return null;
     setBusy(true);
     setError(null);
-    const { error } = await invokeFunction("wheel-play", { action: "join_game", session_id: session.id });
+    const { data, error } = await invokeFunction("wheel-play", { action, session_id: session.id, ...extra });
+    if (error) {
+      setBusy(false);
+      setError(error);
+      return null;
+    }
+    await Promise.all([loadRoster(session.id), session.game_mode === "team" ? loadTeams(session.id) : Promise.resolve()]);
     setBusy(false);
-    if (error) setError(error);
+    return data;
+  }
+
+  async function handleJoin() {
+    await callPlay("join_game");
   }
 
   async function handleLeave() {
-    if (!session) return;
-    setBusy(true);
-    await invokeFunction("wheel-play", { action: "leave_lobby", session_id: session.id });
-    setBusy(false);
+    await callPlay("leave_lobby");
     setJoined(false);
   }
 
   async function handleCreateTeam() {
-    if (!session || !newTeamName.trim()) return;
-    setBusy(true);
-    setError(null);
-    const { error } = await invokeFunction("wheel-play", { action: "create_team", session_id: session.id, name: newTeamName.trim() });
-    setBusy(false);
-    if (error) setError(error);
-    else setNewTeamName("");
+    if (!newTeamName.trim()) return;
+    const data = await callPlay("create_team", { name: newTeamName.trim() });
+    if (data) setNewTeamName("");
   }
 
   async function handleJoinTeam(teamId: string) {
-    if (!session) return;
-    setBusy(true);
-    setError(null);
-    const { error } = await invokeFunction("wheel-play", { action: "join_team", session_id: session.id, team_id: teamId });
-    setBusy(false);
-    if (error) setError(error);
+    await callPlay("join_team", { team_id: teamId });
   }
 
   const myTeam = teams.find((t) => t.members.some((m) => m.user_id === profile?.id));
