@@ -1,7 +1,7 @@
 # DeskBuddies Games
 
 A web app for the **DeskBuddies** Discord server — a home for the games you and your
-MODs come up with. Five so far:
+MODs come up with. Six so far:
 
 - **Trivia Night** — live-hosted, mixing multiple-choice and typed questions.
 - **Family Feud** — live-hosted, face-off / board / steal / Fast Money, fully
@@ -16,6 +16,10 @@ MODs come up with. Five so far:
   if needed), then the leader plays the Bonus Round. Two modes: **Solo**
   (2–10 players, free-for-all) or **Team** (3–12 self-picked teams of 2–3,
   with strict rotation through teammates one at a time).
+- **Type What You See** (internal code name `rebus`) — decode rebus-style
+  puzzles ("SIR USE LEE" → Seriously) against the clock. Warm-Up, two scored
+  rounds, a two-player Sprint, then a solo Final Round Big Puzzle. Solo or
+  Team scoring, same Chill/Hard modes as Trivia Night.
 
 Members sign in with Discord and must be a member of the DeskBuddies server. MODs
 (auto-detected from a Discord role) get extra controls to write questions and host
@@ -68,20 +72,31 @@ supabase/
     round row only ever holds the *masked* phrase, computed server-side
     from which letters have actually been guessed correctly — never the
     real text.
-- **Question sets**: MODs build Trivia's, Feud's, Impostor WHO?'s, and
-  Wheel of Fortune's ahead of time — one item at a time, or by pasting a
-  whole batch via each game's import tool (Trivia and Impostor WHO?
-  support bulk import; Feud's and Wheel of Fortune's set editors don't
-  yet). UNO has no equivalent — it's the standard deck, so a MOD starts a
-  game directly from the MOD Dashboard with nothing to author first.
-- **No shared `games` table.** Trivia, Feud, UNO, Impostor WHO?, and Wheel
-  of Fortune keep fully separate, parallel tables rather than a unified
-  `games`/`sessions` schema. What *is* shared is a small
-  `active_session_lock` table that enforces "only one live session, across
-  any game, at a time" — every game's `create_session` claims it
+  - Type What You See: the same "reveal only after the timer ends" idea as
+    Trivia for rounds 1-3 and the Final Round. The Sprint Round (two
+    players, sequential 30-second turns) goes one level deeper, the same
+    way Feud's Fast Money does — a "read your own row only" RLS policy on
+    `rebus_sprint_answers`, keyed by pool *position* rather than a puzzle
+    row id, means Player 2's client can't join its way to Player 1's
+    puzzle text even after the fact. The one deliberate exception in the
+    whole project: the Final Round puzzle is NOT hidden from onlookers once
+    it's live — with a single entrant and no rival who'd benefit from
+    seeing it, everyone watches it together as a shared finale moment.
+- **Question sets**: MODs build Trivia's, Feud's, Impostor WHO?'s, Wheel of
+  Fortune's, and Type What You See's ahead of time — one item at a time, or
+  by pasting a whole batch via each game's import tool (Trivia, Impostor
+  WHO?, and Type What You See support bulk import; Feud's and Wheel of
+  Fortune's set editors don't yet). UNO has no equivalent — it's the
+  standard deck, so a MOD starts a game directly from the MOD Dashboard
+  with nothing to author first.
+- **No shared `games` table.** Trivia, Feud, UNO, Impostor WHO?, Wheel of
+  Fortune, and Type What You See keep fully separate, parallel tables
+  rather than a unified `games`/`sessions` schema. What *is* shared is a
+  small `active_session_lock` table that enforces "only one live session,
+  across any game, at a time" — every game's `create_session` claims it
   atomically, same pattern as claiming a spectator seat. This was an open
   question after Trivia shipped alone; it's been decided, not just
-  deferred — five games in, the actual duplication between them still
+  deferred — six games in, the actual duplication between them still
   hasn't justified a schema merge, and every game so far is the same shape
   (everyone-plays-together, host-driven, one session at a time). Worth
   revisiting only if that stops being true.

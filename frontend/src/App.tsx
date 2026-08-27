@@ -35,6 +35,12 @@ import WheelCategoriesPage from "./pages/mod/WheelCategoriesPage";
 import WheelCategoryEditorPage from "./pages/mod/WheelCategoryEditorPage";
 import HostWheelSessionPage from "./pages/mod/HostWheelSessionPage";
 import WheelSpectatorPage from "./pages/mod/WheelSpectatorPage";
+import RebusLobbyPage from "./pages/rebus/RebusLobbyPage";
+import RebusPlayPage from "./pages/rebus/RebusPlayPage";
+import RebusSetsPage from "./pages/mod/RebusSetsPage";
+import RebusSetEditorPage from "./pages/mod/RebusSetEditorPage";
+import HostRebusSessionPage from "./pages/mod/HostRebusSessionPage";
+import RebusSpectatorPage from "./pages/mod/RebusSpectatorPage";
 
 export default function App() {
   return (
@@ -130,6 +136,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <WheelPlayPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rebus/lobby"
+            element={
+              <ProtectedRoute>
+                <RebusLobbyPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rebus/play/:sessionId"
+            element={
+              <ProtectedRoute>
+                <RebusPlayPage />
               </ProtectedRoute>
             }
           />
@@ -283,6 +305,38 @@ export default function App() {
             element={
               <ModRoute>
                 <WheelSpectatorPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/rebus-sets"
+            element={
+              <ModRoute>
+                <RebusSetsPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/rebus-sets/:setId"
+            element={
+              <ModRoute>
+                <RebusSetEditorPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/rebus-host/:sessionId"
+            element={
+              <ModRoute>
+                <HostRebusSessionPage />
+              </ModRoute>
+            }
+          />
+          <Route
+            path="/mod/rebus-spectate/:sessionId"
+            element={
+              <ModRoute>
+                <RebusSpectatorPage />
               </ModRoute>
             }
           />

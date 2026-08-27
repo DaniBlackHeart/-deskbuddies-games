@@ -235,3 +235,152 @@ export async function restoreWheelCategory(categoryId: string): Promise<ArchiveO
   }
   return { outcome: "restored" };
 }
+
+// =========================================================
+// "Type What You See" (rebus) — rebus_sets / rebus_puzzles
+// Same shape as question_sets/questions: rebus_answers.puzzle_id and
+// rebus_sessions.final_puzzle_id both RESTRICT on delete, so a puzzle or
+// set with real play history archives instead of hard-deleting.
+// order_index must stay contiguous 0..N-1 per set (same reasoning as
+// Trivia — rebus-host indexes into the active puzzle list positionally
+// for rounds 1-3), so removing an active puzzle renumbers the rest.
+//
+// rebus_sprint_puzzles has NO archive dance — see 0021_rebus_game.sql for
+// why (nothing ever references a specific row by id, only by pool
+// position), so it always hard-deletes cleanly like impostor_words/
+// wheel_phrases.
+// =========================================================
+
+async function isRebusSessionInProgress(rebusSetId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("rebus_sessions")
+    .select("id")
+    .eq("rebus_set_id", rebusSetId)
+    .neq("status", "ended")
+    .limit(1);
+  return (data?.length ?? 0) > 0;
+}
+
+async function renumberActiveRebusPuzzles(rebusSetId: string): Promise<string | null> {
+  const { data: remaining, error } = await supabase
+    .from("rebus_puzzles")
+    .select("id, order_index")
+    .eq("rebus_set_id", rebusSetId)
+    .is("archived_at", null)
+    .order("order_index", { ascending: true });
+
+  if (error) {
+    console.error("rebus renumber fetch failed", error);
+    return "Removed, but couldn't renumber the remaining puzzles — reload to check the order.";
+  }
+
+  for (let i = 0; i < (remaining ?? []).length; i++) {
+    const p = remaining![i];
+    if (p.order_index !== i) {
+      const { error: updateError } = await supabase.from("rebus_puzzles").update({ order_index: i }).eq("id", p.id);
+      if (updateError) {
+        console.error("rebus renumber update failed", updateError);
+        return "Removed, but couldn't renumber the remaining puzzles — reload to check the order.";
+      }
+    }
+  }
+  return null;
+}
+
+export async function deleteRebusPuzzle(puzzle: { id: string; rebus_set_id: string }): Promise<ArchiveOrDeleteResult> {
+  if (await isRebusSessionInProgress(puzzle.rebus_set_id)) {
+    return {
+      outcome: "blocked",
+      message: "This set has a session in progress right now — end it before removing puzzles.",
+    };
+  }
+
+  const { error: deleteError } = await supabase.from("rebus_puzzles").delete().eq("id", puzzle.id);
+
+  if (!deleteError) {
+    const renumberError = await renumberActiveRebusPuzzles(puzzle.rebus_set_id);
+    return renumberError ? { outcome: "error", message: renumberError } : { outcome: "deleted" };
+  }
+
+  if (deleteError.code !== FOREIGN_KEY_VIOLATION) {
+    console.error("rebus puzzle delete failed", deleteError);
+    return { outcome: "error", message: "Something went wrong deleting that puzzle. Please try again." };
+  }
+
+  const { error: archiveError } = await supabase
+    .from("rebus_puzzles")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", puzzle.id);
+
+  if (archiveError) {
+    console.error("rebus puzzle archive failed", archiveError);
+    return { outcome: "error", message: "Couldn't archive that puzzle either. Please try again." };
+  }
+
+  const renumberError = await renumberActiveRebusPuzzles(puzzle.rebus_set_id);
+  return renumberError ? { outcome: "error", message: renumberError } : { outcome: "archived" };
+}
+
+export async function restoreRebusPuzzle(puzzle: { id: string; rebus_set_id: string }): Promise<ArchiveOrDeleteResult> {
+  const { data: active } = await supabase
+    .from("rebus_puzzles")
+    .select("order_index")
+    .eq("rebus_set_id", puzzle.rebus_set_id)
+    .is("archived_at", null)
+    .order("order_index", { ascending: false })
+    .limit(1);
+
+  const nextOrderIndex = active && active.length > 0 ? active[0].order_index + 1 : 0;
+
+  const { error } = await supabase
+    .from("rebus_puzzles")
+    .update({ archived_at: null, order_index: nextOrderIndex })
+    .eq("id", puzzle.id);
+
+  if (error) {
+    console.error("rebus puzzle restore failed", error);
+    return { outcome: "error", message: "Couldn't restore that puzzle. Please try again." };
+  }
+  return { outcome: "restored" };
+}
+
+export async function deleteRebusSet(setId: string): Promise<ArchiveOrDeleteResult> {
+  const { error: deleteError } = await supabase.from("rebus_sets").delete().eq("id", setId);
+
+  if (!deleteError) return { outcome: "deleted" };
+
+  if (deleteError.code !== FOREIGN_KEY_VIOLATION) {
+    console.error("rebus_set delete failed", deleteError);
+    return { outcome: "error", message: "Something went wrong deleting that set. Please try again." };
+  }
+
+  const { error: archiveError } = await supabase
+    .from("rebus_sets")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", setId);
+
+  if (archiveError) {
+    console.error("rebus_set archive failed", archiveError);
+    return { outcome: "error", message: "Couldn't archive that set either. Please try again." };
+  }
+  return { outcome: "archived" };
+}
+
+export async function restoreRebusSet(setId: string): Promise<ArchiveOrDeleteResult> {
+  const { error } = await supabase.from("rebus_sets").update({ archived_at: null }).eq("id", setId);
+  if (error) {
+    console.error("rebus_set restore failed", error);
+    return { outcome: "error", message: "Couldn't restore that set. Please try again." };
+  }
+  return { outcome: "restored" };
+}
+
+/** Sprint puzzles never need archiving — always a plain hard delete (see 0021_rebus_game.sql). */
+export async function deleteRebusSprintPuzzle(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from("rebus_sprint_puzzles").delete().eq("id", id);
+  if (error) {
+    console.error("rebus_sprint_puzzle delete failed", error);
+    return { error: "Something went wrong deleting that puzzle. Please try again." };
+  }
+  return { error: null };
+}

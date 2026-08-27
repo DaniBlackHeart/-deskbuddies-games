@@ -43,6 +43,16 @@ type ActiveWheelSession = {
   spectator: { username: string } | null;
 };
 
+type ActiveRebusSession = {
+  id: string;
+  status: string;
+  mode: string;
+  game_mode: string;
+  rebus_sets: { name: string } | null;
+  spectator_id: string | null;
+  spectator: { username: string } | null;
+};
+
 export default function ModDashboardPage() {
   const navigate = useNavigate();
   const [active, setActive] = useState<ActiveSession[]>([]);
@@ -50,6 +60,7 @@ export default function ModDashboardPage() {
   const [activeUno, setActiveUno] = useState<ActiveUnoSession[]>([]);
   const [activeImpostor, setActiveImpostor] = useState<ActiveImpostorSession[]>([]);
   const [activeWheel, setActiveWheel] = useState<ActiveWheelSession[]>([]);
+  const [activeRebus, setActiveRebus] = useState<ActiveRebusSession[]>([]);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [clearingLock, setClearingLock] = useState(false);
   const [lockResult, setLockResult] = useState<string | null>(null);
@@ -90,6 +101,13 @@ export default function ModDashboardPage() {
       .neq("status", "ended")
       .order("created_at", { ascending: false })
       .then(({ data }) => setActiveWheel((data as unknown as ActiveWheelSession[]) ?? []));
+
+    supabase
+      .from("rebus_sessions")
+      .select("id, status, mode, game_mode, rebus_sets(name), spectator_id, spectator:profiles!spectator_id(username)")
+      .neq("status", "ended")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setActiveRebus((data as unknown as ActiveRebusSession[]) ?? []));
   }, []);
 
   async function handleStartUno() {
@@ -132,7 +150,7 @@ export default function ModDashboardPage() {
       <AppHeader />
       <div className="container">
         <h1>🛠️ MOD Dashboard</h1>
-        <p className="text-muted">Manage question sets and run Trivia Night, Family Feud, UNO, Impostor WHO?, and Wheel of Fortune.</p>
+        <p className="text-muted">Manage question sets and run Trivia Night, Family Feud, UNO, Impostor WHO?, Wheel of Fortune, and Type What You See.</p>
 
         {active.length > 0 && (
           <div className="card" style={{ marginBottom: "20px" }}>
@@ -276,6 +294,36 @@ export default function ModDashboardPage() {
           </div>
         )}
 
+        {activeRebus.length > 0 && (
+          <div className="card" style={{ marginBottom: "20px" }}>
+            <h3>Type What You See in progress</h3>
+            {activeRebus.map((s) => (
+              <div key={s.id} className="stack" style={{ marginTop: "8px" }}>
+                <div className="row-between">
+                  <span>
+                    {s.rebus_sets?.name} — <span className="badge badge-live">{s.status}</span>{" "}
+                    <span className="badge badge-neutral">{s.mode === "hard" ? "🔥 hard" : "😌 chill"}</span>{" "}
+                    <span className="badge badge-neutral">{s.game_mode === "team" ? "🤝 team" : "🙋 solo"}</span>
+                  </span>
+                  <div className="row">
+                    <Link to={`/mod/rebus-spectate/${s.id}`} className="btn btn-secondary btn-sm">
+                      👀 Watch as spectator
+                    </Link>
+                    <Link to={`/mod/rebus-host/${s.id}`} className="btn btn-primary btn-sm">
+                      Go to host controls
+                    </Link>
+                  </div>
+                </div>
+                {s.spectator && (
+                  <p className="hint" style={{ margin: 0 }}>
+                    Currently being spectated by <strong>{s.spectator.username}</strong>
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <div
           style={{
             display: "grid",
@@ -331,6 +379,15 @@ export default function ModDashboardPage() {
               <h3 style={{ marginTop: "12px" }}>Wheel of Fortune</h3>
               <p className="text-muted" style={{ marginBottom: 0 }}>
                 Manage categories and phrases, then start a session from inside one.
+              </p>
+            </div>
+          </Link>
+          <Link to="/mod/rebus-sets" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="card">
+              <div style={{ fontSize: "2rem" }}>🔤</div>
+              <h3 style={{ marginTop: "12px" }}>Type What You See</h3>
+              <p className="text-muted" style={{ marginBottom: 0 }}>
+                Author rebus puzzles across all four rounds, then start a session from inside a set.
               </p>
             </div>
           </Link>

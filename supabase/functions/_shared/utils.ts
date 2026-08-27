@@ -577,6 +577,101 @@ export async function pickRandomWheelCategories(
   return shuffle(eligible).slice(0, count).map((c) => ({ id: c.id, name: c.name }));
 }
 
+// --- "Type What You See" (rebus) helpers ---
+
+// Flat bonus added to every correct main/Final Round answer. The original
+// spec's "+300 without a hint / +150 after a hint" collapsed to this flat
+// value once hints were descoped for v1 (see 0021_rebus_game.sql) — every
+// correct answer is, by definition, "without a hint" for now.
+export const REBUS_SPEED_BONUS = 300;
+
+// Flat award per correct Sprint (Round 4) answer — no penalty for a wrong
+// or skipped one, since the Sprint is a race against the clock, not a
+// scored quiz.
+export const REBUS_SPRINT_POINTS = 500;
+
+export const REBUS_SPRINT_SECONDS = 30;
+
+/**
+ * Computes a Rebus session's individual leaderboard: rounds 1-3 + Final
+ * Round points come from summing rebus_answers, and Sprint (Round 4)
+ * points are folded in on top for whichever two participants actually
+ * played it — sprint_p1_points/sprint_p2_points live directly on the
+ * session rather than as summable answer rows, since rebus_sprint_answers
+ * is intentionally anti-cheat-isolated per player while the Sprint is
+ * still in progress (see 0021_rebus_game.sql). By the time this is called
+ * the Sprint numbers are final, so folding them in post-hoc is safe.
+ */
+export async function computeRebusLeaderboard(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
+  const { data: participants } = await admin
+    .from("rebus_participants")
+    .select("user_id, team_id, profiles(username, avatar_url)")
+    .eq("session_id", sessionId);
+
+  const { data: answers } = await admin
+    .from("rebus_answers")
+    .select("user_id, points_awarded")
+    .eq("session_id", sessionId);
+
+  const { data: session } = await admin
+    .from("rebus_sessions")
+    .select("sprint_player1_id, sprint_player2_id, sprint_p1_points, sprint_p2_points")
+    .eq("id", sessionId)
+    .single();
+
+  const totals = new Map<string, number>();
+  for (const p of participants ?? []) totals.set(p.user_id, 0);
+  for (const a of answers ?? []) {
+    totals.set(a.user_id, (totals.get(a.user_id) ?? 0) + (a.points_awarded ?? 0));
+  }
+  if (session?.sprint_player1_id) {
+    totals.set(session.sprint_player1_id, (totals.get(session.sprint_player1_id) ?? 0) + (session.sprint_p1_points ?? 0));
+  }
+  if (session?.sprint_player2_id) {
+    totals.set(session.sprint_player2_id, (totals.get(session.sprint_player2_id) ?? 0) + (session.sprint_p2_points ?? 0));
+  }
+
+  const profileMap = new Map((participants ?? []).map((p: any) => [p.user_id, p.profiles]));
+  const teamMap = new Map((participants ?? []).map((p: any) => [p.user_id, p.team_id]));
+
+  const leaderboard = Array.from(totals.entries())
+    .map(([user_id, total_points]) => ({
+      user_id,
+      username: profileMap.get(user_id)?.username ?? "Unknown",
+      avatar_url: profileMap.get(user_id)?.avatar_url ?? null,
+      team_id: teamMap.get(user_id) ?? null,
+      total_points,
+    }))
+    .sort((a, b) => b.total_points - a.total_points)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+
+  return leaderboard;
+}
+
+/**
+ * Team-mode standings — sums each team's members' totals from the
+ * individual leaderboard above rather than re-querying, so the two never
+ * disagree. Participants with no team (shouldn't normally happen once a
+ * team-mode game has started) are simply excluded.
+ */
+export async function computeRebusTeamLeaderboard(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
+  const individual = await computeRebusLeaderboard(admin, sessionId);
+  const { data: teams } = await admin.from("rebus_teams").select("id, name").eq("session_id", sessionId);
+
+  const totals = new Map<string, number>();
+  for (const t of teams ?? []) totals.set(t.id, 0);
+  for (const entry of individual) {
+    if (entry.team_id) totals.set(entry.team_id, (totals.get(entry.team_id) ?? 0) + entry.total_points);
+  }
+
+  const nameMap = new Map((teams ?? []).map((t) => [t.id, t.name]));
+
+  return Array.from(totals.entries())
+    .map(([team_id, total_points]) => ({ team_id, name: nameMap.get(team_id) ?? "Unknown team", total_points }))
+    .sort((a, b) => b.total_points - a.total_points)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
+
 /** Computes a session's leaderboard by summing points_awarded per participant. */
 export async function computeLeaderboard(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
   const { data: participants } = await admin

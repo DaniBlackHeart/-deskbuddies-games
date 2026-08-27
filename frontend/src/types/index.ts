@@ -576,3 +576,182 @@ export type WheelSessionEvent =
   | { type: "bonus_board_revealed"; masked_phrase: string; deadline_ms: number }
   | { type: "bonus_resolved"; won: boolean; prize_points: number; phrase: string; timed_out: boolean }
   | { type: "session_ended" };
+
+// =========================================================
+// "Type What You See" (internal code: rebus)
+// Keep in sync with supabase/migrations/0021_rebus_game.sql
+// =========================================================
+
+export type RebusPuzzleType =
+  | "phonetic"
+  | "split"
+  | "numbers_letters"
+  | "visual"
+  | "missing_letters"
+  | "repeated"
+  | "homophone";
+
+export type RebusRound = "warmup" | "round2" | "round3" | "final";
+
+export type RebusSet = {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  archived_at: string | null;
+  puzzle_count?: number;
+  sprint_puzzle_count?: number;
+};
+
+export type RebusPuzzle = {
+  id: string;
+  rebus_set_id: string;
+  order_index: number;
+  round: RebusRound;
+  puzzle_type: RebusPuzzleType;
+  display_text: string;
+  answer_text: string;
+  accepted_answers: string[];
+  points: number;
+  time_limit_seconds: number;
+  archived_at: string | null;
+};
+
+// No archived_at — always hard-deletable, see 0021_rebus_game.sql.
+export type RebusSprintPuzzle = {
+  id: string;
+  rebus_set_id: string;
+  order_index: number;
+  display_text: string;
+  answer_text: string;
+  accepted_answers: string[];
+};
+
+// Public-safe puzzle shape sent to players during rounds 1-3 — NEVER
+// includes answer_text/accepted_answers before the reveal.
+export type PublicRebusPuzzle = {
+  id: string;
+  round: RebusRound;
+  puzzle_type: RebusPuzzleType;
+  display_text: string;
+  points: number;
+  penalty_points: number; // always resolved (never null) — the actual deduction if wrong, Hard mode only
+  time_limit_seconds: number;
+  order_index: number;
+  total_puzzles: number;
+};
+
+export type RebusSessionStatus =
+  | "lobby"
+  | "live"
+  | "reveal"
+  | "round_ended"
+  | "sprint_setup"
+  | "sprint_p1"
+  | "sprint_p2"
+  | "sprint_done"
+  | "final_live"
+  | "final_reveal"
+  | "ended";
+
+export type RebusGameMode = "solo" | "team";
+
+export type RebusSession = {
+  id: string;
+  rebus_set_id: string;
+  host_id: string;
+  status: RebusSessionStatus;
+  mode: SessionMode; // chill/hard — same semantics as Trivia
+  game_mode: RebusGameMode;
+  current_puzzle_index: number;
+  puzzle_started_at: string | null; // reused for the Final Round puzzle too
+  sprint_player1_id: string | null;
+  sprint_player2_id: string | null;
+  sprint_p1_deadline: string | null;
+  sprint_p2_deadline: string | null;
+  sprint_p1_index: number;
+  sprint_p2_index: number;
+  sprint_p1_points: number;
+  sprint_p2_points: number;
+  final_player_id: string | null;
+  final_puzzle_id: string | null;
+  spectator_id: string | null;
+  completed: boolean;
+  created_at: string;
+  started_at: string | null;
+  ended_at: string | null;
+};
+
+export type RebusTeam = {
+  id: string;
+  session_id: string;
+  name: string;
+  created_at: string;
+  members?: { user_id: string; profiles: { username: string; avatar_url: string | null } | null }[];
+};
+
+export type RebusParticipant = {
+  user_id: string;
+  team_id: string | null;
+  profiles: { username: string; avatar_url: string | null } | null;
+};
+
+export type RebusLeaderboardEntry = {
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
+  team_id: string | null;
+  total_points: number;
+  rank: number;
+};
+
+export type RebusTeamLeaderboardEntry = {
+  team_id: string;
+  name: string;
+  total_points: number;
+  rank: number;
+};
+
+// --- Realtime broadcast payload shapes (rebus-session-{id} channel) ---
+
+export type RebusSessionEvent =
+  | { type: "lobby_update"; started: true }
+  | { type: "puzzle_started"; puzzle: PublicRebusPuzzle; deadline_ms: number }
+  | {
+      type: "puzzle_ended";
+      puzzle_id: string;
+      answer_text: string | null;
+      accepted_answers: string[];
+      leaderboard: RebusLeaderboardEntry[];
+      team_leaderboard: RebusTeamLeaderboardEntry[] | null;
+    }
+  | { type: "round_ended"; leaderboard: RebusLeaderboardEntry[]; team_leaderboard: RebusTeamLeaderboardEntry[] | null }
+  | {
+      type: "sprint_setup";
+      player1: { user_id: string; username: string };
+      player2: { user_id: string; username: string };
+    }
+  | { type: "sprint_player_started"; player_slot: 1 | 2; deadline_ms: number }
+  | { type: "sprint_progress"; player_slot: 1 | 2; points: number; attempted: number }
+  | { type: "sprint_done"; p1_points: number; p2_points: number }
+  | {
+      type: "final_started";
+      finalist: { user_id: string; username: string };
+      puzzle: { id: string; display_text: string; points: number; time_limit_seconds: number };
+      deadline_ms: number;
+    }
+  | {
+      type: "final_ended";
+      answer_text: string | null;
+      accepted_answers: string[];
+      finalist_result: { is_correct: boolean; points_awarded: number; answer_text: string } | null;
+      leaderboard: RebusLeaderboardEntry[];
+      team_leaderboard: RebusTeamLeaderboardEntry[] | null;
+    }
+  | {
+      type: "session_ended";
+      leaderboard: RebusLeaderboardEntry[];
+      team_leaderboard: RebusTeamLeaderboardEntry[] | null;
+      completed: boolean;
+    };

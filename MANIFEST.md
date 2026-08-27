@@ -1,54 +1,110 @@
-# Wheel of Fortune — fix buzzer getting stuck (no consonant prompt after buzzing)
+# MANIFEST — "Type What You See" (rebus), game #6
 
-## Root cause
+This zip mirrors your repo's directory structure. Everything under
+`supabase/` and `frontend/` should be copied/merged into the matching path
+in your actual repo (overwriting the modified files listed below — they're
+small, additive changes, not rewrites). `PROJECT_CONTEXT_ADDENDUM.md` and
+this `MANIFEST.md` are **not** part of the git repo — see the note at the
+bottom. (There was a leftover `MANIFEST.md` from the Aug 26 Wheel buzzer
+fix sitting in the uploaded zip's root — it wasn't tracked in git, so this
+file replaces it; nothing lost.)
 
-Same class of bug as the last delivery, one screen over. `wheel-play`'s `buzz` action
-correctly sets `turn_phase` to `awaiting_consonant` server-side, but `WheelPlayPage.tsx`'s
-`callPlay()` only called `hydrate()` on **error** — on success it just returned and waited
-for the `buzz_won` realtime broadcast to round-trip back to the same client before showing
-the consonant keypad. If that broadcast was slow or missed, the buzzer looked stuck even
-though the buzz itself had succeeded.
+## New files
 
-This wasn't just `buzz` — every player action on this page (`call_consonant`, `buy_vowel`,
-`start_solve_attempt`, `submit_solve`, `mystery_choice`, the bonus-round actions, the
-timeout actions) had the same gap, since they all go through the same `callPlay()` helper.
+```
+supabase/migrations/0021_rebus_game.sql
+supabase/functions/rebus-host/index.ts
+supabase/functions/rebus-play/index.ts
+supabase/functions/get-rebus-state/index.ts
+frontend/src/pages/rebus/RebusLobbyPage.tsx
+frontend/src/pages/rebus/RebusPlayPage.tsx
+frontend/src/pages/mod/RebusSetsPage.tsx
+frontend/src/pages/mod/RebusSetEditorPage.tsx
+frontend/src/pages/mod/HostRebusSessionPage.tsx
+frontend/src/pages/mod/RebusSpectatorPage.tsx
+frontend/src/components/RebusImportModal.tsx
+frontend/src/components/RebusTeamLeaderboard.tsx
+frontend/src/utils/rebusPuzzleParser.ts
+```
 
-## Fix
+## Modified files (additive — new blocks appended/inserted, nothing from the existing games removed)
 
-`callPlay()` now refetches state directly after any successful action, the same pattern
-already applied to the lobby/host pages. **`spin` is the deliberate exception** — its
-outcome has to stay hidden until the wheel's ~2.3s spin animation actually finishes, which
-is already handled by the `spin_result` broadcast + `SPIN_ANIMATION_MS` timeout further down
-in this file. Hydrating immediately after `spin`'s own response would reveal the wedge
-before the wheel visually stops — so that one action still relies purely on the broadcast,
-exactly as before. Everything else now updates the acting player's own screen immediately.
+```
+supabase/functions/_shared/utils.ts   — computeRebusLeaderboard, computeRebusTeamLeaderboard,
+                                         REBUS_SPEED_BONUS, REBUS_SPRINT_POINTS, REBUS_SPRINT_SECONDS
+frontend/src/types/index.ts           — Rebus* types block appended at the end
+frontend/src/lib/archiveOrDelete.ts   — deleteRebusSet/restoreRebusSet/deleteRebusPuzzle/
+                                         restoreRebusPuzzle/deleteRebusSprintPuzzle appended
+frontend/src/styles/global.css        — .rebus-roster / .rebus-team-card / .rebus-puzzle-display appended
+frontend/src/App.tsx                  — 6 new routes (/rebus/lobby, /rebus/play/:id, and 4 /mod/rebus-* routes)
+frontend/src/pages/DashboardPage.tsx  — new GameCard
+frontend/src/pages/mod/ModDashboardPage.tsx — active-session card block + content grid link + subtitle
+README.md                             — game list, anti-cheat section, architecture bullets
+SETUP.md                              — function deploy commands, migration count (0019 → 0021)
+```
 
-The direct refetch is routed through the same `runOrQueue()` helper the broadcast handlers
-already use, so if a spin animation somehow is mid-flight when another action resolves, it's
-deferred rather than cutting the animation short — no new race introduced.
+## Validated before packaging
 
-## Validation
+- `npx tsc -b` → **0 errors**
+- `npx oxlint` → **6 warnings** (your existing baseline — unchanged; a 7th
+  warning this introduced in `RebusLobbyPage.tsx` was fixed with the same
+  `eslint-disable-next-line react-hooks/exhaustive-deps` pattern already
+  used elsewhere for the identical lobby-music effect shape)
+- `npx vite build` → succeeds (only the pre-existing "chunk size" advisory,
+  not something this delivery introduced)
+- Edge Functions could **not** be run through `deno check` (no Deno runtime
+  available in this environment) — reviewed by hand against
+  `_shared/utils.ts`'s actual exported signatures instead. Worth an extra
+  careful first playtest for that reason.
 
-- `npx tsc -b` — 0 errors.
-- `npx oxlint` — same 6 baseline warnings, nothing new.
-- Checked `WheelSpectatorPage.tsx` for the same gap — it already calls `hydrate()` directly
-  after its own `claim_spectator` action, so it wasn't affected.
-- No Edge Functions or migrations touched — frontend-only change, no `supabase db push` or
-  function redeploy needed.
+## Deploy order
 
-## Deploy steps
+Backend before frontend, same as every other backend+frontend delivery:
 
 ```bash
-cd deskbuddies-games       # your actual project root
+cd deskbuddies-games          # repo root — confirm with `git remote -v` first if on a new machine
+
+# 1. Migration
+npx supabase db push
+
+# 2. Edge Functions
+npx supabase functions deploy rebus-host
+npx supabase functions deploy rebus-play
+npx supabase functions deploy get-rebus-state
+
+# 3. Commit + push (Vercel auto-deploys the frontend)
 git add .
-git commit -m "fix: refetch Wheel of Fortune play-screen state directly after every action except spin, instead of relying solely on the broadcast reaching the acting client"
+git commit -m "feat: add Type What You See (rebus) game"
 git push
 ```
 
-## Files in this delivery
+## Suggested first playtest
 
-```
-frontend/src/pages/wheel/WheelPlayPage.tsx   (modified)
-```
+1. Start with **Solo + Chill mode** and a small test set (3-4 warm-up
+   puzzles, 1-2 in round 2/3, a couple of Sprint puzzles, one Final puzzle)
+   — confirms the full status pipeline end-to-end before a real session.
+2. Then try **Team mode** with 2 test teams to confirm the team
+   leaderboard math and the lobby's create/join/leave-team flow.
+3. Then try **Hard mode** to confirm the wrong-answer/no-answer penalties.
+4. Deliberately let a puzzle's timer run out with nobody answering, in
+   Hard mode, to confirm the no-show penalty sweep fires correctly.
+5. Deliberately create a Sprint tie (or don't add enough Sprint puzzles for
+   one player to overtake) to exercise the host's tie-breaker picker.
+6. Try ending a session early from every stage (`round_ended`,
+   `sprint_setup`, `sprint_done`) to confirm "Cancel"/"End session" always
+   does the right thing and the `active_session_lock` actually releases —
+   check MOD Dashboard → Troubleshooting if a later session ever refuses to
+   start with a lock conflict.
 
-Merge into your repo root with the usual `cp -r` convention.
+## Housekeeping
+
+- `PROJECT_CONTEXT_ADDENDUM.md` (included in this zip) is **not** part of
+  the git repo — it's written for Project Knowledge. The copy of
+  `PROJECT_CONTEXT.md` visible in this chat is a stale 2026-08-14 snapshot
+  (predates UNO/Impostor/Wheel and migrations 0011-0020), so this was
+  written as a standalone addendum rather than a full regenerated file to
+  avoid clobbering the real, current version you have in Project
+  Knowledge. Merge the sections in (placement notes are inline) and
+  re-upload.
+- This `MANIFEST.md` itself isn't part of the repo either — it's just this
+  delivery's deploy guide.

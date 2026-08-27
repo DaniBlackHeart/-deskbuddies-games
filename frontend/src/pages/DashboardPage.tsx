@@ -47,6 +47,12 @@ export default function DashboardPage() {
             title="Wheel of Fortune"
             description="Buzz in, spin the wheel, call letters, and solve the puzzle — 5 rounds plus a Bonus Round."
           />
+          <GameCard
+            to="/rebus/lobby"
+            emoji="🔤"
+            title="Type What You See"
+            description="Decode rebus puzzles under the clock — Warm-Up, two scored rounds, a head-to-head Sprint, and one Big Puzzle finale."
+          />
         </div>
       </div>
     </div>
