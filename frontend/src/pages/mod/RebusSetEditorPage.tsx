@@ -31,6 +31,22 @@ const TYPE_OPTIONS: { value: RebusPuzzleType; label: string }[] = [
   { value: "homophone", label: "Homophone" },
 ];
 
+// One example per puzzle type, shown next to the Puzzle type picker in the
+// manual add form. Bulk import no longer takes a Type at all (2026-08-29 —
+// every imported puzzle defaults to Phonetic), so this is now the only
+// place in the UI where a MOD chooses a type — these examples used to live
+// in the paste-import template's help text and moved here with that change
+// rather than being re-added to the template.
+const TYPE_EXAMPLES: Record<RebusPuzzleType, { display: string; answer: string }> = {
+  phonetic: { display: "SIR USE LEE", answer: "Seriously" },
+  split: { display: "STAND\nI", answer: "Understand" },
+  numbers_letters: { display: "2GETHER", answer: "Together" },
+  visual: { display: "MIND\nMATTER", answer: "Mind over matter" },
+  missing_letters: { display: "CH_ISTMAS", answer: "Christmas" },
+  repeated: { display: "CYCLE CYCLE CYCLE", answer: "Tricycle" },
+  homophone: { display: "EWE", answer: "You" },
+};
+
 const emptyDraft = (round: RebusRound) => ({
   round,
   puzzleType: "phonetic" as RebusPuzzleType,
@@ -326,6 +342,9 @@ export default function RebusSetEditorPage() {
                         </option>
                       ))}
                     </select>
+                    <p className="hint">
+                      e.g. "{TYPE_EXAMPLES[draft.puzzleType].display.replace(/\n/g, " / ")}" → {TYPE_EXAMPLES[draft.puzzleType].answer}
+                    </p>
                   </div>
                 </div>
 

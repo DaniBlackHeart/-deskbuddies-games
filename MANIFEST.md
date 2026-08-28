@@ -9,6 +9,14 @@ to Phonetic (add a puzzle manually instead if you need a different type
 for it). The Sprint pool's import format (`DISPLAY :: ANSWER`) was already
 this simple and is untouched.
 
+Since bulk import no longer takes a Type at all, the manual "Add puzzle"
+form is now the *only* place in the UI where a MOD picks a puzzle type —
+so the per-type examples that used to live in the paste-import template's
+help text moved there instead of being re-added to a template that no
+longer has a Type field. Picking a type in that form now shows a one-line
+example (display text → answer) for the selected type, right under the
+Puzzle type dropdown, updating live as the dropdown changes.
+
 Frontend-only — no migration, no Edge Function change.
 
 ## Files in this delivery
@@ -33,7 +41,7 @@ npx vite build    # succeeds, confirmed (only the pre-existing bundle-size advis
 
 ```bash
 git add .
-git commit -m "simplify Type What You See puzzle import: drop Round/Type from the template, infer from the active round tab"
+git commit -m "simplify Type What You See puzzle import: drop Round/Type from the template, infer from the active round tab; show per-type examples in the manual add form"
 git push
 ```
 
@@ -49,3 +57,8 @@ Vercel auto-deploys from the push.
    (400 pts / 15s).
 3. Confirm the Sprint Pool tab's import is unaffected (still
    `DISPLAY :: ANSWER`, no round/type ever existed there).
+4. Open "+ Add puzzle manually" and cycle the Puzzle type dropdown through
+   all seven options — confirm the example line under it updates each
+   time and reads sensibly for that type (e.g. "Split words" shows
+   `STAND / I` → `Understand`; "Repeated words" shows `CYCLE CYCLE CYCLE`
+   → `Tricycle`).
