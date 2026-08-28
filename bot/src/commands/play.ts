@@ -25,27 +25,27 @@ async function execute(interaction: ChatInputCommandInteraction): Promise<void> 
     await interaction.reply({ content: "This only works in a server.", flags: MessageFlags.Ephemeral });
     return;
   }
+
+  // Ack Discord immediately — the DJ-role check below hits Supabase, and
+  // Discord requires the initial response within 3 seconds or it shows
+  // "The application did not respond" even if the command would have
+  // otherwise succeeded a moment later.
+  await interaction.deferReply();
+
   const member = await resolveMember(interaction);
 
   if (!(await canControlMusic(member))) {
-    await interaction.reply({
-      content: "You need the DJ role (or Manage Server) to control music here.",
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply("You need the DJ role (or Manage Server) to control music here.");
     return;
   }
 
   const voiceChannel = member.voice.channel;
   if (!voiceChannel) {
-    await interaction.reply({
-      content: "Join a voice channel first, then try again.",
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply("Join a voice channel first, then try again.");
     return;
   }
 
   const query = interaction.options.getString("query", true);
-  await interaction.deferReply();
 
   let tracks;
   try {

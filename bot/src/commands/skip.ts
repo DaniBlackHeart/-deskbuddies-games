@@ -13,24 +13,28 @@ async function execute(interaction: ChatInputCommandInteraction): Promise<void> 
     await interaction.reply({ content: "This only works in a server.", flags: MessageFlags.Ephemeral });
     return;
   }
+
+  // Ack Discord immediately — the DJ-role check below hits Supabase, and
+  // Discord requires the initial response within 3 seconds or it shows
+  // "The application did not respond" even if the command would have
+  // otherwise succeeded a moment later.
+  await interaction.deferReply();
+
   const member = await resolveMember(interaction);
   if (!(await canControlMusic(member))) {
-    await interaction.reply({
-      content: "You need the DJ role (or Manage Server) to control music here.",
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply("You need the DJ role (or Manage Server) to control music here.");
     return;
   }
 
   const queue = getQueue(interaction.guildId);
   const current = queue?.nowPlaying();
   if (!queue || !current) {
-    await interaction.reply({ content: "Nothing's playing right now.", flags: MessageFlags.Ephemeral });
+    await interaction.editReply("Nothing's playing right now.");
     return;
   }
 
   queue.skip();
-  await interaction.reply(`Skipped **${current.title}**.`);
+  await interaction.editReply(`Skipped **${current.title}**.`);
 }
 
 export default { data, execute } satisfies Command;

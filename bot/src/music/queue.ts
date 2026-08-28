@@ -71,7 +71,7 @@ export class GuildQueue {
     this.connection.subscribe(this.player);
 
     try {
-      await entersState(this.connection, VoiceConnectionStatus.Ready, 15_000);
+      await entersState(this.connection, VoiceConnectionStatus.Ready, 30_000);
     } catch (err) {
       console.error(`[music] Voice connection in guild ${this.guildId} never became ready:`, err);
       this.connection.destroy();

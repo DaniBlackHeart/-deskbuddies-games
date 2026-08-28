@@ -31,12 +31,16 @@ async function execute(interaction: ChatInputCommandInteraction): Promise<void> 
     await interaction.reply({ content: "This only works in a server.", flags: MessageFlags.Ephemeral });
     return;
   }
+
+  // Ack Discord immediately — resolving the member and saving to Supabase
+  // below can take a moment, and Discord requires the initial response
+  // within 3 seconds or it shows "The application did not respond" even if
+  // the command would have otherwise succeeded a moment later.
+  await interaction.deferReply();
+
   const member = await resolveMember(interaction);
   if (!canManageMusicSettings(member)) {
-    await interaction.reply({
-      content: "You need Manage Server permission to change this.",
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply("You need Manage Server permission to change this.");
     return;
   }
 
@@ -46,14 +50,11 @@ async function execute(interaction: ChatInputCommandInteraction): Promise<void> 
     await setDjRole(interaction.guildId, role?.id ?? null);
   } catch (err) {
     console.error("[setdjrole] failed:", err);
-    await interaction.reply({
-      content: "Couldn't save that setting — check the bot's logs.",
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply("Couldn't save that setting — check the bot's logs.");
     return;
   }
 
-  await interaction.reply(
+  await interaction.editReply(
     role
       ? `DJ role set to **${role.name}** — members with that role (or Manage Server) can now control music.`
       : "DJ role cleared — only admins/Manage Server can control music until a role is set again."
