@@ -524,7 +524,9 @@ export default function RebusSetEditorPage() {
         )}
       </div>
 
-      {showImport && <RebusImportModal onCancel={() => setShowImport(false)} onConfirm={handleImportConfirm} />}
+      {showImport && activeTab !== "sprint" && (
+        <RebusImportModal round={activeTab} onCancel={() => setShowImport(false)} onConfirm={handleImportConfirm} />
+      )}
     </div>
   );
 }

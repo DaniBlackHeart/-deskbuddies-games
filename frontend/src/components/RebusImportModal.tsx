@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { parseRebusPuzzleInput, REBUS_TEMPLATE_EXAMPLE, type ParsedRebusPuzzle } from "../utils/rebusPuzzleParser";
+import type { RebusRound } from "../types";
 
 const ROUND_LABELS: Record<string, string> = {
   warmup: "Round 1 · Warm-Up",
@@ -9,11 +10,12 @@ const ROUND_LABELS: Record<string, string> = {
 };
 
 type RebusImportModalProps = {
+  round: RebusRound;
   onCancel: () => void;
   onConfirm: (puzzles: ParsedRebusPuzzle[]) => Promise<void>;
 };
 
-export default function RebusImportModal({ onCancel, onConfirm }: RebusImportModalProps) {
+export default function RebusImportModal({ round, onCancel, onConfirm }: RebusImportModalProps) {
   const [raw, setRaw] = useState("");
   const [parsed, setParsed] = useState<ParsedRebusPuzzle[] | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -21,7 +23,7 @@ export default function RebusImportModal({ onCancel, onConfirm }: RebusImportMod
   const [showExample, setShowExample] = useState(false);
 
   function handlePreview() {
-    const result = parseRebusPuzzleInput(raw);
+    const result = parseRebusPuzzleInput(raw, round);
     setParsed(result.puzzles);
     setErrors(result.errors);
   }
@@ -52,7 +54,9 @@ export default function RebusImportModal({ onCancel, onConfirm }: RebusImportMod
       <div className="card" style={{ maxWidth: "620px", width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
         <h2>Import puzzles</h2>
         <p className="text-muted">
-          Paste a JSON array, or use the simple text template.{" "}
+          Importing into <strong>{ROUND_LABELS[round] ?? round}</strong> — paste a JSON array, or use the simple text
+          template. No need to say the round or puzzle type per puzzle: every puzzle in this batch goes into this
+          round, tagged as Phonetic (add it manually instead if you need a different type).{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setShowExample((s) => !s)} style={{ padding: 0 }}>
             {showExample ? "Hide example" : "Show example"}
           </button>
@@ -110,10 +114,7 @@ export default function RebusImportModal({ onCancel, onConfirm }: RebusImportMod
             <div className="stack">
               {parsed.map((p, i) => (
                 <div key={i} className="card card--tight">
-                  <div className="row-between">
-                    <strong>{p.display_text}</strong>
-                    <span className="badge badge-neutral">{ROUND_LABELS[p.round] ?? p.round}</span>
-                  </div>
+                  <strong>{p.display_text}</strong>
                   <p className="hint" style={{ marginTop: "4px" }}>
                     {p.points} pts · {p.time_limit_seconds}s · answer: {p.answer_text}
                   </p>
