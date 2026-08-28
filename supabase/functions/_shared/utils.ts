@@ -592,6 +592,109 @@ export const REBUS_SPRINT_POINTS = 500;
 
 export const REBUS_SPRINT_SECONDS = 30;
 
+// Up to this many puzzles get pulled into each of Rounds 1-3 when a
+// session is created — same fixed defaults the original single-set
+// format used (10 Warm-Up / 10 Round 2 / 10 Round 3), kept as a shared
+// constant now that the pool is assembled programmatically instead of by
+// a MOD hand-curating exactly this many puzzles per round. If a round's
+// combined pool (across every set) has fewer than this many active
+// puzzles, the session just gets however many exist.
+export const REBUS_PUZZLES_PER_ROUND = 10;
+
+const REBUS_MAIN_ROUNDS = ["warmup", "round2", "round3"] as const;
+
+/**
+ * Builds ONE session's Rounds 1-3 + Final Round puzzle pool by randomly
+ * mixing every active (non-archived) puzzle from EVERY rebus_set together
+ * — confirmed with Dani (2026-08-29) as the replacement for "start a
+ * session from one specific set," mirroring how Wheel of Fortune
+ * randomizes its own category + phrase each round instead of a MOD
+ * picking one up front. See 0023_rebus_mixed_sessions.sql for why the
+ * result gets copied into a session-scoped snapshot table rather than
+ * just recording which rebus_puzzles rows were chosen.
+ *
+ * Returns rows shaped for rebus_session_puzzles (session_id not yet
+ * attached — the caller adds it after the session row exists).
+ * order_index is one flat counter across warmup -> round2 -> round3,
+ * with the Final Round puzzle (if any exist anywhere) appended last —
+ * mirrors the single contiguous order_index sequence rebus_puzzles used
+ * per set, so next_puzzle/end_puzzle's positional stepping logic needs
+ * no changes beyond querying by session_id instead of rebus_set_id.
+ */
+export async function pickRebusSessionPuzzles(admin: ReturnType<typeof getAdminClient>) {
+  const { data: allPuzzles } = await admin.from("rebus_puzzles").select("*").is("archived_at", null);
+
+  type Row = {
+    round: string;
+    order_index: number;
+    source_puzzle_id: string;
+    puzzle_type: string;
+    display_text: string;
+    answer_text: string;
+    accepted_answers: unknown;
+    points: number;
+    time_limit_seconds: number;
+  };
+
+  const rows: Row[] = [];
+  let cursor = 0;
+
+  for (const round of REBUS_MAIN_ROUNDS) {
+    const candidates = (allPuzzles ?? []).filter((p) => p.round === round);
+    const picked = shuffle(candidates).slice(0, REBUS_PUZZLES_PER_ROUND);
+    for (const p of picked) {
+      rows.push({
+        round,
+        order_index: cursor++,
+        source_puzzle_id: p.id,
+        puzzle_type: p.puzzle_type,
+        display_text: p.display_text,
+        answer_text: p.answer_text,
+        accepted_answers: p.accepted_answers,
+        points: p.points,
+        time_limit_seconds: p.time_limit_seconds,
+      });
+    }
+  }
+
+  const finalCandidates = (allPuzzles ?? []).filter((p) => p.round === "final");
+  if (finalCandidates.length > 0) {
+    const p = shuffle(finalCandidates)[0];
+    rows.push({
+      round: "final",
+      order_index: cursor++,
+      source_puzzle_id: p.id,
+      puzzle_type: p.puzzle_type,
+      display_text: p.display_text,
+      answer_text: p.answer_text,
+      accepted_answers: p.accepted_answers,
+      points: p.points,
+      time_limit_seconds: p.time_limit_seconds,
+    });
+  }
+
+  return rows;
+}
+
+/**
+ * Same idea for the Sprint (Round 4) pool: every rebus_sprint_puzzles row
+ * from every set, shuffled together into one session-scoped pool. No cap
+ * — matches the original single-set pool's "no fixed count, the two
+ * players just race through as much of it as they can in 30 seconds."
+ * Returns rows shaped for rebus_session_sprint_puzzles (session_id not
+ * yet attached).
+ */
+export async function pickRebusSessionSprintPuzzles(admin: ReturnType<typeof getAdminClient>) {
+  const { data: allSprint } = await admin.from("rebus_sprint_puzzles").select("*");
+  return shuffle(allSprint ?? []).map((p, i) => ({
+    order_index: i,
+    source_sprint_puzzle_id: p.id,
+    display_text: p.display_text,
+    answer_text: p.answer_text,
+    accepted_answers: p.accepted_answers,
+  }));
+}
+
 /**
  * Computes a Rebus session's individual leaderboard: rounds 1-3 + Final
  * Round points come from summing rebus_answers, and Sprint (Round 4)

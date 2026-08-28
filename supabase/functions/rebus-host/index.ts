@@ -19,6 +19,8 @@ import {
   forceReleaseSessionLock,
   claimSpectatorSeat,
   releaseSpectatorSeat,
+  pickRebusSessionPuzzles,
+  pickRebusSessionSprintPuzzles,
   REBUS_SPRINT_SECONDS,
 } from "../_shared/utils.ts";
 
@@ -40,26 +42,26 @@ function toPublicPuzzle(puzzle: any, totalPuzzles: number) {
   };
 }
 
-async function fetchMainPuzzles(admin: ReturnType<typeof getAdminClient>, rebusSetId: string) {
+// Reads a SESSION's own puzzle snapshot (rebus_session_puzzles), not the
+// authoring tables — every session's Rounds 1-3 + Final Round content was
+// fixed once, at create_session, by pickRebusSessionPuzzles. See
+// 0023_rebus_mixed_sessions.sql for why a snapshot instead of an FK.
+async function fetchSessionMainPuzzles(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
   const { data } = await admin
-    .from("rebus_puzzles")
+    .from("rebus_session_puzzles")
     .select("*")
-    .eq("rebus_set_id", rebusSetId)
+    .eq("session_id", sessionId)
     .neq("round", "final")
-    .is("archived_at", null)
     .order("order_index", { ascending: true });
   return data ?? [];
 }
 
-async function fetchFinalPuzzle(admin: ReturnType<typeof getAdminClient>, rebusSetId: string) {
+async function fetchSessionFinalPuzzle(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
   const { data } = await admin
-    .from("rebus_puzzles")
+    .from("rebus_session_puzzles")
     .select("*")
-    .eq("rebus_set_id", rebusSetId)
+    .eq("session_id", sessionId)
     .eq("round", "final")
-    .is("archived_at", null)
-    .order("order_index", { ascending: true })
-    .limit(1)
     .maybeSingle();
   return data ?? null;
 }
@@ -115,14 +117,17 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case "create_session": {
-        const { rebus_set_id, mode, game_mode } = body;
+        const { mode, game_mode } = body;
         const resolvedMode = mode === "hard" ? "hard" : "chill";
         const resolvedGameMode = game_mode === "team" ? "team" : "solo";
 
-        const mainPuzzles = await fetchMainPuzzles(admin, rebus_set_id);
-        if (mainPuzzles.length === 0) {
-          return jsonResponse({ error: "This set has no Round 1-3 puzzles yet" }, 400);
+        // Mixed across every set now — see 0023_rebus_mixed_sessions.sql
+        // and pickRebusSessionPuzzles for the "automatic rounds" design.
+        const mainPool = await pickRebusSessionPuzzles(admin);
+        if (!mainPool.some((p) => p.round !== "final")) {
+          return jsonResponse({ error: "Add some puzzles to a set (Rounds 1-3) before starting a session" }, 400);
         }
+        const sprintPool = await pickRebusSessionSprintPuzzles(admin);
 
         const sessionId = crypto.randomUUID();
         const lockError = await claimSessionLock(admin, { game: "rebus", sessionId, hostId: user.id });
@@ -132,7 +137,6 @@ Deno.serve(async (req) => {
           .from("rebus_sessions")
           .insert({
             id: sessionId,
-            rebus_set_id,
             host_id: user.id,
             status: "lobby",
             mode: resolvedMode,
@@ -146,6 +150,22 @@ Deno.serve(async (req) => {
           await releaseSessionLock(admin, sessionId);
           return jsonResponse({ error: "Could not create session" }, 500);
         }
+
+        const { error: puzzlesError } = await admin
+          .from("rebus_session_puzzles")
+          .insert(mainPool.map((p) => ({ ...p, session_id: sessionId })));
+        const { error: sprintError } =
+          sprintPool.length > 0
+            ? await admin.from("rebus_session_sprint_puzzles").insert(sprintPool.map((p) => ({ ...p, session_id: sessionId })))
+            : { error: null };
+
+        if (puzzlesError || sprintError) {
+          console.error("rebus session pool insert failed", puzzlesError, sprintError);
+          await admin.from("rebus_sessions").delete().eq("id", sessionId);
+          await releaseSessionLock(admin, sessionId);
+          return jsonResponse({ error: "Could not build this session's puzzle pool" }, 500);
+        }
+
         return jsonResponse({ session });
       }
 
@@ -184,7 +204,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: `Can't advance a session that's ${session.status}` }, 409);
         }
 
-        const puzzles = await fetchMainPuzzles(admin, session.rebus_set_id);
+        const puzzles = await fetchSessionMainPuzzles(admin, session_id);
         const nextIndex = session.current_puzzle_index + 1;
 
         if (nextIndex >= puzzles.length) {
@@ -218,7 +238,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "No live puzzle to end" }, 409);
         }
 
-        const puzzles = await fetchMainPuzzles(admin, session.rebus_set_id);
+        const puzzles = await fetchSessionMainPuzzles(admin, session_id);
         const puzzle = puzzles[session.current_puzzle_index];
 
         await admin.from("rebus_sessions").update({ status: "reveal" }).eq("id", session_id);
@@ -256,11 +276,11 @@ Deno.serve(async (req) => {
         }
 
         const { count: poolCount } = await admin
-          .from("rebus_sprint_puzzles")
+          .from("rebus_session_sprint_puzzles")
           .select("id", { count: "exact", head: true })
-          .eq("rebus_set_id", session.rebus_set_id);
+          .eq("session_id", session_id);
         if (!poolCount || poolCount === 0) {
-          return jsonResponse({ error: "Add some Sprint puzzles to this set before starting Round 4" }, 400);
+          return jsonResponse({ error: "No set has any Sprint puzzles yet — add some before starting Round 4" }, 400);
         }
 
         const { data: eligible } = await admin
@@ -363,9 +383,9 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "The Sprint ended in a tie — pick who goes to the Final Round" }, 409);
         }
 
-        const finalPuzzle = await fetchFinalPuzzle(admin, session.rebus_set_id);
+        const finalPuzzle = await fetchSessionFinalPuzzle(admin, session_id);
         if (!finalPuzzle) {
-          return jsonResponse({ error: "This set has no Final Round puzzle yet" }, 400);
+          return jsonResponse({ error: "No set has a Final Round puzzle yet" }, 400);
         }
 
         const { data: finalistProfile } = await admin.from("profiles").select("username").eq("id", finalist).single();
@@ -439,7 +459,7 @@ Deno.serve(async (req) => {
         if (!session) return jsonResponse({ error: "Session not found" }, 404);
         if (session.status === "ended") return jsonResponse({ error: "Session already ended" }, 409);
 
-        const finalPuzzleExists = Boolean(await fetchFinalPuzzle(admin, session.rebus_set_id));
+        const finalPuzzleExists = Boolean(await fetchSessionFinalPuzzle(admin, session_id));
         const completed = finalPuzzleExists
           ? session.status === "final_reveal"
           : ["round_ended", "sprint_setup", "sprint_p1", "sprint_p2", "sprint_done"].includes(session.status);

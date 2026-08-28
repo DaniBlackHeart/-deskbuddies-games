@@ -5,7 +5,7 @@ import Leaderboard from "../../components/Leaderboard";
 import RebusTeamLeaderboard from "../../components/RebusTeamLeaderboard";
 import Timer from "../../components/Timer";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
-import type { RebusLeaderboardEntry, RebusParticipant, RebusPuzzle, RebusSession, RebusTeamLeaderboardEntry } from "../../types";
+import type { RebusLeaderboardEntry, RebusParticipant, RebusSession, RebusSessionPuzzle, RebusTeamLeaderboardEntry } from "../../types";
 
 const STATUS_LABELS: Record<string, string> = {
   lobby: "Lobby",
@@ -26,9 +26,8 @@ export default function HostRebusSessionPage() {
   const navigate = useNavigate();
 
   const [session, setSession] = useState<RebusSession | null>(null);
-  const [setName, setSetName] = useState("");
-  const [mainPuzzles, setMainPuzzles] = useState<RebusPuzzle[]>([]);
-  const [finalPuzzle, setFinalPuzzle] = useState<RebusPuzzle | null>(null);
+  const [mainPuzzles, setMainPuzzles] = useState<RebusSessionPuzzle[]>([]);
+  const [finalPuzzle, setFinalPuzzle] = useState<RebusSessionPuzzle | null>(null);
   const [roster, setRoster] = useState<RebusParticipant[]>([]);
   const [leaderboard, setLeaderboard] = useState<RebusLeaderboardEntry[]>([]);
   const [teamLeaderboard, setTeamLeaderboard] = useState<RebusTeamLeaderboardEntry[] | null>(null);
@@ -99,13 +98,10 @@ export default function HostRebusSessionPage() {
     const { data: sessionData } = await supabase.from("rebus_sessions").select("*").eq("id", sessionId).single();
     setSession(sessionData);
     if (sessionData) {
-      const { data: setData } = await supabase.from("rebus_sets").select("name").eq("id", sessionData.rebus_set_id).single();
-      setSetName(setData?.name ?? "");
       const { data: puzzles } = await supabase
-        .from("rebus_puzzles")
+        .from("rebus_session_puzzles")
         .select("*")
-        .eq("rebus_set_id", sessionData.rebus_set_id)
-        .is("archived_at", null)
+        .eq("session_id", sessionId)
         .order("order_index", { ascending: true });
       setMainPuzzles((puzzles ?? []).filter((p) => p.round !== "final"));
       setFinalPuzzle((puzzles ?? []).find((p) => p.round === "final") ?? null);
@@ -225,7 +221,7 @@ export default function HostRebusSessionPage() {
       <div className="container">
         <div className="row-between">
           <div>
-            <h1>{setName}</h1>
+            <h1>Type What You See</h1>
             <p className="text-muted" style={{ marginTop: "-8px" }}>
               {roster.length} joined
             </p>

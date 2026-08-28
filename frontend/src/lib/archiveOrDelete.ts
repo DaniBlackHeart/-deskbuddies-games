@@ -238,26 +238,46 @@ export async function restoreWheelCategory(categoryId: string): Promise<ArchiveO
 
 // =========================================================
 // "Type What You See" (rebus) — rebus_sets / rebus_puzzles
-// Same shape as question_sets/questions: rebus_answers.puzzle_id and
-// rebus_sessions.final_puzzle_id both RESTRICT on delete, so a puzzle or
-// set with real play history archives instead of hard-deleting.
+// Since 0023_rebus_mixed_sessions.sql, rebus_answers.puzzle_id and
+// rebus_sessions.final_puzzle_id point at rebus_session_puzzles (a
+// per-session SNAPSHOT of whichever puzzles got randomly picked into that
+// session), not directly at rebus_puzzles — so deleting an authored
+// puzzle or set no longer trips a Postgres FK violation just because it
+// was once played. The archive-instead-of-delete UX is still worth
+// keeping (don't let a MOD accidentally lose a puzzle with real history,
+// same reasoning as questions/question_sets), so it's reimplemented here
+// as an explicit "was this ever copied into a session?" check
+// (wasRebusPuzzleUsed/wasRebusSetUsed) rather than relying on the FK.
 // order_index must stay contiguous 0..N-1 per set (same reasoning as
 // Trivia — rebus-host indexes into the active puzzle list positionally
 // for rounds 1-3), so removing an active puzzle renumbers the rest.
 //
 // rebus_sprint_puzzles has NO archive dance — see 0021_rebus_game.sql for
 // why (nothing ever references a specific row by id, only by pool
-// position), so it always hard-deletes cleanly like impostor_words/
-// wheel_phrases.
+// position — now doubly true, since 0023's rebus_session_sprint_puzzles
+// is its own independent snapshot too), so it always hard-deletes cleanly
+// like impostor_words/wheel_phrases.
 // =========================================================
 
-async function isRebusSessionInProgress(rebusSetId: string): Promise<boolean> {
-  const { data } = await supabase
-    .from("rebus_sessions")
-    .select("id")
-    .eq("rebus_set_id", rebusSetId)
-    .neq("status", "ended")
-    .limit(1);
+// Whether a specific authored puzzle has ever been copied into a session's
+// snapshot (rebus_session_puzzles.source_puzzle_id) — live or long since
+// ended. Since 0023_rebus_mixed_sessions.sql, a live session holds its own
+// independent copy of the puzzle text, so deleting/archiving the original
+// authored row can never corrupt an in-progress game the way it could
+// before that migration — this check exists purely to preserve the
+// existing "protect puzzles with real play history, archive instead of
+// losing them" UX, not for live-session safety.
+async function wasRebusPuzzleUsed(puzzleId: string): Promise<boolean> {
+  const { data } = await supabase.from("rebus_session_puzzles").select("id").eq("source_puzzle_id", puzzleId).limit(1);
+  return (data?.length ?? 0) > 0;
+}
+
+async function wasRebusSetUsed(rebusSetId: string): Promise<boolean> {
+  const { data: setPuzzles } = await supabase.from("rebus_puzzles").select("id").eq("rebus_set_id", rebusSetId);
+  const puzzleIds = (setPuzzles ?? []).map((p) => p.id);
+  if (puzzleIds.length === 0) return false;
+
+  const { data } = await supabase.from("rebus_session_puzzles").select("id").in("source_puzzle_id", puzzleIds).limit(1);
   return (data?.length ?? 0) > 0;
 }
 
@@ -288,37 +308,30 @@ async function renumberActiveRebusPuzzles(rebusSetId: string): Promise<string | 
 }
 
 export async function deleteRebusPuzzle(puzzle: { id: string; rebus_set_id: string }): Promise<ArchiveOrDeleteResult> {
-  if (await isRebusSessionInProgress(puzzle.rebus_set_id)) {
-    return {
-      outcome: "blocked",
-      message: "This set has a session in progress right now — end it before removing puzzles.",
-    };
+  if (await wasRebusPuzzleUsed(puzzle.id)) {
+    const { error: archiveError } = await supabase
+      .from("rebus_puzzles")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("id", puzzle.id);
+
+    if (archiveError) {
+      console.error("rebus puzzle archive failed", archiveError);
+      return { outcome: "error", message: "Couldn't archive that puzzle. Please try again." };
+    }
+
+    const renumberError = await renumberActiveRebusPuzzles(puzzle.rebus_set_id);
+    return renumberError ? { outcome: "error", message: renumberError } : { outcome: "archived" };
   }
 
   const { error: deleteError } = await supabase.from("rebus_puzzles").delete().eq("id", puzzle.id);
 
-  if (!deleteError) {
-    const renumberError = await renumberActiveRebusPuzzles(puzzle.rebus_set_id);
-    return renumberError ? { outcome: "error", message: renumberError } : { outcome: "deleted" };
-  }
-
-  if (deleteError.code !== FOREIGN_KEY_VIOLATION) {
+  if (deleteError) {
     console.error("rebus puzzle delete failed", deleteError);
     return { outcome: "error", message: "Something went wrong deleting that puzzle. Please try again." };
   }
 
-  const { error: archiveError } = await supabase
-    .from("rebus_puzzles")
-    .update({ archived_at: new Date().toISOString() })
-    .eq("id", puzzle.id);
-
-  if (archiveError) {
-    console.error("rebus puzzle archive failed", archiveError);
-    return { outcome: "error", message: "Couldn't archive that puzzle either. Please try again." };
-  }
-
   const renumberError = await renumberActiveRebusPuzzles(puzzle.rebus_set_id);
-  return renumberError ? { outcome: "error", message: renumberError } : { outcome: "archived" };
+  return renumberError ? { outcome: "error", message: renumberError } : { outcome: "deleted" };
 }
 
 export async function restoreRebusPuzzle(puzzle: { id: string; rebus_set_id: string }): Promise<ArchiveOrDeleteResult> {
@@ -345,25 +358,25 @@ export async function restoreRebusPuzzle(puzzle: { id: string; rebus_set_id: str
 }
 
 export async function deleteRebusSet(setId: string): Promise<ArchiveOrDeleteResult> {
+  if (await wasRebusSetUsed(setId)) {
+    const { error: archiveError } = await supabase
+      .from("rebus_sets")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("id", setId);
+
+    if (archiveError) {
+      console.error("rebus_set archive failed", archiveError);
+      return { outcome: "error", message: "Couldn't archive that set. Please try again." };
+    }
+    return { outcome: "archived" };
+  }
+
   const { error: deleteError } = await supabase.from("rebus_sets").delete().eq("id", setId);
-
-  if (!deleteError) return { outcome: "deleted" };
-
-  if (deleteError.code !== FOREIGN_KEY_VIOLATION) {
+  if (deleteError) {
     console.error("rebus_set delete failed", deleteError);
     return { outcome: "error", message: "Something went wrong deleting that set. Please try again." };
   }
-
-  const { error: archiveError } = await supabase
-    .from("rebus_sets")
-    .update({ archived_at: new Date().toISOString() })
-    .eq("id", setId);
-
-  if (archiveError) {
-    console.error("rebus_set archive failed", archiveError);
-    return { outcome: "error", message: "Couldn't archive that set either. Please try again." };
-  }
-  return { outcome: "archived" };
+  return { outcome: "deleted" };
 }
 
 export async function restoreRebusSet(setId: string): Promise<ArchiveOrDeleteResult> {

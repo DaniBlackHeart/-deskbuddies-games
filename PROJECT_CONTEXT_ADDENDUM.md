@@ -1,137 +1,109 @@
-# PROJECT_CONTEXT.md — ADDENDUM (Type What You See / `rebus`)
+## Addendum — Type What You See: mixed random sessions (2026-08-29)
 
-> **Read this first:** the copy of `PROJECT_CONTEXT.md` visible in this
-> chat's Project Knowledge is a stale snapshot from 2026-08-14 (only covers
-> migrations 0001–0010, Trivia + Feud). Your real, current file already has
-> UNO, Impostor WHO?, Wheel of Fortune, migrations up through 0020, and the
-> Aug 26 Wheel bugfix session — none of that is reproduced here, and this
-> addendum should NOT replace your current file. Paste the sections below
-> into it (see suggested placement under each heading), then re-upload the
-> merged result to Project Knowledge.
+Sections to merge into `PROJECT_CONTEXT.md` (in the Project Knowledge
+copy, §6d already covers rebus's original shipped design — this addendum
+supersedes the "how a session gets its puzzles" and "Chill/Hard, Solo/Team"
+parts of it without contradicting the rest).
 
----
+### What changed and why
 
-## → Add to §1 "What this project is" (game list)
+Dani asked for three things, confirmed as one cohesive redesign before any
+schema was written (same discipline as every other game):
 
-- **Type What You See** (internal code name `rebus`) — live-hosted rebus
-  puzzles ("SIR USE LEE" → Seriously). Warm-Up + two scored rounds, a
-  two-player Sprint, then a solo Final Round. Solo or Team scoring.
+1. **"Rounds automatic"** — starting a session no longer means a MOD
+   picking one specific `rebus_set` and playing its hand-curated Round
+   1/2/3/Final list top to bottom. The system now randomly assembles each
+   round's puzzles itself.
+2. **Chill/Hard and Solo/Team move outside the sets** — off each
+   individual set's page (where they lived alongside a per-set "Start a
+   session" button) and onto one shared landing screen, explicitly
+   modeled on `WheelCategoriesPage`'s "nothing to pick up front" pattern.
+3. **Sessions mix questions from all sets, not one** — confirmed as
+   "always combine every active set," no MOD multi-select step.
 
-## → Add to §6 "Migration history" table
+Four design forks were asked and confirmed with Dani before writing any
+code (not guessed at, matching the standing discipline for every prior
+game in this project):
+
+- Automatic = auto-select puzzles per round (not round-advance pacing).
+- Sets keep their existing Round 1/2/3/Final/Sprint tabs for
+  **authoring** puzzles — only the mode toggles and Start button moved.
+  Puzzle content shape didn't change at all.
+- A session always combines every active set (no per-session set
+  picker).
+- Puzzle counts per round stay the original fixed defaults: up to 10 each
+  for Warm-Up/Round 2/Round 3, 1 Final Round puzzle if any exist
+  anywhere, and the whole combined Sprint pool for Round 4.
+
+### The schema decision: snapshot, not just a random pick
+
+Migration `0023_rebus_mixed_sessions.sql`. The tempting minimal version —
+just record which existing `rebus_puzzles` rows got randomly picked for a
+session — was rejected in favor of copying the full puzzle content into
+two new session-scoped tables, `rebus_session_puzzles` and
+`rebus_session_sprint_puzzles`, at `create_session` time:
+
+- A live session's content now has to survive a MOD editing, archiving,
+  or deleting puzzles in **any** set (including ones the session is
+  actively drawing from) while the game is in progress — snapshotting
+  decouples a live game from the authoring tables the instant it starts.
+  Same defensive instinct as `rebus_sprint_answers` keying off pool
+  POSITION instead of a row id (§4's anti-cheat section, unchanged).
+- Real side benefit: past sessions' history/leaderboards stay intact even
+  if the original authored puzzle is later deleted outright, since the
+  session's own copy of the text never depended on that row still
+  existing.
+- `rebus_answers.puzzle_id` and `rebus_sessions.final_puzzle_id` were
+  retargeted from `rebus_puzzles(id)` to `rebus_session_puzzles(id)` —
+  what a player "answered" is now literally the session's own snapshot
+  row, not the original authored one.
+- `rebus_session_puzzles` is MOD-read-only (same anti-cheat posture as
+  `rebus_puzzles` — it carries `answer_text`/`accepted_answers` before
+  reveal). `rebus_session_sprint_puzzles` has **zero** client policies at
+  all — same "defense in depth" shape as `uno_deck_state`/
+  `active_session_lock` (§4/§7) — since Sprint content was never shown to
+  anyone, including a spectating MOD, before this change either.
+- `rebus_sessions.rebus_set_id` was dropped outright — a session no
+  longer belongs to one set, so the column stopped meaning anything.
+
+### A real behavior change this unlocked, worth knowing about
+
+Before this migration, deleting a puzzle or set that had ever been played
+relied on Postgres rejecting the hard `DELETE` with a foreign-key
+violation (`rebus_answers.puzzle_id` RESTRICTing on `rebus_puzzles`),
+caught in `archiveOrDelete.ts` and silently converted to an archive. Once
+`rebus_answers.puzzle_id` pointed at the snapshot table instead, that FK
+violation stops ever firing — hard-deleting a previously-played puzzle
+would have started succeeding immediately, silently dropping the
+"protect content with real history" UX Dani never asked to lose.
+
+Fixed by reimplementing the same protection explicitly rather than
+leaning on an incidental DB error: `wasRebusPuzzleUsed`/`wasRebusSetUsed`
+in `archiveOrDelete.ts` check whether a puzzle/set was ever copied into
+any session's `rebus_session_puzzles` (`source_puzzle_id`), live or long
+since ended, and archive instead of delete when it was. Worth remembering
+as a pattern: **switching a table's FK target can silently disable an
+archive-vs-delete safety net that was leaning on that specific
+constraint** — this is the second time in this project a delete-fallback
+turned out to be implicit rather than explicit (see §7's other lessons);
+worth grepping for `FOREIGN_KEY_VIOLATION`/`23503` catches before
+retargeting any other FK in the future.
+
+### Migration history — add to §6's table
 
 | # | Contents | Confidence |
 |---|---|---|
-| 0021 | Type What You See (`rebus_sets`, `rebus_puzzles`, `rebus_sprint_puzzles`, `rebus_sessions`, `rebus_teams`, `rebus_participants`, `rebus_answers`, `rebus_sprint_answers`) — realtime publication additions included in the same migration, not a follow-up | confirmed — built this session, full file in Project Knowledge |
+| 0023 | Rebus mixed random sessions (drops `rebus_sessions.rebus_set_id`; adds `rebus_session_puzzles`/`rebus_session_sprint_puzzles` snapshot tables; retargets `rebus_answers.puzzle_id` and `rebus_sessions.final_puzzle_id` to the new snapshot table) — see this addendum | confirmed — full file delivered |
 
-## → Add to §10 Commands Reference / Supabase functions deploy list
+### Validation performed
 
-```bash
-npx supabase functions deploy rebus-host
-npx supabase functions deploy rebus-play
-npx supabase functions deploy get-rebus-state
-```
-
----
-
-## New section — §13: Type What You See (`rebus`)
-
-### Why "rebus" as the internal name
-The genre this game uses — decoding word/letter/number arrangements into a
-hidden word or phrase — is actually called a **rebus puzzle**. Following
-the same convention as `wheel` (Wheel of Fortune) and `feud` (Family Feud),
-all tables/functions use `rebus` as the short internal code; every
-player-facing string still says "Type What You See."
-
-### Format, as built
-- **Rounds 1–3** (Warm-Up / Round 2 / Round 3): a flat, ordered list of
-  puzzles per set (`rebus_puzzles`, `round` ∈ `warmup`/`round2`/`round3`).
-  Recommended defaults — Warm-Up 200pts/10s, Round 2 400pts/15s, Round 3
-  500pts/15s — are editable per-puzzle, not hard-enforced.
-- **Round 4 (Sprint)**: MOD picks any two joined participants after Round 3
-  ends. Each gets a sequential 30-second window to race through a shared,
-  ordered pool (`rebus_sprint_puzzles`) — flat 500pts per correct answer,
-  no penalty for wrong/skipped.
-- **Final Round (The Big Puzzle)**: whichever Sprint player scored higher
-  (MOD breaks ties) gets one puzzle, 1000pts, 30s, tagged `round='final'`
-  in the same `rebus_puzzles` table as rounds 1-3 (single flat
-  `order_index` sequence across all four `round` values, main-round
-  advancement just filters `round != 'final'`).
-
-### Key decisions made this session (confirmed with Dani before building)
-1. **Answering is PARALLEL, like Trivia** — not the turn-based/buzz-race
-   reading a literal spec interpretation might suggest ("passed to another
-   player if wrong" described a shared-screen party game, which doesn't
-   fit "everyone plays on their own device"). Everyone types independently
-   within the timer; every correct submitter scores.
-2. **Solo/Team toggle, like Wheel** — self-selected teams in the lobby.
-   Unlike Wheel, there's no turn rotation layered on top since answering
-   stays parallel in team mode too; a correct guess credits the member's
-   points to their team's total.
-3. **Hints descoped for v1.** The original spec's "+300 without a hint /
-   +150 after a hint" speed bonus collapsed to a flat `REBUS_SPEED_BONUS =
-   300` on every correct answer (in `_shared/utils.ts`), since without a
-   hint mechanic every correct answer is definitionally "without a hint."
-   Revisit if hints get built later — the bonus tiering hook would live in
-   `rebus-play`'s `submit_answer` action.
-4. **Round 4 mirrors Fast Money's shape, not its reveal ceremony** — two
-   players, sequential turns, anti-cheat isolated via
-   `rebus_sprint_answers` (RLS: read own row only, keyed by pool
-   **position** rather than a puzzle row id so there's no way to join
-   toward a rival's puzzle text). Unlike Fast Money, Sprint grades live,
-   one puzzle at a time, immediately telling the active player
-   correct/wrong — no after-the-fact reveal ceremony.
-5. **The Final Round is the one deliberate anti-cheat exception in the
-   whole project.** Every other secret (Trivia's answers, Feud's board and
-   Fast Money, UNO's hands and draw pile, Impostor's word and vote tally,
-   Wheel's phrase, Rebus's own Sprint pool) stays hidden until a reveal.
-   The Final Round puzzle does not — once live, everyone sees it, since
-   there's only one entrant and no rival who'd benefit from seeing it
-   early. Worth remembering if a future game's design raises the same
-   "does this actually need hiding" question.
-6. **`join_code` was NOT propagated into `rebus_sessions`.** It's already
-   confirmed dead weight on every other session table (§5) — no reason to
-   carry it into a new one.
-7. **Scoring reuses Trivia's Chill/Hard exactly** (wrong = -50% of points
-   in Hard, no-answer = -25%, both 0 in Chill, via the existing
-   `resolveWrongPenalty`/`resolveTimeoutPenalty` helpers) — the Sprint
-   Round is the one exception, with no mode-based penalty at all (matches
-   the original spec's "Wrong: 0" for that round specifically).
-8. **`completed` is a persisted column on `rebus_sessions`**, set once in
-   `end_session` — unlike Trivia (which re-derives "did we finish" by
-   comparing `current_question_index` to the question count on every
-   read), Rebus has two different valid endings (with vs. without a Final
-   Round puzzle in the set), which made re-deriving that comparison
-   correctly in more than one reader (the host page, `get-rebus-state`,
-   the ended-session sound cue) error-prone enough to just store it once.
-
-### Feature parity
-- Bulk paste-import: **supported**, both for main puzzles (JSON array or a
-  `Round:`/`Type:`/`Display:`/`Answer:`/`Points:`/`Time:` text template)
-  and for the Sprint pool (simpler `DISPLAY :: ANSWER :: alt1, alt2`
-  one-per-line format). Parser lives in
-  `frontend/src/utils/rebusPuzzleParser.ts`.
-- Spectator mode: supported, same masking rule as every other game (shows
-  exactly what a non-playing member would see) — with the Sprint Round
-  showing neither player's puzzle content even to a spectating MOD, and
-  the Final Round showing full content to everyone including spectators,
-  per decision #5 above.
-- Archive-not-delete: `rebus_sets`/`rebus_puzzles` follow the same pattern
-  as `question_sets`/`questions` (0010), including the
-  `order_index`-contiguity renumbering on delete. `rebus_sprint_puzzles`
-  does **not** need this — nothing references a specific row by id (only
-  by pool position via `rebus_sprint_answers.puzzle_index`), so it always
-  hard-deletes cleanly, same reasoning as `impostor_words`/`wheel_phrases`.
-
-### Not yet built / explicitly out of scope for v1
-- Hints (see decision #3) — the game plays without them; the bonus-tiering
-  scoring hook exists in the spec but isn't wired to anything yet.
-- Team mode for the Sprint/Final Round: the two Sprint players and the
-  eventual finalist are always picked as *individuals* regardless of
-  team-mode team affiliation — their points still roll up into their
-  team's total afterward, but there's no "team vs team" framing for Round
-  4 itself.
-- This game has not yet been played end-to-end/playtested — expect a
-  bugfix pass after Dani's first real session, same pattern as every prior
-  game's post-delivery cycle (see §7 for the kind of thing that tends to
-  surface: realtime publication gaps, acting-client-own-screen refetch
-  gaps, timing edge cases around round transitions).
+`npx tsc -b` — 0 errors. `npx oxlint` — 6 warnings, same existing project
+baseline, no new warnings introduced. `npx vite build` — succeeds (only
+the pre-existing bundle-size advisory). Edge Functions reviewed by hand
+against `_shared/utils.ts`'s actual exported signatures (no Deno runtime
+available in the delivery environment, same limitation as the original
+rebus build). **Not yet playtested end-to-end against a live Supabase
+project** — see MANIFEST.md's suggested first-playtest sequence,
+specifically the "edit an unrelated set mid-session" and "delete a
+used-vs-unused puzzle" checks, since those exercise genuinely new code
+paths rather than just a rearranged UI.

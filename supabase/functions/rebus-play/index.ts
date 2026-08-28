@@ -109,16 +109,20 @@ Deno.serve(async (req) => {
           if (user.id !== session.final_player_id) return jsonResponse({ error: "Only the finalist can answer this one" }, 403);
         }
 
-        const { data: puzzle } = await admin.from("rebus_puzzles").select("*").eq("id", puzzle_id).single();
+        const { data: puzzle } = await admin
+          .from("rebus_session_puzzles")
+          .select("*")
+          .eq("id", puzzle_id)
+          .eq("session_id", session_id)
+          .single();
         if (!puzzle) return jsonResponse({ error: "Puzzle not found" }, 404);
 
         if (isMainRound) {
           const puzzles = await admin
-            .from("rebus_puzzles")
+            .from("rebus_session_puzzles")
             .select("id")
-            .eq("rebus_set_id", session.rebus_set_id)
+            .eq("session_id", session_id)
             .neq("round", "final")
-            .is("archived_at", null)
             .order("order_index", { ascending: true });
           const currentPuzzleId = (puzzles.data ?? [])[session.current_puzzle_index]?.id;
           if (currentPuzzleId !== puzzle_id) return jsonResponse({ error: "That's not the current puzzle" }, 400);
@@ -192,9 +196,9 @@ Deno.serve(async (req) => {
         const currentIndex = slot === 1 ? session.sprint_p1_index : session.sprint_p2_index;
 
         const { data: puzzle } = await admin
-          .from("rebus_sprint_puzzles")
+          .from("rebus_session_sprint_puzzles")
           .select("*")
-          .eq("rebus_set_id", session.rebus_set_id)
+          .eq("session_id", session_id)
           .eq("order_index", currentIndex)
           .maybeSingle();
 
@@ -229,9 +233,9 @@ Deno.serve(async (req) => {
         await broadcast(admin, session_id, "sprint_progress", { player_slot: slot, points: newPoints, attempted: newIndex });
 
         const { data: nextPuzzle } = await admin
-          .from("rebus_sprint_puzzles")
+          .from("rebus_session_sprint_puzzles")
           .select("display_text")
-          .eq("rebus_set_id", session.rebus_set_id)
+          .eq("session_id", session_id)
           .eq("order_index", newIndex)
           .maybeSingle();
 

@@ -6,7 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { lobbyMusic, sounds } from "../../lib/sounds";
 import type { RebusGameMode, RebusParticipant, RebusSessionStatus, RebusTeam } from "../../types";
 
-type OpenSession = { id: string; status: RebusSessionStatus; game_mode: RebusGameMode; rebus_sets: { name: string } | null };
+type OpenSession = { id: string; status: RebusSessionStatus; game_mode: RebusGameMode };
 
 export default function RebusLobbyPage() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export default function RebusLobbyPage() {
   async function loadOpenSession() {
     const { data } = await supabase
       .from("rebus_sessions")
-      .select("id, status, game_mode, rebus_sets(name)")
+      .select("id, status, game_mode")
       .neq("status", "ended")
       .order("created_at", { ascending: false })
       .limit(1)
@@ -159,9 +159,7 @@ export default function RebusLobbyPage() {
 
           {session && !isTeamMode && (
             <>
-              <p className="text-muted">
-                A session is about to start: <strong>{session.rebus_sets?.name}</strong>
-              </p>
+              <p className="text-muted">A session is about to start!</p>
               <button className="btn btn-primary btn-block" onClick={() => navigate(`/rebus/play/${session.id}`)}>
                 Join Type What You See
               </button>

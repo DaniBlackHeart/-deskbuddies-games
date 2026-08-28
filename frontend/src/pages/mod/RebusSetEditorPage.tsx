@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import RebusImportModal from "../../components/RebusImportModal";
-import { supabase, invokeFunction } from "../../lib/supabaseClient";
+import { supabase } from "../../lib/supabaseClient";
 import { deleteRebusPuzzle, restoreRebusPuzzle, deleteRebusSprintPuzzle } from "../../lib/archiveOrDelete";
 import { parseRebusSprintInput, REBUS_SPRINT_TEMPLATE_EXAMPLE, type ParsedRebusPuzzle } from "../../utils/rebusPuzzleParser";
 import type { RebusPuzzle, RebusPuzzleType, RebusRound, RebusSet, RebusSprintPuzzle } from "../../types";
@@ -43,7 +43,6 @@ const emptyDraft = (round: RebusRound) => ({
 
 export default function RebusSetEditorPage() {
   const { setId } = useParams<{ setId: string }>();
-  const navigate = useNavigate();
 
   const [set, setSet] = useState<RebusSet | null>(null);
   const [puzzles, setPuzzles] = useState<RebusPuzzle[]>([]);
@@ -67,10 +66,6 @@ export default function RebusSetEditorPage() {
   const [sprintBulk, setSprintBulk] = useState("");
   const [showSprintExample, setShowSprintExample] = useState(false);
   const [sprintError, setSprintError] = useState<string | null>(null);
-
-  const [sessionMode, setSessionMode] = useState<"chill" | "hard">("chill");
-  const [gameMode, setGameMode] = useState<"solo" | "team">("solo");
-  const [launching, setLaunching] = useState(false);
 
   async function loadData() {
     setLoading(true);
@@ -244,23 +239,6 @@ export default function RebusSetEditorPage() {
     loadData();
   }
 
-  async function handleStartSession() {
-    if (puzzles.filter((p) => p.round !== "final").length === 0) return;
-    setLaunching(true);
-    const { data, error } = await invokeFunction("rebus-host", {
-      action: "create_session",
-      rebus_set_id: setId,
-      mode: sessionMode,
-      game_mode: gameMode,
-    });
-    setLaunching(false);
-    if (error) {
-      alert(error);
-      return;
-    }
-    navigate(`/mod/rebus-host/${data.session.id}`);
-  }
-
   if (loading) {
     return (
       <div className="center-screen">
@@ -278,76 +256,18 @@ export default function RebusSetEditorPage() {
     <div className="app-shell">
       <AppHeader />
       <div className="container">
-        <div className="row-between" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
-          <div>
-            <h1>{set?.name}</h1>
-            <p className="text-muted" style={{ marginTop: "-8px" }}>
-              {mainPuzzleCount} puzzle{mainPuzzleCount === 1 ? "" : "s"} in rounds 1-3
-              {finalPuzzleCount > 0 ? ` · ${finalPuzzleCount} Final Round puzzle` : " · no Final Round puzzle yet"} ·{" "}
-              {sprintPuzzles.length} Sprint puzzle{sprintPuzzles.length === 1 ? "" : "s"}
-            </p>
-          </div>
-          <div className="stack" style={{ marginTop: 0 }}>
-            <div className="row" style={{ justifyContent: "flex-end" }}>
-              <button
-                className="btn btn-sm"
-                onClick={() => setSessionMode("chill")}
-                style={{
-                  background: sessionMode === "chill" ? "var(--color-secondary-soft)" : "var(--color-surface-raised)",
-                  border: `1.5px solid ${sessionMode === "chill" ? "var(--color-secondary)" : "var(--color-border)"}`,
-                  color: "var(--color-text)",
-                }}
-              >
-                😌 Chill
-              </button>
-              <button
-                className="btn btn-sm"
-                onClick={() => setSessionMode("hard")}
-                style={{
-                  background: sessionMode === "hard" ? "var(--color-danger-soft)" : "var(--color-surface-raised)",
-                  border: `1.5px solid ${sessionMode === "hard" ? "var(--color-danger)" : "var(--color-border)"}`,
-                  color: "var(--color-text)",
-                }}
-              >
-                🔥 Hard
-              </button>
-            </div>
-            <div className="row" style={{ justifyContent: "flex-end" }}>
-              <button
-                className="btn btn-sm"
-                onClick={() => setGameMode("solo")}
-                style={{
-                  background: gameMode === "solo" ? "var(--color-primary-soft)" : "var(--color-surface-raised)",
-                  border: `1.5px solid ${gameMode === "solo" ? "var(--color-primary)" : "var(--color-border)"}`,
-                  color: "var(--color-text)",
-                }}
-              >
-                🙋 Solo
-              </button>
-              <button
-                className="btn btn-sm"
-                onClick={() => setGameMode("team")}
-                style={{
-                  background: gameMode === "team" ? "var(--color-primary-soft)" : "var(--color-surface-raised)",
-                  border: `1.5px solid ${gameMode === "team" ? "var(--color-primary)" : "var(--color-border)"}`,
-                  color: "var(--color-text)",
-                }}
-              >
-                🤝 Team
-              </button>
-            </div>
-            <button className="btn btn-primary btn-block" onClick={handleStartSession} disabled={mainPuzzleCount === 0 || launching}>
-              {launching ? <span className="spinner" /> : "▶ Start a session"}
-            </button>
-          </div>
+        <div>
+          <h1>{set?.name}</h1>
+          <p className="text-muted" style={{ marginTop: "-8px" }}>
+            {mainPuzzleCount} puzzle{mainPuzzleCount === 1 ? "" : "s"} in rounds 1-3
+            {finalPuzzleCount > 0 ? ` · ${finalPuzzleCount} Final Round puzzle` : " · no Final Round puzzle yet"} ·{" "}
+            {sprintPuzzles.length} Sprint puzzle{sprintPuzzles.length === 1 ? "" : "s"}
+          </p>
+          <p className="hint" style={{ marginTop: "-4px" }}>
+            Chill/Hard, Solo/Team, and starting a session now live on the{" "}
+            <Link to="/mod/rebus-sets">Type What You See</Link> page — every session mixes puzzles from all your sets.
+          </p>
         </div>
-        <p className="hint" style={{ marginTop: "4px" }}>
-          {sessionMode === "chill"
-            ? "Chill: wrong or missed answers just score 0 — no risk."
-            : "Hard: wrong answers cost half the puzzle's points, not answering costs 25% — scores can go negative."}
-          {" "}
-          {gameMode === "team" ? "Team mode: players self-select teams in the lobby." : "Solo mode: everyone scores for themselves."}
-        </p>
 
         <div className="row" style={{ marginTop: "20px", flexWrap: "wrap", gap: "8px" }}>
           {ROUND_TABS.map((tab) => (

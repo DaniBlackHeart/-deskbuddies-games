@@ -48,7 +48,6 @@ type ActiveRebusSession = {
   status: string;
   mode: string;
   game_mode: string;
-  rebus_sets: { name: string } | null;
   spectator_id: string | null;
   spectator: { username: string } | null;
 };
@@ -104,7 +103,7 @@ export default function ModDashboardPage() {
 
     supabase
       .from("rebus_sessions")
-      .select("id, status, mode, game_mode, rebus_sets(name), spectator_id, spectator:profiles!spectator_id(username)")
+      .select("id, status, mode, game_mode, spectator_id, spectator:profiles!spectator_id(username)")
       .neq("status", "ended")
       .order("created_at", { ascending: false })
       .then(({ data }) => setActiveRebus((data as unknown as ActiveRebusSession[]) ?? []));
@@ -301,7 +300,7 @@ export default function ModDashboardPage() {
               <div key={s.id} className="stack" style={{ marginTop: "8px" }}>
                 <div className="row-between">
                   <span>
-                    {s.rebus_sets?.name} — <span className="badge badge-live">{s.status}</span>{" "}
+                    <span className="badge badge-live">{s.status}</span>{" "}
                     <span className="badge badge-neutral">{s.mode === "hard" ? "🔥 hard" : "😌 chill"}</span>{" "}
                     <span className="badge badge-neutral">{s.game_mode === "team" ? "🤝 team" : "🙋 solo"}</span>
                   </span>
@@ -387,7 +386,7 @@ export default function ModDashboardPage() {
               <div style={{ fontSize: "2rem" }}>🔤</div>
               <h3 style={{ marginTop: "12px" }}>Type What You See</h3>
               <p className="text-muted" style={{ marginBottom: 0 }}>
-                Author rebus puzzles across all four rounds, then start a session from inside a set.
+                Author rebus puzzles across all four rounds — every session automatically mixes them from all your sets.
               </p>
             </div>
           </Link>

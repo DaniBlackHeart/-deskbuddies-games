@@ -69,11 +69,10 @@ Deno.serve(async (req) => {
 
     if (session.status === "live" || session.status === "reveal") {
       const { data: puzzles } = await admin
-        .from("rebus_puzzles")
+        .from("rebus_session_puzzles")
         .select("*")
-        .eq("rebus_set_id", session.rebus_set_id)
+        .eq("session_id", session_id)
         .neq("round", "final")
-        .is("archived_at", null)
         .order("order_index", { ascending: true });
 
       const puzzle = (puzzles ?? [])[session.current_puzzle_index] ?? null;
@@ -145,9 +144,9 @@ Deno.serve(async (req) => {
       if (mySlot && mySlot === activeSlot) {
         const currentIndex = mySlot === 1 ? session.sprint_p1_index : session.sprint_p2_index;
         const { data: puzzle } = await admin
-          .from("rebus_sprint_puzzles")
+          .from("rebus_session_sprint_puzzles")
           .select("display_text")
-          .eq("rebus_set_id", session.rebus_set_id)
+          .eq("session_id", session_id)
           .eq("order_index", currentIndex)
           .maybeSingle();
         payload.my_current_puzzle = puzzle ? { display_text: puzzle.display_text } : null;
@@ -158,7 +157,7 @@ Deno.serve(async (req) => {
     }
 
     if (session.status === "final_live" || session.status === "final_reveal") {
-      const { data: puzzle } = await admin.from("rebus_puzzles").select("*").eq("id", session.final_puzzle_id).single();
+      const { data: puzzle } = await admin.from("rebus_session_puzzles").select("*").eq("id", session.final_puzzle_id).single();
       const { data: finalistProfile } = await admin.from("profiles").select("username").eq("id", session.final_player_id).single();
 
       const deadline_ms = session.puzzle_started_at

@@ -628,6 +628,26 @@ export type RebusSprintPuzzle = {
   accepted_answers: string[];
 };
 
+// One session's own immutable snapshot of a puzzle, copied in at
+// create_session by pickRebusSessionPuzzles — see
+// 0023_rebus_mixed_sessions.sql. MOD-only read access (this shape
+// carries answer_text/accepted_answers pre-reveal); used by
+// HostRebusSessionPage in place of RebusPuzzle now that a session no
+// longer belongs to one specific set.
+export type RebusSessionPuzzle = {
+  id: string;
+  session_id: string;
+  round: RebusRound;
+  order_index: number;
+  source_puzzle_id: string | null;
+  puzzle_type: RebusPuzzleType;
+  display_text: string;
+  answer_text: string;
+  accepted_answers: string[];
+  points: number;
+  time_limit_seconds: number;
+};
+
 // Public-safe puzzle shape sent to players during rounds 1-3 — NEVER
 // includes answer_text/accepted_answers before the reveal.
 export type PublicRebusPuzzle = {
@@ -659,7 +679,6 @@ export type RebusGameMode = "solo" | "team";
 
 export type RebusSession = {
   id: string;
-  rebus_set_id: string;
   host_id: string;
   status: RebusSessionStatus;
   mode: SessionMode; // chill/hard — same semantics as Trivia
