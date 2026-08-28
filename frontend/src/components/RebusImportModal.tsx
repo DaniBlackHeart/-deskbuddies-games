@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { parseRebusPuzzleInput, REBUS_TEMPLATE_EXAMPLE, type ParsedRebusPuzzle } from "../utils/rebusPuzzleParser";
+import {
+  parseRebusPuzzleInput,
+  REBUS_TEMPLATE_EXAMPLE,
+  REBUS_JSON_MULTILINE_EXAMPLE,
+  REBUS_PUZZLE_TYPE_LABELS,
+  type ParsedRebusPuzzle,
+} from "../utils/rebusPuzzleParser";
 import type { RebusRound } from "../types";
 
 const ROUND_LABELS: Record<string, string> = {
@@ -55,26 +61,51 @@ export default function RebusImportModal({ round, onCancel, onConfirm }: RebusIm
         <h2>Import puzzles</h2>
         <p className="text-muted">
           Importing into <strong>{ROUND_LABELS[round] ?? round}</strong> — paste a JSON array, or use the simple text
-          template. No need to say the round or puzzle type per puzzle: every puzzle in this batch goes into this
-          round, tagged as Phonetic (add it manually instead if you need a different type).{" "}
+          template. No need to say the round per puzzle: every puzzle in this batch goes into this round. Puzzle type
+          isn't asked for either — it's guessed from each puzzle's own text (numbers → Numbers & letters, an
+          underscore → Missing letters, a repeated word → Repeated words, and so on); the preview below always shows
+          the guess so you can catch a wrong one before importing, since there's no way to change a puzzle's type
+          after it's in (add it manually instead if you need an exact type).{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setShowExample((s) => !s)} style={{ padding: 0 }}>
             {showExample ? "Hide example" : "Show example"}
           </button>
         </p>
 
         {showExample && (
-          <pre
-            style={{
-              background: "var(--color-bg-alt)",
-              padding: "12px",
-              borderRadius: "var(--radius-sm)",
-              fontSize: "0.8rem",
-              overflowX: "auto",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {REBUS_TEMPLATE_EXAMPLE}
-          </pre>
+          <>
+            <pre
+              style={{
+                background: "var(--color-bg-alt)",
+                padding: "12px",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "0.8rem",
+                overflowX: "auto",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {REBUS_TEMPLATE_EXAMPLE}
+            </pre>
+            <p className="hint">
+              A Visual-arrangement or Split-words puzzle needs an actual line break in its display text, which this
+              text template can't express — paste JSON instead for one of those, e.g.:
+            </p>
+            <pre
+              style={{
+                background: "var(--color-bg-alt)",
+                padding: "12px",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "0.8rem",
+                overflowX: "auto",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {REBUS_JSON_MULTILINE_EXAMPLE}
+            </pre>
+            <p className="hint">
+              Split and Visual look identical once pasted (both are just line breaks), so a multi-line puzzle is
+              always guessed as Visual arrangement — add a Split puzzle manually instead if you need that exact tag.
+            </p>
+          </>
         )}
 
         <div className="field">
@@ -114,7 +145,10 @@ export default function RebusImportModal({ round, onCancel, onConfirm }: RebusIm
             <div className="stack">
               {parsed.map((p, i) => (
                 <div key={i} className="card card--tight">
-                  <strong>{p.display_text}</strong>
+                  <div className="row-between">
+                    <strong>{p.display_text}</strong>
+                    <span className="badge badge-neutral">{REBUS_PUZZLE_TYPE_LABELS[p.puzzle_type]}</span>
+                  </div>
                   <p className="hint" style={{ marginTop: "4px" }}>
                     {p.points} pts · {p.time_limit_seconds}s · answer: {p.answer_text}
                   </p>

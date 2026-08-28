@@ -4,7 +4,13 @@ import AppHeader from "../../components/AppHeader";
 import RebusImportModal from "../../components/RebusImportModal";
 import { supabase } from "../../lib/supabaseClient";
 import { deleteRebusPuzzle, restoreRebusPuzzle, deleteRebusSprintPuzzle } from "../../lib/archiveOrDelete";
-import { parseRebusSprintInput, REBUS_SPRINT_TEMPLATE_EXAMPLE, type ParsedRebusPuzzle } from "../../utils/rebusPuzzleParser";
+import {
+  parseRebusSprintInput,
+  REBUS_SPRINT_TEMPLATE_EXAMPLE,
+  REBUS_PUZZLE_TYPE_LABELS,
+  REBUS_TYPE_EXAMPLES,
+  type ParsedRebusPuzzle,
+} from "../../utils/rebusPuzzleParser";
 import type { RebusPuzzle, RebusPuzzleType, RebusRound, RebusSet, RebusSprintPuzzle } from "../../types";
 
 const ROUND_TABS: { key: RebusRound; label: string }[] = [
@@ -21,31 +27,12 @@ const ROUND_DEFAULTS: Record<RebusRound, { points: number; time: number }> = {
   final: { points: 1000, time: 30 },
 };
 
-const TYPE_OPTIONS: { value: RebusPuzzleType; label: string }[] = [
-  { value: "phonetic", label: "Phonetic" },
-  { value: "split", label: "Split words" },
-  { value: "numbers_letters", label: "Numbers & letters" },
-  { value: "visual", label: "Visual arrangement" },
-  { value: "missing_letters", label: "Missing letters" },
-  { value: "repeated", label: "Repeated words" },
-  { value: "homophone", label: "Homophone" },
-];
-
-// One example per puzzle type, shown next to the Puzzle type picker in the
-// manual add form. Bulk import no longer takes a Type at all (2026-08-29 —
-// every imported puzzle defaults to Phonetic), so this is now the only
-// place in the UI where a MOD chooses a type — these examples used to live
-// in the paste-import template's help text and moved here with that change
-// rather than being re-added to the template.
-const TYPE_EXAMPLES: Record<RebusPuzzleType, { display: string; answer: string }> = {
-  phonetic: { display: "SIR USE LEE", answer: "Seriously" },
-  split: { display: "STAND\nI", answer: "Understand" },
-  numbers_letters: { display: "2GETHER", answer: "Together" },
-  visual: { display: "MIND\nMATTER", answer: "Mind over matter" },
-  missing_letters: { display: "CH_ISTMAS", answer: "Christmas" },
-  repeated: { display: "CYCLE CYCLE CYCLE", answer: "Tricycle" },
-  homophone: { display: "EWE", answer: "You" },
-};
+// Labels and examples live in rebusPuzzleParser.ts now — shared with the
+// import modal, which shows the same per-type examples as a paste
+// reference and uses the same labels to show its auto-detected guess.
+const TYPE_OPTIONS: { value: RebusPuzzleType; label: string }[] = (
+  Object.entries(REBUS_PUZZLE_TYPE_LABELS) as [RebusPuzzleType, string][]
+).map(([value, label]) => ({ value, label }));
 
 const emptyDraft = (round: RebusRound) => ({
   round,
@@ -343,7 +330,7 @@ export default function RebusSetEditorPage() {
                       ))}
                     </select>
                     <p className="hint">
-                      e.g. "{TYPE_EXAMPLES[draft.puzzleType].display.replace(/\n/g, " / ")}" → {TYPE_EXAMPLES[draft.puzzleType].answer}
+                      e.g. "{REBUS_TYPE_EXAMPLES[draft.puzzleType].display.replace(/\n/g, " / ")}" → {REBUS_TYPE_EXAMPLES[draft.puzzleType].answer}
                     </p>
                   </div>
                 </div>
@@ -417,7 +404,7 @@ export default function RebusSetEditorPage() {
                       {i + 1}. {p.display_text}
                     </strong>
                     <div className="row">
-                      <span className="badge badge-neutral">{TYPE_OPTIONS.find((t) => t.value === p.puzzle_type)?.label}</span>
+                      <span className="badge badge-neutral">{REBUS_PUZZLE_TYPE_LABELS[p.puzzle_type]}</span>
                       <button className="btn btn-ghost btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleDelete(p)}>
                         {deleteBusyId === p.id ? <span className="spinner" /> : "Delete"}
                       </button>

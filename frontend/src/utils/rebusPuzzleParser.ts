@@ -2,21 +2,37 @@
 // shape ready to insert into rebus_puzzles. Mirrors questionParser.ts's
 // two supported formats (JSON array, or a simple line-based template).
 //
-// Round and Type were dropped from both formats (2026-08-29, at Dani's
-// request) — the import modal is always opened from inside one specific
-// round tab in RebusSetEditorPage, so every puzzle in a single paste
-// belongs to that same round; there's nothing left to specify per puzzle.
-// puzzle_type isn't asked for either — every imported puzzle defaults to
-// "phonetic" (same as the manual-add form's default), and a MOD can still
-// pick a different type there if a puzzle needs one. Both the round and
-// its points/time defaults are passed in by the caller instead of parsed
-// from the pasted text.
+// Round was dropped from both formats (2026-08-29, at Dani's request) —
+// the import modal is always opened from inside one specific round tab in
+// RebusSetEditorPage, so every puzzle in a single paste belongs to that
+// same round; there's nothing left to specify per puzzle. Both the round
+// and its points/time defaults are passed in by the caller instead of
+// parsed from the pasted text.
+//
+// Type was dropped too, but — per Dani's follow-up the same day — pasted
+// puzzles are NOT all just tagged "phonetic": detectPuzzleType() below
+// guesses the type from the puzzle's own display_text (digits → Numbers &
+// letters, an underscore → Missing letters, the same word repeated →
+// Repeated words, a single word → Homophone, multiple lines → Visual
+// arrangement, otherwise → Phonetic). It's a heuristic, not a real
+// classifier, and RebusImportModal shows the guessed type per puzzle in
+// the preview so a MOD can catch a bad guess before confirming — there's
+// no per-puzzle edit after import (see RebusSetEditorPage), only
+// delete-and-redo, so that preview step matters. One known gap: "split
+// words" puzzles are laid out with line breaks exactly like "visual
+// arrangement" ones, so there's no textual signal that tells them apart —
+// a multi-line puzzle always lands as Visual. Add a Split puzzle manually
+// instead if you need that exact tag (same escape hatch as any other
+// type).
 //
 // 1) JSON array of objects, e.g.:
 //    [
 //      { "display_text": "SIR USE LEE", "answer_text": "Seriously",
 //        "accepted_answers": ["Seriously"], "points": 200, "time_limit_seconds": 10 }
 //    ]
+//    display_text may contain "\n" for a multi-line (Visual/Split-shaped)
+//    puzzle — the plain-text template below can't represent that, since
+//    its line-based format only ever reads one line per "Display:".
 //
 // 2) A plain-text template, one puzzle per blank-line-separated block:
 //    Display: SIR USE LEE
@@ -26,6 +42,53 @@
 //    Time: 10
 
 import type { RebusPuzzleType, RebusRound } from "../types";
+
+export const REBUS_PUZZLE_TYPE_LABELS: Record<RebusPuzzleType, string> = {
+  phonetic: "Phonetic",
+  split: "Split words",
+  numbers_letters: "Numbers & letters",
+  visual: "Visual arrangement",
+  missing_letters: "Missing letters",
+  repeated: "Repeated words",
+  homophone: "Homophone",
+};
+
+// One example per type, shared by the manual "Add puzzle" form (where a
+// MOD picks the type directly) and the import modal's reference block
+// (where the type is only ever guessed — see detectPuzzleType).
+export const REBUS_TYPE_EXAMPLES: Record<RebusPuzzleType, { display: string; answer: string }> = {
+  phonetic: { display: "SIR USE LEE", answer: "Seriously" },
+  split: { display: "STAND\nI", answer: "Understand" },
+  numbers_letters: { display: "2GETHER", answer: "Together" },
+  visual: { display: "MIND\nMATTER", answer: "Mind over matter" },
+  missing_letters: { display: "CH_ISTMAS", answer: "Christmas" },
+  repeated: { display: "CYCLE CYCLE CYCLE", answer: "Tricycle" },
+  homophone: { display: "EWE", answer: "You" },
+};
+
+/**
+ * Guesses a puzzle's type from its display text, since bulk import never
+ * asks for one. First match wins:
+ *   1. more than one line             -> visual (JSON only — see above)
+ *   2. an underscore anywhere         -> missing_letters
+ *   3. any digit                      -> numbers_letters
+ *   4. the same word repeated 2+ times -> repeated
+ *   5. a single word (no spaces)      -> homophone
+ *   6. otherwise                      -> phonetic
+ * Imperfect on purpose — it's meant to save typing on the common case, not
+ * to be authoritative. The import preview always shows the guess so a MOD
+ * can catch a wrong one before confirming.
+ */
+export function detectPuzzleType(display: string): RebusPuzzleType {
+  const text = display.trim();
+  if (/\n/.test(text)) return "visual";
+  if (text.includes("_")) return "missing_letters";
+  if (/\d/.test(text)) return "numbers_letters";
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length >= 2 && words.every((w) => w.toLowerCase() === words[0].toLowerCase())) return "repeated";
+  if (words.length === 1) return "homophone";
+  return "phonetic";
+}
 
 export type ParsedRebusPuzzle = {
   round: RebusRound;
@@ -86,7 +149,7 @@ function parseJson(trimmed: string, round: RebusRound): ParseResult {
     }
     puzzles.push({
       round,
-      puzzle_type: "phonetic",
+      puzzle_type: detectPuzzleType(item.display_text),
       display_text: item.display_text,
       answer_text: item.answer_text,
       accepted_answers: Array.isArray(item.accepted_answers) && item.accepted_answers.length > 0
@@ -140,7 +203,7 @@ function parseTemplate(trimmed: string, round: RebusRound): ParseResult {
 
     puzzles.push({
       round,
-      puzzle_type: "phonetic",
+      puzzle_type: detectPuzzleType(display),
       display_text: display,
       answer_text: answer,
       accepted_answers: accepted,
@@ -152,13 +215,38 @@ function parseTemplate(trimmed: string, round: RebusRound): ParseResult {
   return { puzzles, errors };
 }
 
+// Covers every type detectPuzzleType() can actually reach from a single
+// line of text — Visual/Split need a real line break in display_text,
+// which this plain-text format has no syntax for (see the file header),
+// so those two aren't shown here; REBUS_JSON_MULTILINE_EXAMPLE below is
+// the way to paste one of those instead.
 export const REBUS_TEMPLATE_EXAMPLE = `Display: SIR USE LEE
 Answer: Seriously
 
 Display: TO GET HER
 Answer: Together
 Points: 450
-Time: 12`;
+Time: 12
+
+Display: ${REBUS_TYPE_EXAMPLES.numbers_letters.display}
+Answer: ${REBUS_TYPE_EXAMPLES.numbers_letters.answer}
+
+Display: ${REBUS_TYPE_EXAMPLES.missing_letters.display}
+Answer: ${REBUS_TYPE_EXAMPLES.missing_letters.answer}
+
+Display: ${REBUS_TYPE_EXAMPLES.repeated.display}
+Answer: ${REBUS_TYPE_EXAMPLES.repeated.answer}
+
+Display: ${REBUS_TYPE_EXAMPLES.homophone.display}
+Answer: ${REBUS_TYPE_EXAMPLES.homophone.answer}`;
+
+// A Visual/Split-shaped puzzle needs a real newline in display_text, which
+// only the JSON format can carry — shown separately since pasting it as-is
+// alongside the plain-text template above would be invalid input.
+export const REBUS_JSON_MULTILINE_EXAMPLE = `[
+  { "display_text": "${REBUS_TYPE_EXAMPLES.visual.display.replace(/\n/g, "\\n")}",
+    "answer_text": "${REBUS_TYPE_EXAMPLES.visual.answer}" }
+]`;
 
 // --- Sprint pool (Round 4) — simpler content, no round/type/points/time ---
 
