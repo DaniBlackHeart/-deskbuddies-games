@@ -75,6 +75,24 @@ export default function HostRebusSessionPage() {
     setSession(data);
   }
 
+  // Deliberately has NO dependency on `session`/`sessionRef` — unlike
+  // loadLeaderboard below, which needs the session row for sprint points
+  // and can't run until it's loaded. The lobby's "N joined" count doesn't
+  // need any of that, just the participant rows, so it's split out as its
+  // own always-safe function rather than sharing loadLeaderboard's guard.
+  // Wired to both the realtime rebus_participants handler AND a lobby-only
+  // poll below — belt-and-suspenders after the sessionRef fix alone didn't
+  // resolve a MOD-reported "still stuck on 0 joined" repeat (2026-08-29):
+  // matches the pattern HostWheelSessionPage's loadRoster already uses
+  // (no session guard there either), which hasn't had this complaint.
+  async function loadRoster() {
+    const { data } = await supabase
+      .from("rebus_participants")
+      .select("user_id, team_id, profiles(username, avatar_url)")
+      .eq("session_id", sessionId);
+    setRoster((data as unknown as RebusParticipant[]) ?? []);
+  }
+
   async function loadLeaderboard() {
     const currentSession = sessionRef.current;
     if (!currentSession) return;
@@ -146,7 +164,10 @@ export default function HostRebusSessionPage() {
       .channel(`host-rebus-watch-${sessionId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "rebus_sessions", filter: `id=eq.${sessionId}` }, () => loadSession())
       .on("postgres_changes", { event: "*", schema: "public", table: "rebus_answers", filter: `session_id=eq.${sessionId}` }, () => loadLeaderboard())
-      .on("postgres_changes", { event: "*", schema: "public", table: "rebus_participants", filter: `session_id=eq.${sessionId}` }, () => loadLeaderboard())
+      .on("postgres_changes", { event: "*", schema: "public", table: "rebus_participants", filter: `session_id=eq.${sessionId}` }, () => {
+        loadRoster();
+        loadLeaderboard();
+      })
       .subscribe();
 
     return () => {
@@ -159,6 +180,20 @@ export default function HostRebusSessionPage() {
     loadLeaderboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.status, session?.current_puzzle_index, session?.sprint_p1_points, session?.sprint_p2_points]);
+
+  // Belt-and-suspenders for the lobby "N joined" count specifically: a MOD
+  // still reported it stuck at 0 after the realtime-closure fix above, so
+  // rather than keep guessing at what's swallowing the postgres_changes
+  // event for this one connection, poll loadRoster() every few seconds
+  // while the lobby is open — cheap (one lightweight query), only runs
+  // pre-session, and guarantees the count is never more than a few seconds
+  // stale regardless of whatever's actually blocking the realtime push.
+  useEffect(() => {
+    if (session?.status !== "lobby") return;
+    const interval = setInterval(loadRoster, 4000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.status]);
 
   async function callHost(action: string, extra: Record<string, unknown> = {}) {
     setBusy(true);
