@@ -9,23 +9,12 @@ import {
   REBUS_SPRINT_TEMPLATE_EXAMPLE,
   REBUS_PUZZLE_TYPE_LABELS,
   REBUS_TYPE_EXAMPLES,
+  REBUS_DIFFICULTY_LABELS,
+  REBUS_DIFFICULTY_ORDER,
+  REBUS_ROUND_DEFAULTS,
   type ParsedRebusPuzzle,
 } from "../../utils/rebusPuzzleParser";
 import type { RebusPuzzle, RebusPuzzleType, RebusRound, RebusSet, RebusSprintPuzzle } from "../../types";
-
-const ROUND_TABS: { key: RebusRound; label: string }[] = [
-  { key: "warmup", label: "Round 1 · Warm-Up" },
-  { key: "round2", label: "Round 2" },
-  { key: "round3", label: "Round 3" },
-  { key: "final", label: "Final Round" },
-];
-
-const ROUND_DEFAULTS: Record<RebusRound, { points: number; time: number }> = {
-  warmup: { points: 200, time: 10 },
-  round2: { points: 400, time: 15 },
-  round3: { points: 500, time: 15 },
-  final: { points: 1000, time: 30 },
-};
 
 // Labels and examples live in rebusPuzzleParser.ts now — shared with the
 // import modal, which shows the same per-type examples as a paste
@@ -40,8 +29,8 @@ const emptyDraft = (round: RebusRound) => ({
   display: "",
   answer: "",
   acceptedAnswers: "",
-  points: ROUND_DEFAULTS[round].points,
-  timeLimit: ROUND_DEFAULTS[round].time,
+  points: REBUS_ROUND_DEFAULTS[round].points,
+  timeLimit: REBUS_ROUND_DEFAULTS[round].time_limit_seconds,
 });
 
 export default function RebusSetEditorPage() {
@@ -54,7 +43,7 @@ export default function RebusSetEditorPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [activeTab, setActiveTab] = useState<RebusRound | "sprint">("warmup");
+  const [activeTab, setActiveTab] = useState<"puzzles" | "sprint">("puzzles");
   const [showManualForm, setShowManualForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [draft, setDraft] = useState(emptyDraft("warmup"));
@@ -96,10 +85,6 @@ export default function RebusSetEditorPage() {
   function nextSprintOrderIndex() {
     return sprintPuzzles.length === 0 ? 0 : Math.max(...sprintPuzzles.map((p) => p.order_index)) + 1;
   }
-
-  useEffect(() => {
-    if (activeTab !== "sprint") setDraft(emptyDraft(activeTab));
-  }, [activeTab]);
 
   async function handleAddManual() {
     setFormError(null);
@@ -250,10 +235,13 @@ export default function RebusSetEditorPage() {
     );
   }
 
-  const mainPuzzleCount = puzzles.filter((p) => p.round !== "final").length;
-  const finalPuzzleCount = puzzles.filter((p) => p.round === "final").length;
-  const visiblePuzzles = activeTab === "sprint" ? [] : puzzles.filter((p) => p.round === activeTab);
-  const visibleArchived = activeTab === "sprint" ? [] : archivedPuzzles.filter((p) => p.round === activeTab);
+  const puzzlesByDifficulty = REBUS_DIFFICULTY_ORDER.map((round) => ({
+    round,
+    label: REBUS_DIFFICULTY_LABELS[round],
+    items: puzzles.filter((p) => p.round === round),
+    archived: archivedPuzzles.filter((p) => p.round === round),
+  }));
+  const summary = puzzlesByDifficulty.map((g) => `${g.items.length} ${g.label}`).join(" · ");
 
   return (
     <div className="app-shell">
@@ -262,9 +250,7 @@ export default function RebusSetEditorPage() {
         <div>
           <h1>{set?.name}</h1>
           <p className="text-muted" style={{ marginTop: "-8px" }}>
-            {mainPuzzleCount} puzzle{mainPuzzleCount === 1 ? "" : "s"} in rounds 1-3
-            {finalPuzzleCount > 0 ? ` · ${finalPuzzleCount} Final Round puzzle` : " · no Final Round puzzle yet"} ·{" "}
-            {sprintPuzzles.length} Sprint puzzle{sprintPuzzles.length === 1 ? "" : "s"}
+            {summary} · {sprintPuzzles.length} Sprint puzzle{sprintPuzzles.length === 1 ? "" : "s"}
           </p>
           <p className="hint" style={{ marginTop: "-4px" }}>
             Chill/Hard, Solo/Team, and starting a session now live on the{" "}
@@ -273,15 +259,12 @@ export default function RebusSetEditorPage() {
         </div>
 
         <div className="row" style={{ marginTop: "20px", flexWrap: "wrap", gap: "8px" }}>
-          {ROUND_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              className={`btn btn-sm ${activeTab === tab.key ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label} ({puzzles.filter((p) => p.round === tab.key).length})
-            </button>
-          ))}
+          <button
+            className={`btn btn-sm ${activeTab === "puzzles" ? "btn-primary" : "btn-secondary"}`}
+            onClick={() => setActiveTab("puzzles")}
+          >
+            Puzzles ({puzzles.length})
+          </button>
           <button
             className={`btn btn-sm ${activeTab === "sprint" ? "btn-primary" : "btn-secondary"}`}
             onClick={() => setActiveTab("sprint")}
@@ -305,17 +288,17 @@ export default function RebusSetEditorPage() {
               <div className="card" style={{ marginBottom: "20px" }}>
                 <div className="row">
                   <div className="field" style={{ flex: 1 }}>
-                    <label>Round</label>
+                    <label>Difficulty</label>
                     <select
                       value={draft.round}
                       onChange={(e) => {
                         const round = e.target.value as RebusRound;
-                        setDraft({ ...draft, round, points: ROUND_DEFAULTS[round].points, timeLimit: ROUND_DEFAULTS[round].time });
+                        setDraft({ ...draft, round, points: REBUS_ROUND_DEFAULTS[round].points, timeLimit: REBUS_ROUND_DEFAULTS[round].time_limit_seconds });
                       }}
                     >
-                      {ROUND_TABS.map((t) => (
-                        <option key={t.key} value={t.key}>
-                          {t.label}
+                      {REBUS_DIFFICULTY_ORDER.map((r) => (
+                        <option key={r} value={r}>
+                          {REBUS_DIFFICULTY_LABELS[r]}
                         </option>
                       ))}
                     </select>
@@ -396,46 +379,54 @@ export default function RebusSetEditorPage() {
               </div>
             )}
 
-            <div className="stack">
-              {visiblePuzzles.map((p, i) => (
-                <div key={p.id} className="card card--tight">
-                  <div className="row-between">
-                    <strong>
-                      {i + 1}. {p.display_text}
-                    </strong>
-                    <div className="row">
-                      <span className="badge badge-neutral">{REBUS_PUZZLE_TYPE_LABELS[p.puzzle_type]}</span>
-                      <button className="btn btn-ghost btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleDelete(p)}>
-                        {deleteBusyId === p.id ? <span className="spinner" /> : "Delete"}
-                      </button>
+            {puzzlesByDifficulty.map((group) => (
+              <div key={group.round} style={{ marginTop: "20px" }}>
+                <h3 style={{ marginBottom: "8px" }}>
+                  {group.label} <span className="text-muted">({group.items.length})</span>
+                </h3>
+                <div className="stack">
+                  {group.items.map((p, i) => (
+                    <div key={p.id} className="card card--tight">
+                      <div className="row-between">
+                        <strong>
+                          {i + 1}. {p.display_text}
+                        </strong>
+                        <div className="row">
+                          <span className="badge badge-neutral">{REBUS_PUZZLE_TYPE_LABELS[p.puzzle_type]}</span>
+                          <button className="btn btn-ghost btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleDelete(p)}>
+                            {deleteBusyId === p.id ? <span className="spinner" /> : "Delete"}
+                          </button>
+                        </div>
+                      </div>
+                      <p className="hint" style={{ marginTop: "6px" }}>
+                        {p.points} pts (+300 speed bonus) · {p.time_limit_seconds}s · answer: {p.answer_text}
+                        {p.accepted_answers.length > 1 && ` (also: ${p.accepted_answers.filter((a) => a !== p.answer_text).join(", ")})`}
+                      </p>
                     </div>
-                  </div>
-                  <p className="hint" style={{ marginTop: "6px" }}>
-                    {p.points} pts (+300 speed bonus) · {p.time_limit_seconds}s · answer: {p.answer_text}
-                    {p.accepted_answers.length > 1 && ` (also: ${p.accepted_answers.filter((a) => a !== p.answer_text).join(", ")})`}
-                  </p>
+                  ))}
+                  {group.items.length === 0 && (
+                    <div className="card text-center">
+                      <p className="text-muted">No {group.label} puzzles yet — add one manually or import a list.</p>
+                    </div>
+                  )}
                 </div>
-              ))}
-              {visiblePuzzles.length === 0 && !showManualForm && (
-                <div className="card text-center">
-                  <p className="text-muted">No puzzles in this round yet — add one manually or import a list.</p>
-                </div>
-              )}
-            </div>
+              </div>
+            ))}
 
-            {visibleArchived.length > 0 && (
+            {archivedPuzzles.length > 0 && (
               <div style={{ marginTop: "24px" }}>
                 <button className="btn btn-ghost btn-sm" onClick={() => setShowArchived((s) => !s)}>
-                  {showArchived ? "Hide" : "Show"} archived ({visibleArchived.length})
+                  {showArchived ? "Hide" : "Show"} archived ({archivedPuzzles.length})
                 </button>
 
                 {showArchived && (
                   <div className="stack" style={{ marginTop: "12px" }}>
-                    {visibleArchived.map((p) => (
+                    {archivedPuzzles.map((p) => (
                       <div key={p.id} className="card card--tight" style={{ opacity: 0.7 }}>
                         <div className="row-between">
                           <strong>{p.display_text}</strong>
                           <div className="row">
+                            <span className="badge badge-neutral">{REBUS_DIFFICULTY_LABELS[p.round]}</span>
                             <span className="badge badge-neutral">Archived</span>
                             <button className="btn btn-secondary btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleRestore(p)}>
                               {deleteBusyId === p.id ? <span className="spinner" /> : "Restore"}
@@ -530,8 +521,8 @@ export default function RebusSetEditorPage() {
         )}
       </div>
 
-      {showImport && activeTab !== "sprint" && (
-        <RebusImportModal round={activeTab} onCancel={() => setShowImport(false)} onConfirm={handleImportConfirm} />
+      {showImport && activeTab === "puzzles" && (
+        <RebusImportModal onCancel={() => setShowImport(false)} onConfirm={handleImportConfirm} />
       )}
     </div>
   );

@@ -27,7 +27,13 @@ export default function HostRebusSessionPage() {
 
   const [session, setSession] = useState<RebusSession | null>(null);
   const [mainPuzzles, setMainPuzzles] = useState<RebusSessionPuzzle[]>([]);
-  const [finalPuzzle, setFinalPuzzle] = useState<RebusSessionPuzzle | null>(null);
+  // A session can snapshot up to REBUS_FINAL_CANDIDATES_PER_SESSION (5) Final
+  // Round candidates now, not just one — the backend picks exactly one of
+  // them at random when start_final runs and records it as
+  // session.final_puzzle_id. So this page has to hold every candidate (to
+  // know whether the set has any Final puzzle at all, before Final starts)
+  // and separately derive which one is actually being played (below).
+  const [finalCandidates, setFinalCandidates] = useState<RebusSessionPuzzle[]>([]);
   const [roster, setRoster] = useState<RebusParticipant[]>([]);
   const [leaderboard, setLeaderboard] = useState<RebusLeaderboardEntry[]>([]);
   const [teamLeaderboard, setTeamLeaderboard] = useState<RebusTeamLeaderboardEntry[] | null>(null);
@@ -57,6 +63,12 @@ export default function HostRebusSessionPage() {
 
   const currentPuzzle = session ? mainPuzzles.find((p) => p.order_index === session.current_puzzle_index) ?? null : null;
   const isLastPuzzle = currentPuzzle ? currentPuzzle.order_index + 1 >= mainPuzzles.length : false;
+  // Which candidate is actually being played, once start_final has picked
+  // one — before that, session.final_puzzle_id is still null, so this stays
+  // null too (that's fine: pre-final UI only needs finalCandidates.length).
+  const finalPuzzle = session?.final_puzzle_id
+    ? finalCandidates.find((p) => p.id === session.final_puzzle_id) ?? null
+    : null;
 
   async function loadSession() {
     const { data } = await supabase.from("rebus_sessions").select("*").eq("id", sessionId).single();
@@ -122,7 +134,7 @@ export default function HostRebusSessionPage() {
         .eq("session_id", sessionId)
         .order("order_index", { ascending: true });
       setMainPuzzles((puzzles ?? []).filter((p) => p.round !== "final"));
-      setFinalPuzzle((puzzles ?? []).find((p) => p.round === "final") ?? null);
+      setFinalCandidates((puzzles ?? []).filter((p) => p.round === "final"));
     }
     setLoading(false);
   }
@@ -427,11 +439,11 @@ export default function HostRebusSessionPage() {
                 </select>
               </div>
             )}
-            {!finalPuzzle && <p className="error-text">This set has no Final Round puzzle — add one in the set editor first.</p>}
+            {finalCandidates.length === 0 && <p className="error-text">No Final Round puzzle has been authored yet — add one in the set editor first.</p>}
             <div className="row" style={{ justifyContent: "center", marginTop: "12px" }}>
               <button
                 className="btn btn-primary"
-                disabled={busy || !finalPuzzle || (session.sprint_p1_points === session.sprint_p2_points && !finalistOverride)}
+                disabled={busy || finalCandidates.length === 0 || (session.sprint_p1_points === session.sprint_p2_points && !finalistOverride)}
                 onClick={handleStartFinal}
               >
                 ▶ Start Final Round

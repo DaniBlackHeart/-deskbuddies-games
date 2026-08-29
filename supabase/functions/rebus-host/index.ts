@@ -21,6 +21,7 @@ import {
   releaseSpectatorSeat,
   pickRebusSessionPuzzles,
   pickRebusSessionSprintPuzzles,
+  shuffle,
   REBUS_SPRINT_SECONDS,
 } from "../_shared/utils.ts";
 
@@ -56,13 +57,25 @@ async function fetchSessionMainPuzzles(admin: ReturnType<typeof getAdminClient>,
   return data ?? [];
 }
 
-async function fetchSessionFinalPuzzle(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
+// Up to REBUS_FINAL_CANDIDATES_PER_SESSION rows now (2026-08-29, was a
+// hard single row — .maybeSingle() would start throwing the moment a
+// session ever had more than one). start_final picks one of these at
+// random; everything else just needs to know whether any exist.
+async function fetchSessionFinalCandidates(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
   const { data } = await admin
     .from("rebus_session_puzzles")
     .select("*")
     .eq("session_id", sessionId)
     .eq("round", "final")
-    .maybeSingle();
+    .order("order_index", { ascending: true });
+  return data ?? [];
+}
+
+// Fetches whichever single session-snapshot puzzle is actually being
+// played, by its exact id (e.g. session.final_puzzle_id) — distinct from
+// fetchSessionFinalCandidates, which returns every unplayed candidate.
+async function fetchSessionPuzzleById(admin: ReturnType<typeof getAdminClient>, puzzleId: string) {
+  const { data } = await admin.from("rebus_session_puzzles").select("*").eq("id", puzzleId).maybeSingle();
   return data ?? null;
 }
 
@@ -383,10 +396,11 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "The Sprint ended in a tie — pick who goes to the Final Round" }, 409);
         }
 
-        const finalPuzzle = await fetchSessionFinalPuzzle(admin, session_id);
-        if (!finalPuzzle) {
+        const finalCandidates = await fetchSessionFinalCandidates(admin, session_id);
+        if (finalCandidates.length === 0) {
           return jsonResponse({ error: "No set has a Final Round puzzle yet" }, 400);
         }
+        const finalPuzzle = shuffle(finalCandidates)[0];
 
         const { data: finalistProfile } = await admin.from("profiles").select("username").eq("id", finalist).single();
         const startedAt = new Date().toISOString();
@@ -422,11 +436,14 @@ Deno.serve(async (req) => {
         if (!session) return jsonResponse({ error: "Session not found" }, 404);
         if (session.status !== "final_live") return jsonResponse({ error: "The Final Round isn't live" }, 409);
 
-        const { data: puzzle } = await admin
-          .from("rebus_puzzles")
-          .select("*")
-          .eq("id", session.final_puzzle_id)
-          .single();
+        // Was querying rebus_puzzles (the authoring table) here — a bug
+        // left over from before 0023_rebus_mixed_sessions.sql retargeted
+        // final_puzzle_id at rebus_session_puzzles. It never got caught
+        // because no playtest had reached the Final Round yet; found and
+        // fixed alongside the multi-candidate change (2026-08-29), since
+        // it would have meant the reveal broadcast always sent a null
+        // answer_text.
+        const puzzle = await fetchSessionPuzzleById(admin, session.final_puzzle_id);
 
         await admin.from("rebus_sessions").update({ status: "final_reveal" }).eq("id", session_id);
         await sweepNoShows(admin, session_id, puzzle, session.mode, [session.final_player_id]);
@@ -459,7 +476,7 @@ Deno.serve(async (req) => {
         if (!session) return jsonResponse({ error: "Session not found" }, 404);
         if (session.status === "ended") return jsonResponse({ error: "Session already ended" }, 409);
 
-        const finalPuzzleExists = Boolean(await fetchSessionFinalPuzzle(admin, session_id));
+        const finalPuzzleExists = (await fetchSessionFinalCandidates(admin, session_id)).length > 0;
         const completed = finalPuzzleExists
           ? session.status === "final_reveal"
           : ["round_ended", "sprint_setup", "sprint_p1", "sprint_p2", "sprint_done"].includes(session.status);

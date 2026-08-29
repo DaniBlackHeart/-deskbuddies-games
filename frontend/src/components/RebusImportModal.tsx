@@ -4,24 +4,22 @@ import {
   REBUS_TEMPLATE_EXAMPLE,
   REBUS_JSON_MULTILINE_EXAMPLE,
   REBUS_PUZZLE_TYPE_LABELS,
+  REBUS_DIFFICULTY_LABELS,
+  REBUS_DIFFICULTY_ORDER,
   type ParsedRebusPuzzle,
 } from "../utils/rebusPuzzleParser";
 import type { RebusRound } from "../types";
 
-const ROUND_LABELS: Record<string, string> = {
-  warmup: "Round 1 · Warm-Up",
-  round2: "Round 2",
-  round3: "Round 3",
-  final: "Final Round",
-};
-
 type RebusImportModalProps = {
-  round: RebusRound;
   onCancel: () => void;
   onConfirm: (puzzles: ParsedRebusPuzzle[]) => Promise<void>;
 };
 
-export default function RebusImportModal({ round, onCancel, onConfirm }: RebusImportModalProps) {
+export default function RebusImportModal({ onCancel, onConfirm }: RebusImportModalProps) {
+  // Sets no longer have per-round authoring tabs (2026-08-29), so this
+  // batch's difficulty is picked right here instead of being inferred
+  // from whichever tab the modal was opened from.
+  const [round, setRound] = useState<RebusRound>("warmup");
   const [raw, setRaw] = useState("");
   const [parsed, setParsed] = useState<ParsedRebusPuzzle[] | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -59,13 +57,31 @@ export default function RebusImportModal({ round, onCancel, onConfirm }: RebusIm
     >
       <div className="card" style={{ maxWidth: "620px", width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
         <h2>Import puzzles</h2>
+
+        <div className="field">
+          <label>Difficulty for this whole batch</label>
+          <select
+            value={round}
+            onChange={(e) => {
+              setRound(e.target.value as RebusRound);
+              setParsed(null); // points/time defaults depend on the round — force a re-preview
+            }}
+          >
+            {REBUS_DIFFICULTY_ORDER.map((r) => (
+              <option key={r} value={r}>
+                {REBUS_DIFFICULTY_LABELS[r]}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <p className="text-muted">
-          Importing into <strong>{ROUND_LABELS[round] ?? round}</strong> — paste a JSON array, or use the simple text
-          template. No need to say the round per puzzle: every puzzle in this batch goes into this round. Puzzle type
-          isn't asked for either — it's guessed from each puzzle's own text (numbers → Numbers & letters, an
-          underscore → Missing letters, a repeated word → Repeated words, and so on); the preview below always shows
-          the guess so you can catch a wrong one before importing, since there's no way to change a puzzle's type
-          after it's in (add it manually instead if you need an exact type).{" "}
+          Paste a JSON array, or use the simple text template. Every puzzle in this batch gets the difficulty picked
+          above — no need to say it per puzzle. Puzzle type isn't asked for either — it's guessed from each puzzle's
+          own text (numbers → Numbers & letters, an underscore → Missing letters, a repeated word → Repeated words,
+          and so on); the preview below always shows the guess so you can catch a wrong one before importing, since
+          there's no way to change a puzzle's type after it's in (add it manually instead if you need an exact
+          type).{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setShowExample((s) => !s)} style={{ padding: 0 }}>
             {showExample ? "Hide example" : "Show example"}
           </button>

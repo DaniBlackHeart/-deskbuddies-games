@@ -2,11 +2,14 @@
 // shape ready to insert into rebus_puzzles. Mirrors questionParser.ts's
 // two supported formats (JSON array, or a simple line-based template).
 //
-// Round was dropped from both formats (2026-08-29, at Dani's request) —
-// the import modal is always opened from inside one specific round tab in
-// RebusSetEditorPage, so every puzzle in a single paste belongs to that
-// same round; there's nothing left to specify per puzzle. Both the round
-// and its points/time defaults are passed in by the caller instead of
+// Round/difficulty is still not part of either format's per-puzzle text —
+// every puzzle in one paste shares a single round, same as always — but
+// where that round comes from changed twice the same day (2026-08-29):
+// first inferred from whichever round tab the import modal was opened
+// from, then (once sets dropped their per-round tabs entirely in favor of
+// one flat puzzle list) a difficulty dropdown inside the import modal
+// itself. Either way, the round and its points/time defaults are passed
+// in by the caller (parseRebusPuzzleInput's `round` argument) instead of
 // parsed from the pasted text.
 //
 // Type was dropped too, but — per Dani's follow-up the same day — pasted
@@ -52,6 +55,21 @@ export const REBUS_PUZZLE_TYPE_LABELS: Record<RebusPuzzleType, string> = {
   repeated: "Repeated words",
   homophone: "Homophone",
 };
+
+// Difficulty labels for the `round` field — "round" is still the column
+// name (unchanged, to avoid a migration) but a set no longer has separate
+// per-round authoring tabs (2026-08-29, at Dani's request): every puzzle
+// in a set is one flat list now, with its difficulty picked per-puzzle
+// via a dropdown using these labels, both in the manual "Add puzzle" form
+// and the import modal. Shared here so the two stay in sync.
+export const REBUS_DIFFICULTY_LABELS: Record<RebusRound, string> = {
+  warmup: "Easy",
+  round2: "Medium",
+  round3: "Hard",
+  final: "Final Round",
+};
+
+export const REBUS_DIFFICULTY_ORDER: RebusRound[] = ["warmup", "round2", "round3", "final"];
 
 // One example per type, shared by the manual "Add puzzle" form (where a
 // MOD picks the type directly) and the import modal's reference block
@@ -105,14 +123,17 @@ export type ParseResult = {
   errors: string[];
 };
 
-// Defaults per round, matching the format Dani specified — MOD can still
-// override points/time per puzzle in the JSON/template.
-const ROUND_DEFAULTS: Record<RebusRound, { points: number; time_limit_seconds: number }> = {
+// Defaults per round/difficulty, matching the format Dani specified — MOD
+// can still override points/time per puzzle in the JSON/template, or in
+// the manual add form. Exported (not just used internally) so
+// RebusSetEditorPage.tsx has one source of truth instead of its own copy.
+export const REBUS_ROUND_DEFAULTS: Record<RebusRound, { points: number; time_limit_seconds: number }> = {
   warmup: { points: 200, time_limit_seconds: 10 },
   round2: { points: 400, time_limit_seconds: 15 },
   round3: { points: 500, time_limit_seconds: 15 },
   final: { points: 1000, time_limit_seconds: 30 },
 };
+const ROUND_DEFAULTS = REBUS_ROUND_DEFAULTS;
 
 export function parseRebusPuzzleInput(raw: string, round: RebusRound): ParseResult {
   const trimmed = raw.trim();

@@ -592,22 +592,38 @@ export const REBUS_SPRINT_POINTS = 500;
 
 export const REBUS_SPRINT_SECONDS = 30;
 
-// Up to this many puzzles get pulled into each of Rounds 1-3 when a
-// session is created — same fixed defaults the original single-set
-// format used (10 Warm-Up / 10 Round 2 / 10 Round 3), kept as a shared
-// constant now that the pool is assembled programmatically instead of by
-// a MOD hand-curating exactly this many puzzles per round. If a round's
+// Up to this many puzzles get pulled into each of Rounds 1-3 (Easy /
+// Medium / Hard) when a session is created — same fixed defaults the
+// original single-set format used (10 each), kept as a shared constant
+// now that the pool is assembled programmatically instead of by a MOD
+// hand-curating exactly this many puzzles per round. If a round's
 // combined pool (across every set) has fewer than this many active
 // puzzles, the session just gets however many exist.
 export const REBUS_PUZZLES_PER_ROUND = 10;
 
+// Up to this many Final Round CANDIDATES get snapshotted into a session
+// (2026-08-29, at Dani's request — was a hard 1). The Final Round is
+// still played as one puzzle, same as before — rebus-host's start_final
+// picks one of these candidates at random once the Sprint finishes. More
+// candidates just means more variety session to session, the same reason
+// Rounds 1-3 pull a pool instead of a fixed list.
+export const REBUS_FINAL_CANDIDATES_PER_SESSION = 5;
+
+// Up to this many Sprint (Round 4) puzzles get snapshotted into a session
+// (2026-08-29 — was uncapped, "the whole combined pool"). Sprint's "ran
+// out of puzzles before time was up" state already existed for a small
+// pool, so capping it here doesn't need any player-facing code changes —
+// it just makes that state the normal outcome for a good solver instead
+// of a rare one.
+export const REBUS_SPRINT_PUZZLES_PER_SESSION = 3;
+
 const REBUS_MAIN_ROUNDS = ["warmup", "round2", "round3"] as const;
 
 /**
- * Builds ONE session's Rounds 1-3 + Final Round puzzle pool by randomly
- * mixing every active (non-archived) puzzle from EVERY rebus_set together
- * — confirmed with Dani (2026-08-29) as the replacement for "start a
- * session from one specific set," mirroring how Wheel of Fortune
+ * Builds ONE session's Rounds 1-3 + Final Round CANDIDATE puzzle pool by
+ * randomly mixing every active (non-archived) puzzle from EVERY rebus_set
+ * together — confirmed with Dani (2026-08-29) as the replacement for
+ * "start a session from one specific set," mirroring how Wheel of Fortune
  * randomizes its own category + phrase each round instead of a MOD
  * picking one up front. See 0023_rebus_mixed_sessions.sql for why the
  * result gets copied into a session-scoped snapshot table rather than
@@ -616,10 +632,17 @@ const REBUS_MAIN_ROUNDS = ["warmup", "round2", "round3"] as const;
  * Returns rows shaped for rebus_session_puzzles (session_id not yet
  * attached — the caller adds it after the session row exists).
  * order_index is one flat counter across warmup -> round2 -> round3,
- * with the Final Round puzzle (if any exist anywhere) appended last —
- * mirrors the single contiguous order_index sequence rebus_puzzles used
- * per set, so next_puzzle/end_puzzle's positional stepping logic needs
- * no changes beyond querying by session_id instead of rebus_set_id.
+ * with the Final Round candidates (up to REBUS_FINAL_CANDIDATES_PER_SESSION,
+ * if that many exist anywhere) appended last — mirrors the single
+ * contiguous order_index sequence rebus_puzzles used per set, so
+ * next_puzzle/end_puzzle's positional stepping logic needs no changes
+ * beyond querying by session_id instead of rebus_set_id (it already
+ * explicitly excludes round='final' rows — see fetchSessionMainPuzzles in
+ * rebus-host — so having several final rows here doesn't affect it).
+ * Final is plural now (2026-08-29, was a hard single pick): rebus-host's
+ * start_final randomly picks ONE of these candidates once the Sprint
+ * finishes — the Final Round is still played as a single puzzle, this
+ * just gives more variety in which one shows up.
  */
 export async function pickRebusSessionPuzzles(admin: ReturnType<typeof getAdminClient>) {
   const { data: allPuzzles } = await admin.from("rebus_puzzles").select("*").is("archived_at", null);
@@ -658,8 +681,8 @@ export async function pickRebusSessionPuzzles(admin: ReturnType<typeof getAdminC
   }
 
   const finalCandidates = (allPuzzles ?? []).filter((p) => p.round === "final");
-  if (finalCandidates.length > 0) {
-    const p = shuffle(finalCandidates)[0];
+  const pickedFinals = shuffle(finalCandidates).slice(0, REBUS_FINAL_CANDIDATES_PER_SESSION);
+  for (const p of pickedFinals) {
     rows.push({
       round: "final",
       order_index: cursor++,
@@ -678,21 +701,24 @@ export async function pickRebusSessionPuzzles(admin: ReturnType<typeof getAdminC
 
 /**
  * Same idea for the Sprint (Round 4) pool: every rebus_sprint_puzzles row
- * from every set, shuffled together into one session-scoped pool. No cap
- * — matches the original single-set pool's "no fixed count, the two
- * players just race through as much of it as they can in 30 seconds."
- * Returns rows shaped for rebus_session_sprint_puzzles (session_id not
- * yet attached).
+ * from every set, shuffled together and capped at
+ * REBUS_SPRINT_PUZZLES_PER_SESSION (2026-08-29, was uncapped — "the two
+ * players just race through as much of it as they can in 30 seconds"
+ * still holds, it's just now a smaller session-scoped pool instead of
+ * literally every Sprint puzzle ever authored). Returns rows shaped for
+ * rebus_session_sprint_puzzles (session_id not yet attached).
  */
 export async function pickRebusSessionSprintPuzzles(admin: ReturnType<typeof getAdminClient>) {
   const { data: allSprint } = await admin.from("rebus_sprint_puzzles").select("*");
-  return shuffle(allSprint ?? []).map((p, i) => ({
-    order_index: i,
-    source_sprint_puzzle_id: p.id,
-    display_text: p.display_text,
-    answer_text: p.answer_text,
-    accepted_answers: p.accepted_answers,
-  }));
+  return shuffle(allSprint ?? [])
+    .slice(0, REBUS_SPRINT_PUZZLES_PER_SESSION)
+    .map((p, i) => ({
+      order_index: i,
+      source_sprint_puzzle_id: p.id,
+      display_text: p.display_text,
+      answer_text: p.answer_text,
+      accepted_answers: p.accepted_answers,
+    }));
 }
 
 /**
