@@ -5,9 +5,16 @@ import { correctedNow } from "../lib/clockSync";
 type TimerProps = {
   deadline: number; // epoch ms
   onExpire?: () => void;
+  // For a deadline that exists purely as a hang-recovery safety net (e.g.
+  // the untimed "spin / buy a vowel / solve" decision) rather than actual
+  // tension-timer pressure — the countdown/onExpire logic below still runs
+  // exactly the same either way, this just skips the visible ⏱ display
+  // and the urgent-zone tick sound, so it doesn't read as a clock the
+  // player needs to race.
+  hidden?: boolean;
 };
 
-export default function Timer({ deadline, onExpire }: TimerProps) {
+export default function Timer({ deadline, onExpire, hidden }: TimerProps) {
   const [remainingMs, setRemainingMs] = useState(() => deadline - correctedNow());
 
   useEffect(() => {
@@ -30,10 +37,12 @@ export default function Timer({ deadline, onExpire }: TimerProps) {
   // (not once per 200ms poll — `seconds` only changes on whole-second
   // boundaries, so this naturally lands one tick per second).
   useEffect(() => {
-    if (seconds > 0 && seconds <= 5) {
+    if (!hidden && seconds > 0 && seconds <= 5) {
       sounds.tick();
     }
-  }, [seconds]);
+  }, [seconds, hidden]);
+
+  if (hidden) return null;
 
   return (
     <div

@@ -186,7 +186,16 @@ export default function WheelPlayPage() {
       })
       .on("broadcast", { event: "consonant_called" }, ({ payload }: { payload: WheelSessionEvent & { type: "consonant_called" } }) => {
         if (payload.hit) sounds.correct();
-        else sounds.wrong();
+        else {
+          sounds.wrong();
+          // A miss ends the turn immediately (locked out / control passed) —
+          // with no pause between the call and the screen moving on, a miss
+          // can look identical to the press not having registered at all.
+          // This flash is the "yes, that went through, it just wasn't in
+          // the puzzle" confirmation for whoever called it (and info for
+          // everyone else watching).
+          showFlash(`${usernameFor(payload.user_id)} called ${payload.letter} — not in the puzzle.`);
+        }
         hydrate();
       })
       .on("broadcast", { event: "extra_call_available" }, () => {
@@ -254,7 +263,7 @@ export default function WheelPlayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, hydrate, showFlash, profile?.id]);
 
-  async function callPlay(action: string, extra: Record<string, unknown> = {}) {
+  async function callPlay(action: string, extra: Record<string, unknown> = {}, opts: { silent?: boolean } = {}) {
     if (!sessionId) return null;
     setBusy(true);
     const { data, error } = await supabase.functions.invoke("wheel-play", { body: { action, session_id: sessionId, ...extra } });
@@ -262,7 +271,21 @@ export default function WheelPlayPage() {
     if (error || data?.error) {
       const message = data?.error ?? "Something went wrong";
       console.warn(action, message);
-      showFlash(message);
+      // Auto-fired timeout actions (buzz_timeout / turn_timeout /
+      // solve_timeout / bonus_solve_timeout) are called from a <Timer>'s
+      // onExpire, not a button press. buzz_timeout in particular renders
+      // for EVERY client watching the buzz-open screen — eligible players,
+      // locked-out players, and pure spectators alike — so the instant that
+      // deadline passes, several clients race to report it at once. Exactly
+      // one of those requests actually resolves the round; the rest lose
+      // the race and get back an error ("The buzzer has already been won",
+      // "No round in progress", "Not timed out yet"). That's expected, not
+      // a real problem — the correct state is already on its way via the
+      // broadcast + hydrate() below — so callers pass silent:true for these
+      // to skip the flash. Surfacing it anyway is what made it look like
+      // random members were hitting mystery errors mid-game for no reason
+      // they'd actually done anything.
+      if (!opts.silent) showFlash(message);
       hydrate();
       return null;
     }
@@ -436,7 +459,7 @@ export default function WheelPlayPage() {
             <>
               <WheelBoard maskedPhrase={session.bonus_masked_phrase ?? ""} categoryName={session.bonus_category_name ?? ""} />
               <div className="card">
-                {session.bonus_deadline_ms && <Timer deadline={session.bonus_deadline_ms} onExpire={() => callPlay("bonus_solve_timeout")} />}
+                {session.bonus_deadline_ms && <Timer deadline={session.bonus_deadline_ms} onExpire={() => callPlay("bonus_solve_timeout", {}, { silent: true })} />}
                 {iAmWinner ? (
                   <>
                     <div className="field">
@@ -498,7 +521,7 @@ export default function WheelPlayPage() {
 
         {round?.status === "active" && round.turn_phase === "buzz_open" && (
           <div className="card text-center">
-            {round.turn_deadline_ms && <Timer deadline={round.turn_deadline_ms} onExpire={() => callPlay("buzz_timeout")} />}
+            {round.turn_deadline_ms && <Timer deadline={round.turn_deadline_ms} onExpire={() => callPlay("buzz_timeout", {}, { silent: true })} />}
             {!is_playing || (isTeamMode ? !round.eligible_team_ids.includes(my_team_id ?? "") : !round.eligible_user_ids.includes(myId ?? "")) ? (
               <p className="text-muted">
                 {!is_playing
@@ -524,8 +547,11 @@ export default function WheelPlayPage() {
             {round.turn_deadline_ms && (
               <Timer
                 deadline={round.turn_deadline_ms}
+                hidden={round.turn_phase === "awaiting_action"}
                 onExpire={() =>
-                  round.turn_phase === "awaiting_solve_guess" ? callPlay("solve_timeout") : callPlay("turn_timeout")
+                  round.turn_phase === "awaiting_solve_guess"
+                    ? callPlay("solve_timeout", {}, { silent: true })
+                    : callPlay("turn_timeout", {}, { silent: true })
                 }
               />
             )}
@@ -644,6 +670,40 @@ export default function WheelPlayPage() {
             <p className="text-muted" style={{ margin: 0 }}>
               {isTeamMode ? `${teamNameFor(round.active_team_id)} (${usernameFor(round.active_user_id)})'s turn…` : `${usernameFor(round.active_user_id)}'s turn…`}
             </p>
+            {round.turn_deadline_ms && (
+              // Deadline watchdog. Normally the active player's OWN client
+              // is what reports its turn timing out (the Timer further up,
+              // gated on isMyTurn) — but if their device drops out from
+              // under the game (backgrounded tab, locked phone, dead
+              // connection, closed app) nothing ever calls turn_timeout /
+              // solve_timeout, and the round just hangs on them with no
+              // way for anyone else to move it along short of a MOD
+              // force-ending it. Confirmed this actually happened: a real
+              // session had a round sit on one player's turn for 2.5
+              // minutes with zero requests from anyone before a MOD
+              // stepped in — every other player was simply stuck watching
+              // "so-and-so's turn…" the whole time, which is exactly what
+              // reads as "got skipped."
+              //
+              // Every OTHER client now carries this same Timer as a
+              // fallback reporter, exactly like buzz_open's timeout has
+              // always worked for every watching client, not just the
+              // active player — so the round can always be moved along by
+              // whoever's tab is actually still alive. silent:true because
+              // whichever client's report actually lands first is a
+              // normal, harmless race (see callPlay). For the timed phases
+              // this also gives spectators a visible countdown they didn't
+              // have before; hidden during awaiting_action since that
+              // deadline is a hang-recovery safety net, not a real clock
+              // anyone should feel rushed by (see WHEEL_DECISION_SAFETY_NET_MS).
+              <Timer
+                deadline={round.turn_deadline_ms}
+                hidden={round.turn_phase === "awaiting_action"}
+                onExpire={() =>
+                  callPlay(round.turn_phase === "awaiting_solve_guess" ? "solve_timeout" : "turn_timeout", {}, { silent: true })
+                }
+              />
+            )}
           </div>
         )}
 

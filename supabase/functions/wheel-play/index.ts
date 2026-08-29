@@ -10,6 +10,10 @@
 // the column shapes):
 //   buzz_open            -> anyone eligible can buzz; winner becomes active_user_id
 //   awaiting_action      -> active player chooses: spin / buy_vowel / start_solve_attempt
+//                           (WHEEL_DECISION_SAFETY_NET_MS gives this a long,
+//                           deliberately generous deadline — not tension-timer
+//                           pressure, just a floor so a dropped device here
+//                           can't hang the round forever; see turn_timeout)
 //   awaiting_consonant   -> a wedge was just landed on; active player must call_consonant
 //   awaiting_mystery_choice -> landed on Mystery; active player picks take vs. risk
 //   awaiting_solve_guess -> active player declared a solve attempt; 15s to submit_solve
@@ -61,6 +65,7 @@ import {
   WHEEL_ACTION_WINDOW_MS,
   WHEEL_SOLVE_WINDOW_MS,
   WHEEL_BONUS_SOLVE_WINDOW_MS,
+  WHEEL_DECISION_SAFETY_NET_MS,
   WHEEL_BONUS_GIVEN_LETTERS,
   WHEEL_BONUS_PRIZE_POOL,
   type WheelWedge,
@@ -214,7 +219,7 @@ async function resolveTurnEnd(
           active_team_id: nextTeamId,
           active_user_id: nextUserId,
           turn_phase: "awaiting_action",
-          turn_deadline: null,
+          turn_deadline: new Date(Date.now() + WHEEL_DECISION_SAFETY_NET_MS).toISOString(),
           pending_wedge: null,
           free_play_active: false,
           locked_out_team_ids: [],
@@ -272,7 +277,7 @@ async function resolveTurnEnd(
       .update({
         active_user_id: nextUserId,
         turn_phase: "awaiting_action",
-        turn_deadline: null,
+        turn_deadline: new Date(Date.now() + WHEEL_DECISION_SAFETY_NET_MS).toISOString(),
         pending_wedge: null,
         free_play_active: false,
         locked_out_user_ids: [],
@@ -725,7 +730,7 @@ Deno.serve(async (req) => {
         const nextUserId = await continueControl(admin, round, session);
         await admin
           .from("wheel_rounds")
-          .update({ guessed_letters: newGuessed, round_scores: newScores, turn_deadline: null, active_user_id: nextUserId })
+          .update({ guessed_letters: newGuessed, round_scores: newScores, turn_deadline: new Date(Date.now() + WHEEL_DECISION_SAFETY_NET_MS).toISOString(), active_user_id: nextUserId })
           .eq("id", round.id);
         await broadcast(admin, session_id, "vowel_bought", { user_id: user.id, letter: upper, occurrences, masked_phrase: masked, cost: WHEEL_VOWEL_COST });
         return jsonResponse({ occurrences, solved: false });
@@ -812,14 +817,20 @@ Deno.serve(async (req) => {
 
         if (isHit) {
           const nextUserId = await continueControl(admin, updatedRound, session);
-          await admin.from("wheel_rounds").update({ turn_phase: "awaiting_action", pending_wedge: null, turn_deadline: null, active_user_id: nextUserId }).eq("id", round.id);
+          await admin
+            .from("wheel_rounds")
+            .update({ turn_phase: "awaiting_action", pending_wedge: null, turn_deadline: new Date(Date.now() + WHEEL_DECISION_SAFETY_NET_MS).toISOString(), active_user_id: nextUserId })
+            .eq("id", round.id);
           return jsonResponse({ hit: true, occurrences, solved: false });
         }
 
         // Miss. Free Play protects this one call from ending the turn.
         if (round.free_play_active) {
           const nextUserId = await continueControl(admin, updatedRound, session);
-          await admin.from("wheel_rounds").update({ turn_phase: "awaiting_action", pending_wedge: null, turn_deadline: null, free_play_active: false, active_user_id: nextUserId }).eq("id", round.id);
+          await admin
+            .from("wheel_rounds")
+            .update({ turn_phase: "awaiting_action", pending_wedge: null, turn_deadline: new Date(Date.now() + WHEEL_DECISION_SAFETY_NET_MS).toISOString(), free_play_active: false, active_user_id: nextUserId })
+            .eq("id", round.id);
           await broadcast(admin, session_id, "free_play_saved", { user_id: user.id });
           return jsonResponse({ hit: false, occurrences: 0, solved: false, free_play_saved: true });
         }

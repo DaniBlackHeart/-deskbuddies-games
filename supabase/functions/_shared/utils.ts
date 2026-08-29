@@ -452,6 +452,16 @@ export const WHEEL_BUZZ_WINDOW_MS = 10_000;
 export const WHEEL_ACTION_WINDOW_MS = 10_000;
 export const WHEEL_SOLVE_WINDOW_MS = 15_000;
 export const WHEEL_BONUS_SOLVE_WINDOW_MS = 20_000;
+// The "spin the wheel / buy a vowel / solve the puzzle" decision is
+// deliberately untimed for anyone actually there (no tension-timer
+// pressure on that choice) — but with NO deadline at all, a player whose
+// device drops mid-decision (backgrounded tab, dead connection, locked
+// phone) hangs the round for everyone else with no automatic recovery.
+// This is a safety net, not a tension timer: long enough that a real,
+// present player never feels rushed, short enough that the game can
+// always recover on its own instead of needing a MOD to force-end the
+// whole round to unstick one dropped player.
+export const WHEEL_DECISION_SAFETY_NET_MS = 40_000;
 export const WHEEL_BONUS_GIVEN_LETTERS = ["R", "S", "T", "L", "N", "E"];
 export const WHEEL_BONUS_PRIZE_POOL = [5000, 7500, 10000, 15000, 25000];
 export const WHEEL_MAX_TIEBREAKER_ATTEMPTS = 5;
