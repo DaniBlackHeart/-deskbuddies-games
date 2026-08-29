@@ -38,6 +38,23 @@ export default function HostRebusSessionPage() {
   const [finalistOverride, setFinalistOverride] = useState("");
   const autoEndedIndexRef = useRef<number | null>(null);
 
+  // The realtime subscription below is set up once, in an effect keyed
+  // only on [sessionId], so the handler closures it registers keep
+  // whichever `session` value was in scope at that first render — forever
+  // null, since `session` starts as null and the subscription is wired up
+  // before the first loadSession() resolves. Without this ref,
+  // loadLeaderboard()'s `if (!session) return` bails out on every single
+  // realtime-triggered call for the rest of the page's life, which is
+  // exactly why a MOD watching the lobby saw "0 joined" no matter how many
+  // members joined, until a full reload re-ran everything from scratch
+  // (found via a live playtest, 2026-08-28). Read sessionRef.current
+  // instead of the closed-over `session` state anywhere this needs the
+  // latest value from inside a callback that isn't guaranteed to be
+  // re-created — same pattern RebusPlayPage.tsx already uses for
+  // latestEndDataRef.
+  const sessionRef = useRef<RebusSession | null>(null);
+  sessionRef.current = session;
+
   const currentPuzzle = session ? mainPuzzles.find((p) => p.order_index === session.current_puzzle_index) ?? null : null;
   const isLastPuzzle = currentPuzzle ? currentPuzzle.order_index + 1 >= mainPuzzles.length : false;
 
@@ -47,7 +64,8 @@ export default function HostRebusSessionPage() {
   }
 
   async function loadLeaderboard() {
-    if (!session) return;
+    const currentSession = sessionRef.current;
+    if (!currentSession) return;
     const [{ data: participants }, { data: answers }] = await Promise.all([
       supabase.from("rebus_participants").select("user_id, team_id, profiles(username, avatar_url)").eq("session_id", sessionId),
       supabase.from("rebus_answers").select("user_id, points_awarded").eq("session_id", sessionId),
@@ -56,8 +74,8 @@ export default function HostRebusSessionPage() {
     const totals = new Map<string, number>();
     for (const p of participants ?? []) totals.set(p.user_id, 0);
     for (const a of answers ?? []) totals.set(a.user_id, (totals.get(a.user_id) ?? 0) + a.points_awarded);
-    if (session.sprint_player1_id) totals.set(session.sprint_player1_id, (totals.get(session.sprint_player1_id) ?? 0) + session.sprint_p1_points);
-    if (session.sprint_player2_id) totals.set(session.sprint_player2_id, (totals.get(session.sprint_player2_id) ?? 0) + session.sprint_p2_points);
+    if (currentSession.sprint_player1_id) totals.set(currentSession.sprint_player1_id, (totals.get(currentSession.sprint_player1_id) ?? 0) + currentSession.sprint_p1_points);
+    if (currentSession.sprint_player2_id) totals.set(currentSession.sprint_player2_id, (totals.get(currentSession.sprint_player2_id) ?? 0) + currentSession.sprint_p2_points);
 
     const board = Array.from(totals.entries())
       .map(([user_id, total_points]) => {
@@ -76,7 +94,7 @@ export default function HostRebusSessionPage() {
     setLeaderboard(board);
     setRoster((participants as unknown as RebusParticipant[]) ?? []);
 
-    if (session.game_mode === "team") {
+    if (currentSession.game_mode === "team") {
       const { data: teams } = await supabase.from("rebus_teams").select("id, name").eq("session_id", sessionId);
       const teamTotals = new Map<string, number>();
       for (const t of teams ?? []) teamTotals.set(t.id, 0);

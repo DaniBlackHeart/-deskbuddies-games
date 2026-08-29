@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 type TypedAnswerBoxProps = {
-  onSubmit: (text: string) => void;
+  onSubmit: (text: string) => void | Promise<void>;
   disabled?: boolean;
   placeholder?: string;
   submitLabel?: string;
@@ -17,13 +17,30 @@ export default function TypedAnswerBox({
 }: TypedAnswerBoxProps) {
   const [value, setValue] = useState("");
   const [locked, setLocked] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = value.trim();
-    if (!trimmed || disabled || locked) return;
+    if (!trimmed || disabled || locked || submitting) return;
     setLocked(true);
-    onSubmit(trimmed);
+    setSubmitting(true);
+    try {
+      await onSubmit(trimmed);
+    } finally {
+      // Runs whether onSubmit resolved, rejected, or the request just hung
+      // — previously `locked` only ever reset from the onChange handler,
+      // so a submit that errored (or a network call that never came back)
+      // left the box stuck disabled with no feedback until the player
+      // reloaded the page. Found via a live playtest, 2026-08-28 — the
+      // reveal timer kept counting down while their answer never actually
+      // went through. On a genuinely successful submit the parent usually
+      // swaps this component out anyway (e.g. RebusPlayPage renders
+      // "Answer locked in!" once existingAnswer is set), so unlocking here
+      // too is harmless.
+      setSubmitting(false);
+      setLocked(false);
+    }
   }
 
   return (
@@ -37,7 +54,7 @@ export default function TypedAnswerBox({
           setValue(e.target.value);
           setLocked(false); // let them keep trying (e.g. after a "that's taken" response)
         }}
-        disabled={disabled}
+        disabled={disabled || submitting}
         style={{
           flex: 1,
           padding: "12px 14px",
@@ -46,8 +63,8 @@ export default function TypedAnswerBox({
           fontSize: "1rem",
         }}
       />
-      <button type="submit" className="btn btn-primary" disabled={disabled || locked || !value.trim()}>
-        {submitLabel}
+      <button type="submit" className="btn btn-primary" disabled={disabled || locked || submitting || !value.trim()}>
+        {submitting ? <span className="spinner" /> : submitLabel}
       </button>
     </form>
   );

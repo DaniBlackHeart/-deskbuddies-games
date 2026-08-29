@@ -268,51 +268,78 @@ export default function RebusPlayPage() {
     });
   }, [status, sessionCompleted]);
 
+  // Each of these three used to invoke() with no try/catch around it —
+  // fine as long as the call resolved with a normal {data, error} pair,
+  // but a thrown exception (a dropped connection, an edge function cold
+  // start timing out, anything short of a clean HTTP response) went
+  // completely unhandled: no setSubmitError, no state change of any kind,
+  // just a silent rejection while the TypedAnswerBox above sat locked and
+  // the reveal timer kept counting down. Found via a live playtest,
+  // 2026-08-28 — a member's submit visibly "stuck" until they reloaded.
+  // TypedAnswerBox itself now unlocks on any outcome (see that file), but
+  // these still need to actually surface the failure rather than swallow
+  // it.
   async function handleSubmitAnswer(text: string) {
     if (!puzzle || !sessionId) return;
     setSubmitError(null);
     const responseMs = Math.max(0, Date.now() - puzzleStartRef.current);
-    const { data, error } = await supabase.functions.invoke("rebus-play", {
-      body: { action: "submit_answer", session_id: sessionId, puzzle_id: puzzle.id, answer_text: text, response_ms: responseMs },
-    });
-    if (error || data?.error) {
-      setSubmitError(data?.error ?? "Couldn't submit your answer. It may be too late.");
-      return;
+    try {
+      const { data, error } = await supabase.functions.invoke("rebus-play", {
+        body: { action: "submit_answer", session_id: sessionId, puzzle_id: puzzle.id, answer_text: text, response_ms: responseMs },
+      });
+      if (error || data?.error) {
+        setSubmitError(data?.error ?? "Couldn't submit your answer. It may be too late.");
+        return;
+      }
+      setExistingAnswer({ answer_text: text, is_correct: data.is_correct, points_awarded: data.points_awarded });
+    } catch (err) {
+      console.error("submit_answer failed", err);
+      setSubmitError("Couldn't reach the server — check your connection and try again.");
     }
-    setExistingAnswer({ answer_text: text, is_correct: data.is_correct, points_awarded: data.points_awarded });
   }
 
   async function handleSubmitFinalAnswer(text: string) {
     if (!finalPuzzle || !sessionId) return;
+    setSubmitError(null);
     const responseMs = Math.max(0, Date.now() - finalStartRef.current);
-    const { data, error } = await supabase.functions.invoke("rebus-play", {
-      body: { action: "submit_answer", session_id: sessionId, puzzle_id: finalPuzzle.id, answer_text: text, response_ms: responseMs },
-    });
-    if (error || data?.error) {
-      setSubmitError(data?.error ?? "Couldn't submit your answer. It may be too late.");
-      return;
+    try {
+      const { data, error } = await supabase.functions.invoke("rebus-play", {
+        body: { action: "submit_answer", session_id: sessionId, puzzle_id: finalPuzzle.id, answer_text: text, response_ms: responseMs },
+      });
+      if (error || data?.error) {
+        setSubmitError(data?.error ?? "Couldn't submit your answer. It may be too late.");
+        return;
+      }
+      setFinalExistingAnswer({ answer_text: text, is_correct: data.is_correct, points_awarded: data.points_awarded });
+    } catch (err) {
+      console.error("submit_answer (final) failed", err);
+      setSubmitError("Couldn't reach the server — check your connection and try again.");
     }
-    setFinalExistingAnswer({ answer_text: text, is_correct: data.is_correct, points_awarded: data.points_awarded });
   }
 
   async function handleSubmitSprintAnswer(text: string) {
     if (!sessionId) return;
-    const { data, error } = await supabase.functions.invoke("rebus-play", {
-      body: { action: "submit_sprint_answer", session_id: sessionId, answer_text: text },
-    });
-    if (error || data?.error) {
+    try {
+      const { data, error } = await supabase.functions.invoke("rebus-play", {
+        body: { action: "submit_sprint_answer", session_id: sessionId, answer_text: text },
+      });
+      if (error || data?.error) {
+        setSprintFlash(null);
+        return;
+      }
+      if (data.done) {
+        setMySprintPuzzle(null);
+        return;
+      }
+      setSprintFlash({ is_correct: data.is_correct, points_awarded: data.points_awarded });
+      if (data.is_correct) sounds.correct();
+      else sounds.wrong();
+      setMySprintPuzzle(data.next_puzzle ?? null);
+      setMyAttempted((a) => a + 1);
+    } catch (err) {
+      console.error("submit_sprint_answer failed", err);
       setSprintFlash(null);
-      return;
     }
-    if (data.done) {
-      setMySprintPuzzle(null);
-      return;
-    }
-    setSprintFlash({ is_correct: data.is_correct, points_awarded: data.points_awarded });
-    if (data.is_correct) sounds.correct();
-    else sounds.wrong();
-    setMySprintPuzzle(data.next_puzzle ?? null);
-    setMyAttempted((a) => a + 1);
   }
 
   const myTeamId = leaderboard.find((e) => e.user_id === profile?.id)?.team_id ?? null;
