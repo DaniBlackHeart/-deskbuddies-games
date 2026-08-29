@@ -333,8 +333,8 @@ export default function ModDashboardPage() {
         >
           <GameCard
             to="/mod/sets"
-            emoji="📋"
-            title="Question Sets"
+            emoji="🧠"
+            title="Trivia Night"
             description="Create, edit, or import questions for Trivia Night."
           />
           <GameCard

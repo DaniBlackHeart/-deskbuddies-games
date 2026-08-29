@@ -1,79 +1,67 @@
-# Add a back button to the MOD management pages
+# Fix: MOD Dashboard's Trivia tile didn't match Trivia Night's branding
 
 **Date:** 2026-08-29
 
-## What Dani asked for
+## What Dani reported
 
-A back button on the 6 pages reached from the MOD Dashboard's tiles: Question Sets, Family Feud
-Sets, Hosting UNO, Impostor Categories, Wheel of Fortune, and Type What You See. The only way back
-before this was the generic "🛠️ MOD Dashboard" link in the top-right of `AppHeader` — it works, but
-it's a standing nav item, not something that reads as "go back from here."
+Two screenshots side by side: the MOD Dashboard's tile for Trivia (📋 "Question Sets") and the
+member "Game Night" dashboard's Trivia tile (🧠 "Trivia Night") — pointing out the MOD tile doesn't
+reflect Trivia Night outside the MOD dashboard.
+
+## Root cause
+
+Every other MOD Dashboard tile mirrors its game's member-facing emoji and name:
+
+| Game | Member tile | MOD tile |
+|---|---|---|
+| UNO | 🎴 UNO | 🎴 UNO |
+| Impostor WHO? | 🕵️ Impostor WHO? | 🕵️ Impostor WHO? |
+| Wheel of Fortune | 🎡 Wheel of Fortune | 🎡 Wheel of Fortune |
+| Type What You See | 🔤 Type What You See | 🔤 Type What You See |
+| Trivia Night | 🧠 Trivia Night | 📋 **Question Sets** |
+
+Trivia's MOD tile was the only one using a different emoji (clipboard instead of brain) and a
+completely different name ("Question Sets" instead of "Trivia Night") — so it read as an unrelated
+feature rather than the management tile for the same game shown on the member dashboard.
 
 ## The fix
 
-New shared component, `src/components/BackToModDashboardLink.tsx`:
+`ModDashboardPage.tsx`'s Trivia tile now matches the rest:
 
 ```tsx
-<Link to="/mod" className="btn btn-ghost btn-sm" style={{ padding: 0, marginBottom: "12px", display: "inline-block" }}>
-  ← Back to MOD Dashboard
-</Link>
+<GameCard
+  to="/mod/sets"
+  emoji="🧠"
+  title="Trivia Night"
+  description="Create, edit, or import questions for Trivia Night."
+/>
 ```
 
-Styled like the app's other low-emphasis ghost buttons (e.g. ModDashboardPage's own
-"Troubleshooting" toggle) — a plain text link with an arrow, not a heavy button, since it's a
-secondary affordance sitting right above the page's real title.
+Same link (`/mod/sets`) and description as before — only the emoji and title changed, to line up
+with how every other game's MOD tile already echoes its member-facing identity.
 
-Added it as the first thing inside `.container`, right above the `<h1>`, on all 6 pages:
+## Files changed
 
-- `QuestionSetsPage.tsx`
-- `FeudSetsPage.tsx`
-- `HostUnoSessionPage.tsx`
-- `ImpostorCategoriesPage.tsx`
-- `WheelCategoriesPage.tsx`
-- `RebusSetsPage.tsx`
-
-One shared component reused 6 times rather than 6 copies of the same `<Link>` markup, per the
-project's "shared UI goes in `src/components/`" convention.
+- `frontend/src/pages/mod/ModDashboardPage.tsx`
 
 ## Validation
 
 - `npx tsc -b` — clean
-- `npx oxlint` on the changed files — clean
-- `npx vite build` — clean. Since each of these 6 pages already lives inside its game's
-  `.bundle.ts` (per the code-splitting setup), the shared link component correctly split into its
-  own tiny standalone chunk (`BackToModDashboardLink-*.js`, 0.24kB) rather than getting duplicated
-  into every game bundle — same deduping behavior as `Buzzer`/`Timer`/etc. Per-game chunk sizes
-  otherwise unchanged.
-
-## Files changed
-
-- `frontend/src/components/BackToModDashboardLink.tsx` (new)
-- `frontend/src/pages/mod/QuestionSetsPage.tsx`
-- `frontend/src/pages/mod/FeudSetsPage.tsx`
-- `frontend/src/pages/mod/HostUnoSessionPage.tsx`
-- `frontend/src/pages/mod/ImpostorCategoriesPage.tsx`
-- `frontend/src/pages/mod/WheelCategoriesPage.tsx`
-- `frontend/src/pages/mod/RebusSetsPage.tsx`
+- `npx oxlint` — clean
+- `npx vite build` — clean, chunk sizes unchanged
 
 ## Deploy steps
 
 ```bash
-git add frontend/src/components/BackToModDashboardLink.tsx \
-  frontend/src/pages/mod/QuestionSetsPage.tsx \
-  frontend/src/pages/mod/FeudSetsPage.tsx \
-  frontend/src/pages/mod/HostUnoSessionPage.tsx \
-  frontend/src/pages/mod/ImpostorCategoriesPage.tsx \
-  frontend/src/pages/mod/WheelCategoriesPage.tsx \
-  frontend/src/pages/mod/RebusSetsPage.tsx
-git commit -m "feat: add a back-to-MOD-Dashboard link on each MOD management page"
+git add frontend/src/pages/mod/ModDashboardPage.tsx
+git commit -m "fix: MOD dashboard's Trivia tile uses Trivia Night's own name and emoji"
 git push
 ```
 
-Frontend-only — no Supabase migration or Edge Function changes needed.
+Frontend-only — no Supabase deploy needed.
 
-## What to check on the next look
+## Worth a look later (not changed, flagging only)
 
-- [ ] Open each of the 6 pages from the MOD Dashboard tiles and confirm "← Back to MOD Dashboard"
-      appears above the title and returns to `/mod`
-- [ ] Confirm it doesn't crowd the existing header row (e.g. Impostor Categories'/Wheel of
-      Fortune's wrapping "Import categories"/"New category" buttons)
+Family Feud's MOD tile is titled "Feud Sets" rather than "Family Feud" — a smaller version of the
+same drift, though its 🎙️ emoji does still match. Left as-is since Dani only flagged Trivia; worth
+revisiting if the same "MOD tile should mirror the game's own name" rule should apply there too.
