@@ -299,9 +299,22 @@ export default function HostRebusSessionPage() {
         </div>
 
         {session.status === "lobby" && (
-          <div className="card text-center">
-            <p>Members can join now from the Type What You See tab. Start when you're ready.</p>
-            <div className="row" style={{ justifyContent: "center" }}>
+          <div className="card">
+            <p className="text-muted">Members can join now from the Type What You See tab. Start when you're ready.</p>
+            <div className="stack" style={{ marginTop: "12px" }}>
+              {roster.length === 0 && <p className="hint">No one yet</p>}
+              {roster.map((p, i) => (
+                <div key={p.user_id} className="row-between">
+                  <span>
+                    {i + 1}. {p.profiles?.username}
+                  </span>
+                  <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => callHost("remove_player", { user_id: p.user_id })}>
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="row" style={{ marginTop: "16px", justifyContent: "center" }}>
               <button className="btn btn-primary" onClick={handleStart} disabled={busy}>
                 {busy ? <span className="spinner" /> : "▶ Start Session"}
               </button>
@@ -515,13 +528,15 @@ export default function HostRebusSessionPage() {
           </div>
         )}
 
-        <div className="card" style={{ marginTop: "16px" }}>
-          <h3>Standings</h3>
-          {session.game_mode === "team" && teamLeaderboard && <RebusTeamLeaderboard entries={teamLeaderboard} />}
-          <div style={{ marginTop: session.game_mode === "team" ? "16px" : 0 }}>
-            <Leaderboard entries={leaderboard} />
+        {session.status !== "lobby" && (
+          <div className="card" style={{ marginTop: "16px" }}>
+            <h3>Standings</h3>
+            {session.game_mode === "team" && teamLeaderboard && <RebusTeamLeaderboard entries={teamLeaderboard} />}
+            <div style={{ marginTop: session.game_mode === "team" ? "16px" : 0 }}>
+              <Leaderboard entries={leaderboard} />
+            </div>
           </div>
-        </div>
+        )}
 
         {session.status === "ended" && (
           <button className="btn btn-secondary" style={{ marginTop: "16px" }} onClick={() => navigate("/mod")}>

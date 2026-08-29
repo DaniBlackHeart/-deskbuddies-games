@@ -182,6 +182,22 @@ Deno.serve(async (req) => {
         return jsonResponse({ session });
       }
 
+      // Lets a MOD boot someone from the lobby before the game starts — same
+      // idea as wheel-host's remove_player. Rebus has no seat_order/
+      // line_position to re-index afterward (unlike Wheel), so this is
+      // just a delete; the lobby's realtime + poll fallback (see
+      // HostRebusSessionPage.tsx) picks the removal up the same way it
+      // picks up a join.
+      case "remove_player": {
+        const { user_id } = body;
+        const { data: session } = await admin.from("rebus_sessions").select("status").eq("id", session_id).single();
+        if (!session) return jsonResponse({ error: "Session not found" }, 404);
+        if (session.status !== "lobby") return jsonResponse({ error: "Can't remove players once the session has started" }, 409);
+
+        await admin.from("rebus_participants").delete().eq("session_id", session_id).eq("user_id", user_id);
+        return jsonResponse({ ok: true });
+      }
+
       case "start_session": {
         const { data: session } = await admin.from("rebus_sessions").select("*").eq("id", session_id).single();
         if (!session) return jsonResponse({ error: "Session not found" }, 404);
