@@ -9,6 +9,7 @@ type ActiveSession = {
   status: string;
   mode: string;
   spectator_id: string | null;
+  question_set_id: string | null;
   question_sets: { name: string } | null;
   spectator: { username: string } | null;
 };
@@ -69,7 +70,7 @@ export default function ModDashboardPage() {
   useEffect(() => {
     supabase
       .from("trivia_sessions")
-      .select("id, status, mode, spectator_id, question_sets(name), spectator:profiles!spectator_id(username)")
+      .select("id, status, mode, spectator_id, question_set_id, question_sets(name), spectator:profiles!spectator_id(username)")
       .in("status", ["lobby", "live", "grading"])
       .order("created_at", { ascending: false })
       .then(({ data }) => setActive((data as unknown as ActiveSession[]) ?? []));
@@ -159,7 +160,8 @@ export default function ModDashboardPage() {
               <div key={s.id} className="stack" style={{ marginTop: "8px" }}>
                 <div className="row-between">
                   <span>
-                    {s.question_sets?.name} — <span className="badge badge-live">{s.status}</span>{" "}
+                    {s.question_sets?.name ? `${s.question_sets.name} — ` : "Random mix — "}
+                    <span className="badge badge-live">{s.status}</span>{" "}
                     <span className="badge badge-neutral">{s.mode === "hard" ? "🔥 hard" : "😌 chill"}</span>
                   </span>
                   <div className="row">

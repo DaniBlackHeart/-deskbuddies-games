@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import BackToModDashboardLink from "../../components/BackToModDashboardLink";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { deleteQuestionSet, restoreQuestionSet } from "../../lib/archiveOrDelete";
 import type { QuestionSet } from "../../types";
@@ -18,6 +18,13 @@ export default function QuestionSetsPage() {
   const [newName, setNewName] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  // Chill/Hard + Start now live here, outside any one set — starting a
+  // session mixes up to 30 questions from EVERY set below (see
+  // pickTriviaSessionQuestions in _shared/utils.ts), same "nothing to pick
+  // up front" spirit as Wheel of Fortune / Type What You See.
+  const [sessionMode, setSessionMode] = useState<"chill" | "hard">("chill");
+  const [launching, setLaunching] = useState(false);
 
   async function loadSets() {
     setLoading(true);
@@ -87,6 +94,22 @@ export default function QuestionSetsPage() {
     navigate(`/mod/sets/${data.id}`);
   }
 
+  async function handleStartSession() {
+    setLaunching(true);
+    const { data, error } = await invokeFunction("trivia-host", {
+      action: "create_session",
+      mode: sessionMode,
+    });
+    setLaunching(false);
+    if (error) {
+      alert(error);
+      return;
+    }
+    navigate(`/mod/host/${data.session.id}`);
+  }
+
+  const totalQuestionCount = sets.reduce((sum, s) => sum + (s.question_count ?? 0), 0);
+
   return (
     <div className="app-shell">
       <AppHeader />
@@ -97,6 +120,49 @@ export default function QuestionSetsPage() {
           <button className="btn btn-primary" onClick={() => setCreating(true)}>
             + New set
           </button>
+        </div>
+
+        <div className="card card--tight" style={{ marginBottom: "16px" }}>
+          <p className="hint" style={{ margin: 0 }}>
+            🧠 Every session randomly mixes up to 30 questions from all your sets — nothing to pick up front.
+          </p>
+          <div className="row" style={{ marginTop: "10px", flexWrap: "wrap", gap: "8px" }}>
+            <button
+              className="btn btn-sm"
+              onClick={() => setSessionMode("chill")}
+              style={{
+                background: sessionMode === "chill" ? "var(--color-secondary-soft)" : "var(--color-surface-raised)",
+                border: `1.5px solid ${sessionMode === "chill" ? "var(--color-secondary)" : "var(--color-border)"}`,
+                color: "var(--color-text)",
+              }}
+            >
+              😌 Chill
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => setSessionMode("hard")}
+              style={{
+                background: sessionMode === "hard" ? "var(--color-danger-soft)" : "var(--color-surface-raised)",
+                border: `1.5px solid ${sessionMode === "hard" ? "var(--color-danger)" : "var(--color-border)"}`,
+                color: "var(--color-text)",
+              }}
+            >
+              🔥 Hard
+            </button>
+            <button className="btn btn-secondary btn-sm" onClick={handleStartSession} disabled={launching || totalQuestionCount === 0}>
+              {launching ? <span className="spinner" /> : "▶ Start a session"}
+            </button>
+          </div>
+          <p className="hint" style={{ marginTop: "8px", marginBottom: 0 }}>
+            {sessionMode === "chill"
+              ? "Chill: wrong or missed answers just score 0 — no risk."
+              : "Hard: wrong answers cost points, not answering costs 25% — scores can go negative."}
+          </p>
+          {totalQuestionCount === 0 && (
+            <p className="hint" style={{ marginTop: "8px", marginBottom: 0 }}>
+              Add at least one set with some questions before starting.
+            </p>
+          )}
         </div>
 
         {creating && (

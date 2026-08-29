@@ -1,10 +1,21 @@
 // Question sets and questions may already have real play history attached
-// (trivia_sessions / answers) by the time a MOD tries to remove one.
-// Postgres rejects a hard DELETE in that case — answers.question_id and
-// trivia_sessions.question_set_id both RESTRICT on delete — so we try a
-// real delete first and fall back to archiving (soft delete) when history
-// exists. Archived rows are hidden from active MOD views and skipped by
-// live sessions, but keep past leaderboards/answers intact.
+// by the time a MOD tries to remove one. Archived rows are hidden from
+// active MOD views but keep past leaderboards/answers intact.
+//
+// Since 0025_trivia_mixed_sessions.sql, answers.question_id points at
+// trivia_session_questions (a per-session SNAPSHOT of whichever questions
+// got randomly mixed into that session), not directly at `questions` —
+// same restructuring 0023_rebus_mixed_sessions.sql did for "Type What You
+// See". Deleting an authored question or set no longer trips a Postgres FK
+// violation just because it was once played (trivia_session_questions.
+// source_question_id is `on delete set null`, not restrict), and a live
+// session can never be corrupted by editing/deleting the original, since
+// it already holds its own independent copy of the question text. The
+// archive-instead-of-delete UX is still worth keeping (don't let a MOD
+// accidentally lose a question with real history), so it's an explicit
+// "was this ever copied into a session?" check (wasQuestionUsed/
+// wasQuestionSetUsed) rather than relying on an FK violation — mirrors
+// wasRebusPuzzleUsed/wasRebusSetUsed below.
 //
 // Requires migration 0010_archive_question_sets_and_questions.sql.
 
@@ -20,13 +31,22 @@ export type ArchiveOrDeleteResult =
   | { outcome: "blocked"; message: string }
   | { outcome: "error"; message: string };
 
-async function isSessionInProgress(questionSetId: string): Promise<boolean> {
-  const { data } = await supabase
-    .from("trivia_sessions")
-    .select("id")
-    .eq("question_set_id", questionSetId)
-    .in("status", ["lobby", "live", "grading"])
-    .limit(1);
+// Whether a specific authored question has ever been copied into a
+// session's snapshot (trivia_session_questions.source_question_id) — live
+// or long since ended. This check exists purely to preserve the "protect
+// questions with real play history, archive instead of losing them" UX,
+// not for live-session safety (see file header).
+async function wasQuestionUsed(questionId: string): Promise<boolean> {
+  const { data } = await supabase.from("trivia_session_questions").select("id").eq("source_question_id", questionId).limit(1);
+  return (data?.length ?? 0) > 0;
+}
+
+async function wasQuestionSetUsed(questionSetId: string): Promise<boolean> {
+  const { data: setQuestions } = await supabase.from("questions").select("id").eq("question_set_id", questionSetId);
+  const questionIds = (setQuestions ?? []).map((q) => q.id);
+  if (questionIds.length === 0) return false;
+
+  const { data } = await supabase.from("trivia_session_questions").select("id").in("source_question_id", questionIds).limit(1);
   return (data?.length ?? 0) > 0;
 }
 
@@ -63,38 +83,30 @@ async function renumberActiveQuestions(questionSetId: string): Promise<string | 
 export async function deleteQuestion(
   question: Pick<Question, "id" | "question_set_id">
 ): Promise<ArchiveOrDeleteResult> {
-  if (await isSessionInProgress(question.question_set_id)) {
-    return {
-      outcome: "blocked",
-      message: "This set has a session in progress right now — end it before removing questions.",
-    };
+  if (await wasQuestionUsed(question.id)) {
+    const { error: archiveError } = await supabase
+      .from("questions")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("id", question.id);
+
+    if (archiveError) {
+      console.error("question archive failed", archiveError);
+      return { outcome: "error", message: "Couldn't archive that question. Please try again." };
+    }
+
+    const renumberError = await renumberActiveQuestions(question.question_set_id);
+    return renumberError ? { outcome: "error", message: renumberError } : { outcome: "archived" };
   }
 
   const { error: deleteError } = await supabase.from("questions").delete().eq("id", question.id);
 
-  if (!deleteError) {
-    const renumberError = await renumberActiveQuestions(question.question_set_id);
-    return renumberError ? { outcome: "error", message: renumberError } : { outcome: "deleted" };
-  }
-
-  if (deleteError.code !== FOREIGN_KEY_VIOLATION) {
+  if (deleteError) {
     console.error("question delete failed", deleteError);
     return { outcome: "error", message: "Something went wrong deleting that question. Please try again." };
   }
 
-  // Already answered in a past session — archive instead of deleting.
-  const { error: archiveError } = await supabase
-    .from("questions")
-    .update({ archived_at: new Date().toISOString() })
-    .eq("id", question.id);
-
-  if (archiveError) {
-    console.error("question archive failed", archiveError);
-    return { outcome: "error", message: "Couldn't archive that question either. Please try again." };
-  }
-
   const renumberError = await renumberActiveQuestions(question.question_set_id);
-  return renumberError ? { outcome: "error", message: renumberError } : { outcome: "archived" };
+  return renumberError ? { outcome: "error", message: renumberError } : { outcome: "deleted" };
 }
 
 export async function restoreQuestion(
@@ -123,26 +135,25 @@ export async function restoreQuestion(
 }
 
 export async function deleteQuestionSet(setId: string): Promise<ArchiveOrDeleteResult> {
+  if (await wasQuestionSetUsed(setId)) {
+    const { error: archiveError } = await supabase
+      .from("question_sets")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("id", setId);
+
+    if (archiveError) {
+      console.error("question_set archive failed", archiveError);
+      return { outcome: "error", message: "Couldn't archive that set. Please try again." };
+    }
+    return { outcome: "archived" };
+  }
+
   const { error: deleteError } = await supabase.from("question_sets").delete().eq("id", setId);
-
-  if (!deleteError) return { outcome: "deleted" };
-
-  if (deleteError.code !== FOREIGN_KEY_VIOLATION) {
+  if (deleteError) {
     console.error("question_set delete failed", deleteError);
     return { outcome: "error", message: "Something went wrong deleting that set. Please try again." };
   }
-
-  // Already used to host a session — archive instead of deleting.
-  const { error: archiveError } = await supabase
-    .from("question_sets")
-    .update({ archived_at: new Date().toISOString() })
-    .eq("id", setId);
-
-  if (archiveError) {
-    console.error("question_set archive failed", archiveError);
-    return { outcome: "error", message: "Couldn't archive that set either. Please try again." };
-  }
-  return { outcome: "archived" };
+  return { outcome: "deleted" };
 }
 
 export async function restoreQuestionSet(setId: string): Promise<ArchiveOrDeleteResult> {

@@ -208,6 +208,65 @@ export async function releaseSpectatorSeat(admin: ReturnType<typeof getAdminClie
   await admin.from(table).update({ spectator_id: null }).eq("id", sessionId);
 }
 
+// --- Trivia Night helpers ---
+
+// Cap for a random mixed session's question count — matches the size
+// convention every hand-authored question_set already uses (30 questions
+// per set). See 0025_trivia_mixed_sessions.sql. Only applies to the mixed
+// path below — a single-set session (pickTriviaSessionQuestionsForSet)
+// plays that whole set, same as always.
+export const TRIVIA_QUESTIONS_PER_SESSION = 30;
+
+function toTriviaSessionQuestionRow(q: any, orderIndex: number) {
+  return {
+    order_index: orderIndex,
+    source_question_id: q.id,
+    type: q.type,
+    prompt: q.prompt,
+    choices: q.choices,
+    correct_choice: q.correct_choice,
+    accepted_answers: q.accepted_answers,
+    points: q.points,
+    penalty_points: q.penalty_points,
+    time_limit_seconds: q.time_limit_seconds,
+  };
+}
+
+/**
+ * Builds ONE session's question list by randomly mixing every active
+ * (non-archived) question from EVERY question_set together, capped at
+ * TRIVIA_QUESTIONS_PER_SESSION — confirmed with Dani (2026-08-29) as a
+ * second way to start a session, ADDED alongside (not replacing) starting
+ * from one specific set, mirroring pickRebusSessionPuzzles above. Returns
+ * rows shaped for trivia_session_questions (session_id not yet attached —
+ * the caller adds it after the session row exists).
+ */
+export async function pickTriviaSessionQuestions(admin: ReturnType<typeof getAdminClient>) {
+  const { data: allQuestions } = await admin.from("questions").select("*").is("archived_at", null);
+  const picked = shuffle(allQuestions ?? []).slice(0, TRIVIA_QUESTIONS_PER_SESSION);
+  return picked.map((q, i) => toTriviaSessionQuestionRow(q, i));
+}
+
+/**
+ * Builds ONE session's question list from a single specific question_set —
+ * the original "start a session from this set" behavior, unchanged in
+ * spirit, just now snapshotted into trivia_session_questions like the
+ * mixed path so the rest of trivia-host/get-current-question/trivia-answer
+ * only needs one code path regardless of how the session was started.
+ * Plays every active question in the set, in its authored order — no
+ * shuffling, no cap. Returns rows shaped for trivia_session_questions
+ * (session_id not yet attached).
+ */
+export async function pickTriviaSessionQuestionsForSet(admin: ReturnType<typeof getAdminClient>, questionSetId: string) {
+  const { data: setQuestions } = await admin
+    .from("questions")
+    .select("*")
+    .eq("question_set_id", questionSetId)
+    .is("archived_at", null)
+    .order("order_index", { ascending: true });
+  return (setQuestions ?? []).map((q, i) => toTriviaSessionQuestionRow(q, i));
+}
+
 // --- Family Feud helpers ---
 
 export type FeudAnswer = { text: string; points: number; alt_answers?: string[] };

@@ -43,12 +43,12 @@ Deno.serve(async (req) => {
     }
 
     const { data: question } = await admin
-      .from("questions")
+      .from("trivia_session_questions")
       .select("*")
       .eq("id", question_id)
       .single();
 
-    if (!question || question.question_set_id !== session.question_set_id) {
+    if (!question || question.session_id !== session_id) {
       return jsonResponse({ error: "Question does not belong to this session" }, 400);
     }
     if (question.order_index !== session.current_question_index) {

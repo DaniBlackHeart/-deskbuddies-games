@@ -38,6 +38,27 @@ export type Question = {
   archived_at: string | null;
 };
 
+// A question snapshotted into one specific session at create_session time
+// (see 0025_trivia_mixed_sessions.sql / pickTriviaSessionQuestions) — the
+// MOD-facing shape used by HostSessionPage, distinct from `Question`
+// (which belongs to a `question_sets` row and can be edited/archived by a
+// MOD independently of any session that already snapshotted it).
+export type TriviaSessionQuestion = {
+  id: string;
+  session_id: string;
+  order_index: number;
+  source_question_id: string | null;
+  type: QuestionType;
+  prompt: string;
+  choices: string[] | null;
+  correct_choice: number | null;
+  accepted_answers: string[] | null;
+  points: number;
+  penalty_points: number | null;
+  time_limit_seconds: number;
+  created_at: string;
+};
+
 // Public-safe question shape sent to players during a live question —
 // NEVER includes correct_choice or accepted_answers.
 export type PublicQuestion = {
@@ -57,7 +78,9 @@ export type SessionMode = "chill" | "hard";
 
 export type TriviaSession = {
   id: string;
-  question_set_id: string;
+  // null = a "mixed" session (random questions from every set); non-null =
+  // started from this one specific set. See 0025_trivia_mixed_sessions.sql.
+  question_set_id: string | null;
   host_id: string;
   status: SessionStatus;
   mode: SessionMode;

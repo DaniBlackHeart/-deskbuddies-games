@@ -19,6 +19,8 @@ import {
   forceReleaseSessionLock,
   claimSpectatorSeat,
   releaseSpectatorSeat,
+  pickTriviaSessionQuestions,
+  pickTriviaSessionQuestionsForSet,
 } from "../_shared/utils.ts";
 
 function randomJoinCode() {
@@ -61,17 +63,31 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case "create_session": {
+        // question_set_id is optional: provide it to start a session from
+        // that ONE specific set (its questions, in authored order) — the
+        // original behavior, unchanged. Omit it to start a "mixed" session
+        // instead, randomly pulling up to TRIVIA_QUESTIONS_PER_SESSION
+        // questions from every set at once (see
+        // 0025_trivia_mixed_sessions.sql — this is an ADDITION, not a
+        // replacement, so both ways of starting a session stay available).
         const { question_set_id, mode } = body;
         const resolvedMode = mode === "hard" ? "hard" : "chill";
 
-        const { count } = await admin
-          .from("questions")
-          .select("id", { count: "exact", head: true })
-          .eq("question_set_id", question_set_id)
-          .is("archived_at", null);
+        // Pick the list BEFORE claiming the lock/creating the session row,
+        // so an empty content library fails fast without stranding either.
+        const pickedQuestions = question_set_id
+          ? await pickTriviaSessionQuestionsForSet(admin, question_set_id)
+          : await pickTriviaSessionQuestions(admin);
 
-        if (!count || count === 0) {
-          return jsonResponse({ error: "This question set has no questions yet" }, 400);
+        if (pickedQuestions.length === 0) {
+          return jsonResponse(
+            {
+              error: question_set_id
+                ? "This question set has no questions yet"
+                : "No questions available yet — add some in Question Sets first",
+            },
+            400
+          );
         }
 
         // Pre-generate the id so the lock (which must exist first, to keep
@@ -95,7 +111,7 @@ Deno.serve(async (req) => {
           .from("trivia_sessions")
           .insert({
             id: sessionId,
-            question_set_id,
+            question_set_id: question_set_id ?? null,
             host_id: user.id,
             status: "lobby",
             mode: resolvedMode,
@@ -109,6 +125,18 @@ Deno.serve(async (req) => {
           await releaseSessionLock(admin, sessionId); // don't strand the lock if session creation failed
           return jsonResponse({ error: "Could not create session" }, 500);
         }
+
+        const { error: questionsError } = await admin
+          .from("trivia_session_questions")
+          .insert(pickedQuestions.map((q) => ({ ...q, session_id: sessionId })));
+
+        if (questionsError) {
+          // Don't leave a session behind with no question list.
+          await admin.from("trivia_sessions").delete().eq("id", sessionId);
+          await releaseSessionLock(admin, sessionId);
+          return jsonResponse({ error: "Could not assemble the question list" }, 500);
+        }
+
         return jsonResponse({ session });
       }
 
@@ -148,10 +176,9 @@ Deno.serve(async (req) => {
         }
 
         const { data: questions } = await admin
-          .from("questions")
+          .from("trivia_session_questions")
           .select("*")
-          .eq("question_set_id", session.question_set_id)
-          .is("archived_at", null)
+          .eq("session_id", session_id)
           .order("order_index", { ascending: true });
 
         const nextIndex = session.current_question_index + 1;
@@ -195,11 +222,10 @@ Deno.serve(async (req) => {
         }
 
         const { data: question } = await admin
-          .from("questions")
+          .from("trivia_session_questions")
           .select("*")
-          .eq("question_set_id", session.question_set_id)
+          .eq("session_id", session_id)
           .eq("order_index", session.current_question_index)
-          .is("archived_at", null)
           .single();
 
         await admin.from("trivia_sessions").update({ status: "grading" }).eq("id", session_id);
@@ -313,13 +339,13 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Session isn't running" }, 409);
         }
 
-        // Distinguish "the whole set was finished" from "a MOD cut it short"
-        // so the frontend can play the right sound on the results screen.
+        // Distinguish "the whole question list was finished" from "a MOD
+        // cut it short" so the frontend can play the right sound on the
+        // results screen.
         const { count: totalQuestions } = await admin
-          .from("questions")
+          .from("trivia_session_questions")
           .select("id", { count: "exact", head: true })
-          .eq("question_set_id", session.question_set_id)
-          .is("archived_at", null);
+          .eq("session_id", session_id);
         const completed = (totalQuestions ?? 0) > 0 && session.current_question_index + 1 >= (totalQuestions ?? 0);
 
         await admin

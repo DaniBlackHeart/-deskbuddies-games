@@ -48,13 +48,13 @@ Deno.serve(async (req) => {
     const leaderboard = await computeLeaderboard(admin, session_id);
 
     if (session.status === "ended") {
-      // Same "was the whole set actually finished" check as end_session, so
-      // a reconnect after the fact still gets the right results-screen sound.
+      // Same "was the whole question list actually finished" check as
+      // end_session, so a reconnect after the fact still gets the right
+      // results-screen sound.
       const { count: totalQuestions } = await admin
-        .from("questions")
+        .from("trivia_session_questions")
         .select("id", { count: "exact", head: true })
-        .eq("question_set_id", session.question_set_id)
-        .is("archived_at", null);
+        .eq("session_id", session_id);
       const completed = (totalQuestions ?? 0) > 0 && session.current_question_index + 1 >= (totalQuestions ?? 0);
       return jsonResponse({ status: "ended", leaderboard, mode: session.mode, completed, server_now_ms: Date.now() });
     }
@@ -64,18 +64,16 @@ Deno.serve(async (req) => {
     }
 
     const { data: question } = await admin
-      .from("questions")
+      .from("trivia_session_questions")
       .select("id, type, prompt, choices, points, penalty_points, time_limit_seconds, order_index")
-      .eq("question_set_id", session.question_set_id)
+      .eq("session_id", session_id)
       .eq("order_index", session.current_question_index)
-      .is("archived_at", null)
       .single();
 
     const { count: totalQuestions } = await admin
-      .from("questions")
+      .from("trivia_session_questions")
       .select("id", { count: "exact", head: true })
-      .eq("question_set_id", session.question_set_id)
-      .is("archived_at", null);
+      .eq("session_id", session_id);
 
     const { data: existingAnswer } = await admin
       .from("answers")

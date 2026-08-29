@@ -4,7 +4,7 @@ import AppHeader from "../../components/AppHeader";
 import Leaderboard from "../../components/Leaderboard";
 import Timer from "../../components/Timer";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
-import type { Answer, LeaderboardEntry, Question, TriviaSession } from "../../types";
+import type { Answer, LeaderboardEntry, TriviaSession, TriviaSessionQuestion } from "../../types";
 
 type PendingAnswer = Answer & { profiles: { username: string } | null; questions: { prompt: string; order_index: number } | null };
 
@@ -14,7 +14,7 @@ export default function HostSessionPage() {
 
   const [session, setSession] = useState<TriviaSession | null>(null);
   const [setName, setSetName] = useState("");
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<TriviaSessionQuestion[]>([]);
   const [participantCount, setParticipantCount] = useState(0);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [pending, setPending] = useState<PendingAnswer[]>([]);
@@ -35,7 +35,7 @@ export default function HostSessionPage() {
   async function loadPending() {
     const { data, error } = await supabase
       .from("answers")
-      .select("*, profiles!user_id(username), questions(prompt, order_index)")
+      .select("*, profiles!user_id(username), questions:trivia_session_questions(prompt, order_index)")
       .eq("session_id", sessionId)
       .is("is_correct", null)
       .order("created_at", { ascending: true });
@@ -82,17 +82,23 @@ export default function HostSessionPage() {
     const { data: sessionData } = await supabase.from("trivia_sessions").select("*").eq("id", sessionId).single();
     setSession(sessionData);
     if (sessionData) {
-      const { data: setData } = await supabase
-        .from("question_sets")
-        .select("name")
-        .eq("id", sessionData.question_set_id)
-        .single();
-      setSetName(setData?.name ?? "");
+      // null question_set_id = a mixed session (random questions from
+      // every set) — nothing to look up. Non-null = started from one
+      // specific set, so show its name like before.
+      if (sessionData.question_set_id) {
+        const { data: setData } = await supabase
+          .from("question_sets")
+          .select("name")
+          .eq("id", sessionData.question_set_id)
+          .single();
+        setSetName(setData?.name ?? "");
+      } else {
+        setSetName("");
+      }
       const { data: qs } = await supabase
-        .from("questions")
+        .from("trivia_session_questions")
         .select("*")
-        .eq("question_set_id", sessionData.question_set_id)
-        .is("archived_at", null)
+        .eq("session_id", sessionId)
         .order("order_index", { ascending: true });
       setQuestions(qs ?? []);
     }
@@ -205,7 +211,7 @@ export default function HostSessionPage() {
       <div className="container">
         <div className="row-between">
           <div>
-            <h1>{setName}</h1>
+            <h1>{setName || "🧠 Trivia Night — Random Mix"}</h1>
             <p className="text-muted" style={{ marginTop: "-8px" }}>
               Join code <strong>{session.join_code}</strong> · {participantCount} joined
             </p>

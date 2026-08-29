@@ -7,7 +7,7 @@ type OpenSession = {
   id: string;
   status: string;
   join_code: string;
-  question_set_id: string;
+  question_set_id: string | null;
   question_sets: { name: string } | null;
 };
 
@@ -81,8 +81,14 @@ export default function TriviaLobbyPage() {
           {session && (
             <>
               <p className="text-muted">
-                A session is {session.status === "lobby" ? "about to start" : "in progress"}:{" "}
-                <strong>{session.question_sets?.name}</strong>
+                A session is {session.status === "lobby" ? "about to start" : "in progress"}
+                {session.question_sets?.name ? (
+                  <>
+                    : <strong>{session.question_sets.name}</strong>
+                  </>
+                ) : (
+                  " — questions are mixed fresh every time."
+                )}
               </p>
               <button className="btn btn-primary btn-block" onClick={handleJoin} disabled={joining}>
                 {joining ? <span className="spinner" /> : "Join Trivia Night"}

@@ -240,7 +240,7 @@ export default function QuestionSetEditorPage() {
               onClick={handleStartSession}
               disabled={questions.length === 0 || launching}
             >
-              {launching ? <span className="spinner" /> : "▶ Start a session"}
+              {launching ? <span className="spinner" /> : "▶ Start a session with this set"}
             </button>
           </div>
         </div>
