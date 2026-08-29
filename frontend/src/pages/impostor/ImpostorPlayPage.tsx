@@ -5,6 +5,7 @@ import Timer from "../../components/Timer";
 import ImpostorCardView from "../../components/ImpostorCardView";
 import ImpostorClueBoard from "../../components/ImpostorClueBoard";
 import ImpostorVoteResults from "../../components/ImpostorVoteResults";
+import ImpostorRulesModal from "../../components/ImpostorRulesModal";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { sounds } from "../../lib/sounds";
@@ -45,6 +46,7 @@ export default function ImpostorPlayPage() {
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
+  const [showRules, setShowRules] = useState(false);
   const [lastVoteResult, setLastVoteResult] = useState<(ImpostorFinalVoteTally & { outcome: "continue" | "crew_win" | "impostor_win" }) | null>(
     null
   );
@@ -260,6 +262,14 @@ export default function ImpostorPlayPage() {
     <div className="app-shell">
       <AppHeader />
       <div className="container container--narrow">
+        <div className="row" style={{ justifyContent: "flex-end", marginBottom: "8px" }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowRules(true)}>
+            ❓ Rules
+          </button>
+        </div>
+
+        {showRules && <ImpostorRulesModal onClose={() => setShowRules(false)} />}
+
         {flash && (
           <div className="card text-center" style={{ marginBottom: "12px", fontWeight: 700 }}>
             {flash}

@@ -6,6 +6,7 @@ import Timer from "../../components/Timer";
 import TypedAnswerBox from "../../components/TypedAnswerBox";
 import Leaderboard from "../../components/Leaderboard";
 import RebusTeamLeaderboard from "../../components/RebusTeamLeaderboard";
+import RebusRulesModal from "../../components/RebusRulesModal";
 import { recordServerTime, correctedNow } from "../../lib/clockSync";
 import { lobbyMusic, sounds } from "../../lib/sounds";
 import type {
@@ -36,6 +37,7 @@ export default function RebusPlayPage() {
   const [revealed, setRevealed] = useState<{ answer_text: string; accepted_answers: string[] } | null>(null);
   const [timeExpired, setTimeExpired] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showRules, setShowRules] = useState(false);
 
   // Sprint (Round 4)
   const [sprintPlayer1, setSprintPlayer1] = useState<SprintPlayerInfo>(null);
@@ -531,8 +533,15 @@ export default function RebusPlayPage() {
           <span className="badge badge-neutral">
             Puzzle {puzzle.order_index + 1} / {puzzle.total_puzzles}
           </span>
-          <span className="badge badge-live">🔴 Live</span>
+          <div className="row" style={{ gap: "8px" }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowRules(true)}>
+              ❓ Rules
+            </button>
+            <span className="badge badge-live">🔴 Live</span>
+          </div>
         </div>
+
+        {showRules && <RebusRulesModal onClose={() => setShowRules(false)} />}
 
         <div className="rebus-puzzle-display">{puzzle.display_text}</div>
 

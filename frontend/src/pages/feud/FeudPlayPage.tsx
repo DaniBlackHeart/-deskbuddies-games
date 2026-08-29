@@ -6,6 +6,7 @@ import Buzzer from "../../components/Buzzer";
 import FeudBoard from "../../components/FeudBoard";
 import TeamScoreboard from "../../components/TeamScoreboard";
 import TypedAnswerBox from "../../components/TypedAnswerBox";
+import FeudRulesModal from "../../components/FeudRulesModal";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { sounds } from "../../lib/sounds";
@@ -52,6 +53,7 @@ export default function FeudPlayPage() {
   const [state, setState] = useState<FeudState | null>(null);
   const [loading, setLoading] = useState(true);
   const [flash, setFlash] = useState<string | null>(null);
+  const [showRules, setShowRules] = useState(false);
   const [huddle, setHuddle] = useState<{ username: string; text: string }[]>([]);
   const [huddleInput, setHuddleInput] = useState("");
   const [fmDuplicateFlag, setFmDuplicateFlag] = useState<number | null>(null);
@@ -306,6 +308,14 @@ export default function FeudPlayPage() {
     <div className="app-shell">
       <AppHeader />
       <div className="container container--narrow">
+        <div className="row" style={{ justifyContent: "flex-end", marginBottom: "8px" }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowRules(true)}>
+            ❓ Rules
+          </button>
+        </div>
+
+        {showRules && <FeudRulesModal onClose={() => setShowRules(false)} />}
+
         <TeamScoreboard
           teamAName={session.team_a_name}
           teamBName={session.team_b_name}

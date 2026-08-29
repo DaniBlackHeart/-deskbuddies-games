@@ -6,6 +6,7 @@ import Timer from "../../components/Timer";
 import { recordServerTime, correctedNow } from "../../lib/clockSync";
 import Leaderboard from "../../components/Leaderboard";
 import AnswerInput from "../../components/AnswerInput";
+import TriviaRulesModal from "../../components/TriviaRulesModal";
 import { lobbyMusic, sounds } from "../../lib/sounds";
 import type { LeaderboardEntry, PublicQuestion, SessionEvent } from "../../types";
 
@@ -34,6 +35,7 @@ export default function TriviaPlayPage() {
   const [mode, setMode] = useState<"chill" | "hard">("chill");
   const [wasNoShow, setWasNoShow] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const questionStartRef = useRef<number>(0);
   const currentQuestionIdRef = useRef<string | null>(null);
 
@@ -264,8 +266,15 @@ export default function TriviaPlayPage() {
           <span className="badge badge-neutral">
             Question {question.order_index + 1} / {question.total_questions}
           </span>
-          <span className="badge badge-live">🔴 Live</span>
+          <div className="row" style={{ gap: "8px" }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowRules(true)}>
+              ❓ Rules
+            </button>
+            <span className="badge badge-live">🔴 Live</span>
+          </div>
         </div>
+
+        {showRules && <TriviaRulesModal onClose={() => setShowRules(false)} />}
 
         <h2 style={{ marginTop: "16px" }}>{question.prompt}</h2>
 
