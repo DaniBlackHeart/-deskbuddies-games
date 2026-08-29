@@ -1,136 +1,97 @@
-# Route-based code splitting, per game
+# Fix: members couldn't see other players' avatars/names in the lobby
 
 **Date:** 2026-08-29
 
-## Why
+## What Dani reported
 
-Dani noticed the app loading slower after the Rules-modal delivery and asked for an investigation.
-The modals themselves only added ~7 KB gzipped — real, but not enough to explain "everything loads
-slower." The actual cause: `App.tsx` statically imported every page for all six games (lobby, play,
-and every mod/host/spectator/editor screen — 40+ files) into one route table, so Vite bundled the
-entire app into a single ~809 KB / 205 KB-gzipped JS file that downloads before anything renders,
-even the login screen. Every game added since Trivia Night shipped made that same download heavier
-for every visitor, whether they ever touch that game or not.
+Screenshots of the same Wheel of Fortune and Family Feud lobby, open side by side as two different
+accounts (kai, a MOD, and Bliss, a regular member). In kai's window both players' avatars and names
+show correctly. In Bliss's window, only Bliss's own avatar/name shows — the other player appears as
+a blank slot with no name at all ("1." with nothing after it in Wheel; missing from the Team A
+roster entirely in Feud).
 
-This delivery splits the app so each game's code only downloads when someone actually opens that
-game.
+## Root cause
 
-## How it works
+`WheelLobbyPage.tsx`, `FeudLobbyPage.tsx`, `UnoLobbyPage.tsx`, `ImpostorLobbyPage.tsx`, and
+`RebusLobbyPage.tsx` all fetch their participant roster with a client-side embedded join, e.g.:
 
-Each game's pages (lobby, play, and its mod pages — which live flat in `pages/mod/` rather than
-their own folder, a naming leftover from Trivia being first) are re-exported from one new barrel
-file per game: `pages/<game>/<game>.bundle.ts`. In `App.tsx`, every lazy-loaded page for a game
-calls the *same* `import("...<game>.bundle")` specifier. The JS module loader dedupes identical
-`import()` calls on its own — it fetches that one chunk once, the first time someone navigates into
-the game, and reuses it for every other page in that game (lobby → play, or a MOD moving between
-host/spectator/editor screens) for the rest of the session, with zero custom bundler configuration.
+```ts
+supabase.from("wheel_participants")
+  .select("user_id, seat_order, ..., profiles(username, avatar_url)")
+```
 
-`vite.config.ts` is back to the plain default — no custom chunking rules. That's deliberate: the
-first approach tried was a custom `manualChunks`/`codeSplitting` rule to merge each game's
-separately-lazy-loaded pages into one chunk directly. That hit real bugs in the current Vite 8 /
-Rolldown 1.2.3 pairing — a component used by two different games (`Timer`, `Buzzer`, `sounds.ts`,
-`clockSync.ts`, `TypedAnswerBox`, all confirmed used by multiple games) would get welded entirely
-inside whichever game's chunk claimed it first, and the *other* game's chunk would silently
-cross-import that entire other game's bundle at runtime just to get the shared piece — e.g. loading
-Wheel of Fortune alone would have also downloaded all of Family Feud's code. Several variations of
-that approach were tried (a recursive module-graph walk, Rolldown's native `codeSplitting.groups`
-API) and all hit the same underlying bug. The barrel-file approach sidesteps it completely by
-relying only on plain, well-established `import()` caching — no bundler-internals workaround
-needed, and nothing here depends on this specific Rolldown version's behavior.
+That query runs as the signed-in player (not the service role), so it's subject to `profiles`'
+row-level security. Migration `0001_init.sql` only ever granted `select` on `profiles` to the row's
+own owner (`auth.uid() = id`); `0003_mods_read_profiles.sql` later added a second policy so MODs
+could read every row (needed for the host panel's Standings/grading lists). Nothing ever extended
+that same access to regular members reading each other's rows — so when a non-MOD's query embeds
+another player's `profiles`, RLS silently blocks it and PostgREST just returns `null` for that
+piece rather than erroring. The join itself, the component code, everything else is completely
+correct — this was purely a database access-control gap. Confirmed directly against the live
+project (`DeskBuddies-Games`, `fixlkzjyfpcgnieorlaw`): the only two `select` policies present on
+`profiles` today are exactly `read own row` and `mods read all` — nothing covering "a member reads
+another member."
 
-`App.tsx` also gained a `<Suspense>` boundary around the route table, with a small new
-`RouteLoadingFallback` component (the same center-screen + spinner pattern already used for
-in-page loading elsewhere) shown while a chunk is being fetched. `LoginPage`, `NotAMemberPage`, and
-`DashboardPage` stay as static/eager imports — they're the shell almost every visitor hits
-immediately, so there's no reason to make first paint wait on a chunk fetch for them.
+This is why kai and Bliss saw different lobbies: kai is a MOD, covered by the 0003 policy. Bliss is
+a regular member, covered by neither.
 
-No page component itself was touched — every lobby/play/mod/host/spectator/editor file is
-byte-for-byte the same as before. Only how they're imported and routed changed.
+## The fix
 
-## Adding game #7 later
+One additive migration, `0024_members_read_profiles.sql`, adding a third `select` policy:
 
-Put its pages in their own `pages/<game>/` folder as usual, add a `pages/<game>/<game>.bundle.ts`
-re-exporting them (copy an existing one and swap the names), and add its `lazy()` + `<Route>`
-entries in `App.tsx` (copy an existing game's block). It automatically gets its own chunk — no
-other game's bundle grows, and nothing needs to be told which components or lib files it happens to
-share with existing games; that's resolved automatically by ordinary bundler behavior, the same way
-it already is for Timer/Buzzer/sounds.ts/etc. today.
+```sql
+create policy "profiles: verified members read all"
+  on public.profiles for select
+  using (public.is_verified_member());
+```
 
-## Numbers
+`is_verified_member()` already exists (added in `0001_init.sql`) and is already the standard gate
+this codebase uses everywhere else for "any logged-in verified member can read this" — it's what
+every participant/round table's own RLS policies already check (`0007`, `0011`, `0012`, `0017`,
+`0019`, `0021`, and `0001` itself for `question_sets`/`questions`). `profiles` was the one table
+that never got this same treatment. Username, avatar, and mod/member status aren't sensitive here —
+they're the same info already visible to everyone in the Discord server itself, and MODs already
+have full-row access to everyone today — so this isn't a new category of exposure, just closing a
+gap that was almost certainly an oversight rather than a deliberate restriction.
 
-Before (from the last build prior to this change): one bundle, always downloaded —
-**809.27 kB / 205.10 kB gzipped**, on every single page including login.
+Purely additive: the existing `read own row` and `mods read all` policies are untouched. Multiple
+permissive `select` policies on the same table combine with `OR` in Postgres, so this just adds a
+third way in, the same pattern `0003` used.
 
-After — what actually downloads, per situation:
-- **Login / Dashboard (the shared shell everyone hits first):** `index` chunk —
-  **459.34 kB / 132.21 kB gzipped**, plus the 21.22 kB / 4.53 kB CSS file (unchanged, CSS isn't
-  split by this change).
-- **Opening one game for the first time** (lobby or play — whichever hit first, since both are in
-  the same chunk): an additional **28.71–77.63 kB / 7.07–17.49 kB gzipped**, varying by game (UNO
-  smallest, Type What You See largest, matching how much code each game actually has). Cached after
-  that — later navigation within the same game costs nothing further.
-- **A MOD's session/editor pages:** included in that same per-game chunk already fetched — no
-  extra request.
-- **Shared pieces used by 2+ games** (`Timer`, `Buzzer`, `TypedAnswerBox`, `Leaderboard`): each
-  correctly isolated into its own tiny (under 1 KB) chunk, fetched once by whichever game a player
-  first opens that needs it, reused after that — confirmed with no game's chunk cross-importing
-  another's.
-- **`/mod` hub page:** its own small 11.41 kB / 2.26 kB gzipped chunk.
+No frontend changes needed — the lobby pages' queries were already correct; they were only ever
+blocked by the missing policy.
 
-Net effect: someone who logs in and plays one game now downloads roughly 460–540 KB total instead
-of 809 KB every time, and every game added after this one only grows that specific game's own
-chunk — it stops adding weight to the shell every visitor pays for on login.
+## Validation
+
+Tested directly against the live `DeskBuddies-Games` Supabase project via `begin; ... rollback;` —
+confirmed the policy creates cleanly with no syntax errors or conflicts, appears correctly in
+`pg_policies` alongside the other two, and the rollback left production untouched (re-queried
+`pg_policies` afterward to confirm only the original two policies remain until this migration is
+actually pushed).
 
 ## Files changed
 
-- `frontend/vite.config.ts` — reverted to the plain default (no custom chunk config needed)
-- `frontend/src/App.tsx` — lazy-loaded routes via per-game barrel imports, `Suspense` boundary
-
-New:
-- `frontend/src/components/RouteLoadingFallback.tsx`
-- `frontend/src/pages/trivia/trivia.bundle.ts`
-- `frontend/src/pages/feud/feud.bundle.ts`
-- `frontend/src/pages/uno/uno.bundle.ts`
-- `frontend/src/pages/impostor/impostor.bundle.ts`
-- `frontend/src/pages/wheel/wheel.bundle.ts`
-- `frontend/src/pages/rebus/rebus.bundle.ts`
-
-No page component files were modified.
-
-## Validation run
-
-From `frontend/`:
-- `npx tsc -b` — clean
-- `npx oxlint` on all changed/new files — clean
-- `npx vite build` — clean; verified by direct inspection of the build output (grepping for
-  game-specific markers across every chunk) that no game's chunk contains another game's code, and
-  no chunk cross-imports another game's chunk at runtime
-
-Frontend-only change: no Edge Functions, migrations, or backend logic touched, so no Supabase
-deploy is needed for this one.
+- `supabase/migrations/0024_members_read_profiles.sql` (new)
 
 ## Deploy steps
 
 ```bash
-git add frontend/vite.config.ts frontend/src/App.tsx frontend/src/components/RouteLoadingFallback.tsx frontend/src/pages/trivia/trivia.bundle.ts frontend/src/pages/feud/feud.bundle.ts frontend/src/pages/uno/uno.bundle.ts frontend/src/pages/impostor/impostor.bundle.ts frontend/src/pages/wheel/wheel.bundle.ts frontend/src/pages/rebus/rebus.bundle.ts
-git commit -m "perf: route-based code splitting per game, so the app only downloads the game being played instead of one monolithic bundle for every visit"
+git add supabase/migrations/0024_members_read_profiles.sql
+git commit -m "fix: let verified members read each other's username/avatar, so lobby rosters show every player's name and picture instead of just your own"
 git push
+
+npx supabase db push
 ```
 
-No migration, no Edge Function deploy — this is all client-side.
+No Edge Function redeploy needed — this is a pure RLS policy addition, nothing server-side changed.
 
 ## What to check on the next playtest
 
-- [ ] Open the DevTools Network tab, hard-refresh the login/dashboard screen, and confirm only the
-      shell chunk downloads — no game-specific chunk yet
-- [ ] Open one game (e.g. Wheel of Fortune) and confirm exactly one new chunk downloads (its name
-      will contain `wheel.bundle`), and that no *other* game's chunk downloads alongside it
-- [ ] Navigate from that game's lobby into a live play session and confirm no second chunk fetch
-      happens (same chunk, already cached)
-- [ ] As a MOD, move between a game's host/spectator/editor pages and confirm no extra chunk
-      fetches happen there either
-- [ ] Confirm the brief loading spinner (same style as other in-app loading states) shows during
-      the one chunk fetch on a throttled/slow connection, and disappears cleanly once the page
-      renders
-- [ ] Spot check that every game still works exactly as before — this only changed how pages are
-      loaded, not any game logic
+- [ ] Open a lobby (any game) as a regular, non-MOD member while someone else is already in it —
+      confirm you can now see their avatar and username, not just your own
+- [ ] Confirm this holds across all five affected games: Wheel of Fortune, Family Feud, UNO,
+      Impostor WHO?, and Type What You See
+- [ ] Confirm a MOD's view is unchanged (they already worked correctly)
+- [ ] Confirm nothing else regressed — a member still can't see another member's `is_mod` badge
+      status anywhere it wasn't already shown, since no frontend UI reads or displays that field
+      for other users today
