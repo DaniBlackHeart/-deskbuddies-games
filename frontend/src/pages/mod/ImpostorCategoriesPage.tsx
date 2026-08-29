@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import BackToModDashboardLink from "../../components/BackToModDashboardLink";
 import ImpostorImportModal from "../../components/ImpostorImportModal";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
@@ -119,6 +120,7 @@ export default function ImpostorCategoriesPage() {
     <div className="app-shell">
       <AppHeader />
       <div className="container">
+        <BackToModDashboardLink />
         <div className="row-between" style={{ flexWrap: "wrap", gap: "8px" }}>
           <h1>Impostor Categories</h1>
           <div className="row">

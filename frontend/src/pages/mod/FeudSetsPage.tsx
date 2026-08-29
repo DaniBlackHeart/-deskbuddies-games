@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import BackToModDashboardLink from "../../components/BackToModDashboardLink";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import type { FeudSet } from "../../types";
@@ -49,6 +50,7 @@ export default function FeudSetsPage() {
     <div className="app-shell">
       <AppHeader />
       <div className="container">
+        <BackToModDashboardLink />
         <div className="row-between">
           <h1>🎙️ Family Feud Sets</h1>
           <button className="btn btn-primary" onClick={() => setCreating(true)}>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import BackToModDashboardLink from "../../components/BackToModDashboardLink";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { deleteRebusSet, restoreRebusSet } from "../../lib/archiveOrDelete";
@@ -113,6 +114,7 @@ export default function RebusSetsPage() {
     <div className="app-shell">
       <AppHeader />
       <div className="container">
+        <BackToModDashboardLink />
         <div className="row-between">
           <h1>Type What You See</h1>
           <button className="btn btn-primary" onClick={() => setCreating(true)}>

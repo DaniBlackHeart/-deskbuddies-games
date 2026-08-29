@@ -1,88 +1,79 @@
-# Fix: uneven MOD Dashboard tile heights
+# Add a back button to the MOD management pages
 
 **Date:** 2026-08-29
 
-## What Dani reported
+## What Dani asked for
 
-Two screenshots: the MOD Dashboard's 6 game-management tiles, and the regular member "Game Night"
-dashboard's 6 game tiles. On the MOD Dashboard the tile bottoms don't line up — one row looks
-ragged where the member dashboard's stays perfectly even.
-
-## Root cause
-
-The member `DashboardPage.tsx` builds its 6 tiles from the shared `GameCard` component, which sets
-`height: "100%"` on its `.card` div (and `display: "block"` on the wrapping `Link`). In a CSS grid,
-items stretch to match the tallest item in their row by default (`align-items: stretch`) — `GameCard`
-opts into that, so every tile in a row grows to match its tallest neighbor regardless of how much
-text it holds.
-
-`ModDashboardPage.tsx` never used `GameCard` for its own 6 tiles — it hand-duplicated the same
-markup inline instead (a project convention violation: "Shared UI goes in `src/components/`, reused
-rather than duplicated"). Its copy was missing `height: "100%"`, so each card only grew to fit its
-own content. "Type What You See" has the longest description ("Author rebus puzzles across all four
-rounds — every session automatically mixes them from all your sets."), so it wraps to more lines
-than its row-mates — and since nothing was stretching to match, only that tile grew taller while the
-others stayed short, producing the ragged row Dani saw.
+A back button on the 6 pages reached from the MOD Dashboard's tiles: Question Sets, Family Feud
+Sets, Hosting UNO, Impostor Categories, Wheel of Fortune, and Type What You See. The only way back
+before this was the generic "🛠️ MOD Dashboard" link in the top-right of `AppHeader` — it works, but
+it's a standing nav item, not something that reads as "go back from here."
 
 ## The fix
 
-Extended `GameCard` to support a second usage mode alongside its existing `to`-based Link mode:
+New shared component, `src/components/BackToModDashboardLink.tsx`:
 
-- `to` is now optional; a new `onClick?: () => void` prop renders the card as a clickable,
-  keyboard-accessible `div` (`role="button"`, `tabIndex`, Enter/Space handling) instead of a `Link`.
-- A new `busy?: boolean` prop shows a "working on it" state (wait cursor, dimmed, clicks ignored) —
-  distinct from the existing `disabled` (permanently off) state.
-- Existing `to`-based usages (all 6 cards in `DashboardPage.tsx`) are unaffected — nothing about
-  their props or rendered output changed.
+```tsx
+<Link to="/mod" className="btn btn-ghost btn-sm" style={{ padding: 0, marginBottom: "12px", display: "inline-block" }}>
+  ← Back to MOD Dashboard
+</Link>
+```
 
-Then rewrote `ModDashboardPage.tsx`'s tile grid to use `<GameCard>` for all 6 tiles instead of
-hand-rolled markup:
+Styled like the app's other low-emphasis ghost buttons (e.g. ModDashboardPage's own
+"Troubleshooting" toggle) — a plain text link with an arrow, not a heavy button, since it's a
+secondary affordance sitting right above the page's real title.
 
-- Question Sets, Feud Sets, Impostor WHO?, Wheel of Fortune, Type What You See — plain `to`-based
-  cards, same links/emojis/copy as before.
-- UNO — the one tile that starts a session on click rather than linking anywhere — now uses
-  `onClick={handleStartUno}` with `busy={startingUno}`, preserving its exact existing behavior
-  (guards against double-clicks while a session is being created, shows "Starting a new game…" in
-  place of the normal description while in flight).
+Added it as the first thing inside `.container`, right above the `<h1>`, on all 6 pages:
 
-Every tile now goes through the same component, so they'll always stay visually consistent with
-each other and with the member dashboard going forward — this can't drift out of sync again the way
-the hand-duplicated markup did.
+- `QuestionSetsPage.tsx`
+- `FeudSetsPage.tsx`
+- `HostUnoSessionPage.tsx`
+- `ImpostorCategoriesPage.tsx`
+- `WheelCategoriesPage.tsx`
+- `RebusSetsPage.tsx`
 
-## Files changed
-
-- `frontend/src/components/GameCard.tsx` — extended props (`to` optional, new `onClick`/`busy`)
-- `frontend/src/pages/mod/ModDashboardPage.tsx` — tile grid now built from `<GameCard>`
-
-`frontend/src/pages/DashboardPage.tsx` was read to confirm its 6 existing usages stay fully
-backward-compatible, but was not changed.
+One shared component reused 6 times rather than 6 copies of the same `<Link>` markup, per the
+project's "shared UI goes in `src/components/`" convention.
 
 ## Validation
 
 - `npx tsc -b` — clean
 - `npx oxlint` on the changed files — clean
-- `npx vite build` — clean; per-game chunk sizes unchanged from the code-splitting work
-  (`uno.bundle` 28.71kB, `impostor.bundle` 47.63kB, `trivia.bundle` 48.56kB, `feud.bundle` 63.50kB,
-  `wheel.bundle` 67.35kB, `rebus.bundle` 77.63kB, `ModDashboardPage` 9.91kB) — this change doesn't
-  touch the barrel-file/lazy-loading setup at all
+- `npx vite build` — clean. Since each of these 6 pages already lives inside its game's
+  `.bundle.ts` (per the code-splitting setup), the shared link component correctly split into its
+  own tiny standalone chunk (`BackToModDashboardLink-*.js`, 0.24kB) rather than getting duplicated
+  into every game bundle — same deduping behavior as `Buzzer`/`Timer`/etc. Per-game chunk sizes
+  otherwise unchanged.
+
+## Files changed
+
+- `frontend/src/components/BackToModDashboardLink.tsx` (new)
+- `frontend/src/pages/mod/QuestionSetsPage.tsx`
+- `frontend/src/pages/mod/FeudSetsPage.tsx`
+- `frontend/src/pages/mod/HostUnoSessionPage.tsx`
+- `frontend/src/pages/mod/ImpostorCategoriesPage.tsx`
+- `frontend/src/pages/mod/WheelCategoriesPage.tsx`
+- `frontend/src/pages/mod/RebusSetsPage.tsx`
 
 ## Deploy steps
 
 ```bash
-git add frontend/src/components/GameCard.tsx frontend/src/pages/mod/ModDashboardPage.tsx
-git commit -m "fix: MOD dashboard tiles reuse GameCard so row heights stay even, matching the member dashboard"
+git add frontend/src/components/BackToModDashboardLink.tsx \
+  frontend/src/pages/mod/QuestionSetsPage.tsx \
+  frontend/src/pages/mod/FeudSetsPage.tsx \
+  frontend/src/pages/mod/HostUnoSessionPage.tsx \
+  frontend/src/pages/mod/ImpostorCategoriesPage.tsx \
+  frontend/src/pages/mod/WheelCategoriesPage.tsx \
+  frontend/src/pages/mod/RebusSetsPage.tsx
+git commit -m "feat: add a back-to-MOD-Dashboard link on each MOD management page"
 git push
 ```
 
-Frontend-only — no Supabase migration or Edge Function changes, no `supabase db push` needed. Vercel
-will pick it up on push as usual.
+Frontend-only — no Supabase migration or Edge Function changes needed.
 
 ## What to check on the next look
 
-- [ ] Open the MOD Dashboard — confirm all 6 tiles in the bottom row have matching heights,
-      even though "Type What You See"'s description is the longest
-- [ ] Click the UNO tile — confirm it still starts a session and shows "Starting a new game…" while
-      in flight, and that clicking again mid-flight does nothing
-- [ ] Tab to the UNO tile with the keyboard and press Enter/Space — confirm it starts a session the
-      same way a click does
-- [ ] Confirm the member "Game Night" dashboard is visually unchanged (it already worked correctly)
+- [ ] Open each of the 6 pages from the MOD Dashboard tiles and confirm "← Back to MOD Dashboard"
+      appears above the title and returns to `/mod`
+- [ ] Confirm it doesn't crowd the existing header row (e.g. Impostor Categories'/Wheel of
+      Fortune's wrapping "Import categories"/"New category" buttons)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import BackToModDashboardLink from "../../components/BackToModDashboardLink";
 import UnoCardView from "../../components/UnoCardView";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { UnoCard, UnoParticipant, UnoSessionPublic } from "../../types";
@@ -106,6 +107,7 @@ export default function HostUnoSessionPage() {
     <div className="app-shell">
       <AppHeader />
       <div className="container">
+        <BackToModDashboardLink />
         <div className="row-between">
           <h1>🎴 Hosting UNO</h1>
           {session.status !== "ended" && (
