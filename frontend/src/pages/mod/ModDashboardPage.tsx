@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import GameCard from "../../components/GameCard";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 
 type ActiveSession = {
@@ -330,66 +331,47 @@ export default function ModDashboardPage() {
             gap: "16px",
           }}
         >
-          <Link to="/mod/sets" style={{ textDecoration: "none", color: "inherit" }}>
-            <div className="card">
-              <div style={{ fontSize: "2rem" }}>📋</div>
-              <h3 style={{ marginTop: "12px" }}>Question Sets</h3>
-              <p className="text-muted" style={{ marginBottom: 0 }}>
-                Create, edit, or import questions for Trivia Night.
-              </p>
-            </div>
-          </Link>
-          <Link to="/mod/feud-sets" style={{ textDecoration: "none", color: "inherit" }}>
-            <div className="card">
-              <div style={{ fontSize: "2rem" }}>🎙️</div>
-              <h3 style={{ marginTop: "12px" }}>Feud Sets</h3>
-              <p className="text-muted" style={{ marginBottom: 0 }}>
-                Author board questions and Fast Money rounds for Family Feud.
-              </p>
-            </div>
-          </Link>
+          <GameCard
+            to="/mod/sets"
+            emoji="📋"
+            title="Question Sets"
+            description="Create, edit, or import questions for Trivia Night."
+          />
+          <GameCard
+            to="/mod/feud-sets"
+            emoji="🎙️"
+            title="Feud Sets"
+            description="Author board questions and Fast Money rounds for Family Feud."
+          />
           {/* UNO has no MOD-authored content — unlike the two cards above,
               which link to a set-editor, this one starts a session
               directly (uno-host's create_session needs nothing but who's
               hosting). */}
-          <div
-            className="card"
-            style={{ cursor: startingUno ? "wait" : "pointer", opacity: startingUno ? 0.7 : 1 }}
-            onClick={() => !startingUno && handleStartUno()}
-          >
-            <div style={{ fontSize: "2rem" }}>🎴</div>
-            <h3 style={{ marginTop: "12px" }}>UNO</h3>
-            <p className="text-muted" style={{ marginBottom: 0 }}>
-              {startingUno ? "Starting a new game…" : "Start a new UNO game — deals as soon as everyone's in."}
-            </p>
-          </div>
-          <Link to="/mod/impostor-categories" style={{ textDecoration: "none", color: "inherit" }}>
-            <div className="card">
-              <div style={{ fontSize: "2rem" }}>🕵️</div>
-              <h3 style={{ marginTop: "12px" }}>Impostor WHO?</h3>
-              <p className="text-muted" style={{ marginBottom: 0 }}>
-                Manage categories and words, then start a session from inside one.
-              </p>
-            </div>
-          </Link>
-          <Link to="/mod/wheel-categories" style={{ textDecoration: "none", color: "inherit" }}>
-            <div className="card">
-              <div style={{ fontSize: "2rem" }}>🎡</div>
-              <h3 style={{ marginTop: "12px" }}>Wheel of Fortune</h3>
-              <p className="text-muted" style={{ marginBottom: 0 }}>
-                Manage categories and phrases, then start a session from inside one.
-              </p>
-            </div>
-          </Link>
-          <Link to="/mod/rebus-sets" style={{ textDecoration: "none", color: "inherit" }}>
-            <div className="card">
-              <div style={{ fontSize: "2rem" }}>🔤</div>
-              <h3 style={{ marginTop: "12px" }}>Type What You See</h3>
-              <p className="text-muted" style={{ marginBottom: 0 }}>
-                Author rebus puzzles across all four rounds — every session automatically mixes them from all your sets.
-              </p>
-            </div>
-          </Link>
+          <GameCard
+            onClick={handleStartUno}
+            busy={startingUno}
+            emoji="🎴"
+            title="UNO"
+            description={startingUno ? "Starting a new game…" : "Start a new UNO game — deals as soon as everyone's in."}
+          />
+          <GameCard
+            to="/mod/impostor-categories"
+            emoji="🕵️"
+            title="Impostor WHO?"
+            description="Manage categories and words, then start a session from inside one."
+          />
+          <GameCard
+            to="/mod/wheel-categories"
+            emoji="🎡"
+            title="Wheel of Fortune"
+            description="Manage categories and phrases, then start a session from inside one."
+          />
+          <GameCard
+            to="/mod/rebus-sets"
+            emoji="🔤"
+            title="Type What You See"
+            description="Author rebus puzzles across all four rounds — every session automatically mixes them from all your sets."
+          />
         </div>
 
         <p className="text-muted" style={{ marginTop: "28px" }}>

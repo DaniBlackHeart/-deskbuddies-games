@@ -1,97 +1,88 @@
-# Fix: members couldn't see other players' avatars/names in the lobby
+# Fix: uneven MOD Dashboard tile heights
 
 **Date:** 2026-08-29
 
 ## What Dani reported
 
-Screenshots of the same Wheel of Fortune and Family Feud lobby, open side by side as two different
-accounts (kai, a MOD, and Bliss, a regular member). In kai's window both players' avatars and names
-show correctly. In Bliss's window, only Bliss's own avatar/name shows — the other player appears as
-a blank slot with no name at all ("1." with nothing after it in Wheel; missing from the Team A
-roster entirely in Feud).
+Two screenshots: the MOD Dashboard's 6 game-management tiles, and the regular member "Game Night"
+dashboard's 6 game tiles. On the MOD Dashboard the tile bottoms don't line up — one row looks
+ragged where the member dashboard's stays perfectly even.
 
 ## Root cause
 
-`WheelLobbyPage.tsx`, `FeudLobbyPage.tsx`, `UnoLobbyPage.tsx`, `ImpostorLobbyPage.tsx`, and
-`RebusLobbyPage.tsx` all fetch their participant roster with a client-side embedded join, e.g.:
+The member `DashboardPage.tsx` builds its 6 tiles from the shared `GameCard` component, which sets
+`height: "100%"` on its `.card` div (and `display: "block"` on the wrapping `Link`). In a CSS grid,
+items stretch to match the tallest item in their row by default (`align-items: stretch`) — `GameCard`
+opts into that, so every tile in a row grows to match its tallest neighbor regardless of how much
+text it holds.
 
-```ts
-supabase.from("wheel_participants")
-  .select("user_id, seat_order, ..., profiles(username, avatar_url)")
-```
-
-That query runs as the signed-in player (not the service role), so it's subject to `profiles`'
-row-level security. Migration `0001_init.sql` only ever granted `select` on `profiles` to the row's
-own owner (`auth.uid() = id`); `0003_mods_read_profiles.sql` later added a second policy so MODs
-could read every row (needed for the host panel's Standings/grading lists). Nothing ever extended
-that same access to regular members reading each other's rows — so when a non-MOD's query embeds
-another player's `profiles`, RLS silently blocks it and PostgREST just returns `null` for that
-piece rather than erroring. The join itself, the component code, everything else is completely
-correct — this was purely a database access-control gap. Confirmed directly against the live
-project (`DeskBuddies-Games`, `fixlkzjyfpcgnieorlaw`): the only two `select` policies present on
-`profiles` today are exactly `read own row` and `mods read all` — nothing covering "a member reads
-another member."
-
-This is why kai and Bliss saw different lobbies: kai is a MOD, covered by the 0003 policy. Bliss is
-a regular member, covered by neither.
+`ModDashboardPage.tsx` never used `GameCard` for its own 6 tiles — it hand-duplicated the same
+markup inline instead (a project convention violation: "Shared UI goes in `src/components/`, reused
+rather than duplicated"). Its copy was missing `height: "100%"`, so each card only grew to fit its
+own content. "Type What You See" has the longest description ("Author rebus puzzles across all four
+rounds — every session automatically mixes them from all your sets."), so it wraps to more lines
+than its row-mates — and since nothing was stretching to match, only that tile grew taller while the
+others stayed short, producing the ragged row Dani saw.
 
 ## The fix
 
-One additive migration, `0024_members_read_profiles.sql`, adding a third `select` policy:
+Extended `GameCard` to support a second usage mode alongside its existing `to`-based Link mode:
 
-```sql
-create policy "profiles: verified members read all"
-  on public.profiles for select
-  using (public.is_verified_member());
-```
+- `to` is now optional; a new `onClick?: () => void` prop renders the card as a clickable,
+  keyboard-accessible `div` (`role="button"`, `tabIndex`, Enter/Space handling) instead of a `Link`.
+- A new `busy?: boolean` prop shows a "working on it" state (wait cursor, dimmed, clicks ignored) —
+  distinct from the existing `disabled` (permanently off) state.
+- Existing `to`-based usages (all 6 cards in `DashboardPage.tsx`) are unaffected — nothing about
+  their props or rendered output changed.
 
-`is_verified_member()` already exists (added in `0001_init.sql`) and is already the standard gate
-this codebase uses everywhere else for "any logged-in verified member can read this" — it's what
-every participant/round table's own RLS policies already check (`0007`, `0011`, `0012`, `0017`,
-`0019`, `0021`, and `0001` itself for `question_sets`/`questions`). `profiles` was the one table
-that never got this same treatment. Username, avatar, and mod/member status aren't sensitive here —
-they're the same info already visible to everyone in the Discord server itself, and MODs already
-have full-row access to everyone today — so this isn't a new category of exposure, just closing a
-gap that was almost certainly an oversight rather than a deliberate restriction.
+Then rewrote `ModDashboardPage.tsx`'s tile grid to use `<GameCard>` for all 6 tiles instead of
+hand-rolled markup:
 
-Purely additive: the existing `read own row` and `mods read all` policies are untouched. Multiple
-permissive `select` policies on the same table combine with `OR` in Postgres, so this just adds a
-third way in, the same pattern `0003` used.
+- Question Sets, Feud Sets, Impostor WHO?, Wheel of Fortune, Type What You See — plain `to`-based
+  cards, same links/emojis/copy as before.
+- UNO — the one tile that starts a session on click rather than linking anywhere — now uses
+  `onClick={handleStartUno}` with `busy={startingUno}`, preserving its exact existing behavior
+  (guards against double-clicks while a session is being created, shows "Starting a new game…" in
+  place of the normal description while in flight).
 
-No frontend changes needed — the lobby pages' queries were already correct; they were only ever
-blocked by the missing policy.
-
-## Validation
-
-Tested directly against the live `DeskBuddies-Games` Supabase project via `begin; ... rollback;` —
-confirmed the policy creates cleanly with no syntax errors or conflicts, appears correctly in
-`pg_policies` alongside the other two, and the rollback left production untouched (re-queried
-`pg_policies` afterward to confirm only the original two policies remain until this migration is
-actually pushed).
+Every tile now goes through the same component, so they'll always stay visually consistent with
+each other and with the member dashboard going forward — this can't drift out of sync again the way
+the hand-duplicated markup did.
 
 ## Files changed
 
-- `supabase/migrations/0024_members_read_profiles.sql` (new)
+- `frontend/src/components/GameCard.tsx` — extended props (`to` optional, new `onClick`/`busy`)
+- `frontend/src/pages/mod/ModDashboardPage.tsx` — tile grid now built from `<GameCard>`
+
+`frontend/src/pages/DashboardPage.tsx` was read to confirm its 6 existing usages stay fully
+backward-compatible, but was not changed.
+
+## Validation
+
+- `npx tsc -b` — clean
+- `npx oxlint` on the changed files — clean
+- `npx vite build` — clean; per-game chunk sizes unchanged from the code-splitting work
+  (`uno.bundle` 28.71kB, `impostor.bundle` 47.63kB, `trivia.bundle` 48.56kB, `feud.bundle` 63.50kB,
+  `wheel.bundle` 67.35kB, `rebus.bundle` 77.63kB, `ModDashboardPage` 9.91kB) — this change doesn't
+  touch the barrel-file/lazy-loading setup at all
 
 ## Deploy steps
 
 ```bash
-git add supabase/migrations/0024_members_read_profiles.sql
-git commit -m "fix: let verified members read each other's username/avatar, so lobby rosters show every player's name and picture instead of just your own"
+git add frontend/src/components/GameCard.tsx frontend/src/pages/mod/ModDashboardPage.tsx
+git commit -m "fix: MOD dashboard tiles reuse GameCard so row heights stay even, matching the member dashboard"
 git push
-
-npx supabase db push
 ```
 
-No Edge Function redeploy needed — this is a pure RLS policy addition, nothing server-side changed.
+Frontend-only — no Supabase migration or Edge Function changes, no `supabase db push` needed. Vercel
+will pick it up on push as usual.
 
-## What to check on the next playtest
+## What to check on the next look
 
-- [ ] Open a lobby (any game) as a regular, non-MOD member while someone else is already in it —
-      confirm you can now see their avatar and username, not just your own
-- [ ] Confirm this holds across all five affected games: Wheel of Fortune, Family Feud, UNO,
-      Impostor WHO?, and Type What You See
-- [ ] Confirm a MOD's view is unchanged (they already worked correctly)
-- [ ] Confirm nothing else regressed — a member still can't see another member's `is_mod` badge
-      status anywhere it wasn't already shown, since no frontend UI reads or displays that field
-      for other users today
+- [ ] Open the MOD Dashboard — confirm all 6 tiles in the bottom row have matching heights,
+      even though "Type What You See"'s description is the longest
+- [ ] Click the UNO tile — confirm it still starts a session and shows "Starting a new game…" while
+      in flight, and that clicking again mid-flight does nothing
+- [ ] Tab to the UNO tile with the keyboard and press Enter/Space — confirm it starts a session the
+      same way a click does
+- [ ] Confirm the member "Game Night" dashboard is visually unchanged (it already worked correctly)
