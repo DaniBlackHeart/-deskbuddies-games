@@ -12,37 +12,53 @@
 // in by the caller (parseRebusPuzzleInput's `round` argument) instead of
 // parsed from the pasted text.
 //
-// Type was dropped too, but — per Dani's follow-up the same day — pasted
-// puzzles are NOT all just tagged "phonetic": detectPuzzleType() below
-// guesses the type from the puzzle's own display_text (digits → Numbers &
-// letters, an underscore → Missing letters, the same word repeated →
-// Repeated words, a single word → Homophone, multiple lines → Visual
-// arrangement, otherwise → Phonetic). It's a heuristic, not a real
-// classifier, and RebusImportModal shows the guessed type per puzzle in
-// the preview so a MOD can catch a bad guess before confirming — there's
-// no per-puzzle edit after import (see RebusSetEditorPage), only
-// delete-and-redo, so that preview step matters. One known gap: "split
+// Type is optional in both formats — pasted puzzles are NOT all just
+// tagged "phonetic": detectPuzzleType() below guesses the type from the
+// puzzle's own display_text (a line break → Visual arrangement, digits →
+// Numbers & letters, an underscore → Missing letters, the same word
+// repeated → Repeated words, a single word → Homophone, otherwise →
+// Phonetic) whenever a puzzle doesn't say its type explicitly. It's a
+// heuristic, not a real classifier, and RebusImportModal shows the
+// resolved type per puzzle in the preview so a MOD can catch a bad guess
+// before confirming — there's no per-puzzle edit after import (see
+// RebusSetEditorPage), only delete-and-redo, so that preview step
+// matters. One known gap the guess can't resolve on its own: "split
 // words" puzzles are laid out with line breaks exactly like "visual
 // arrangement" ones, so there's no textual signal that tells them apart —
-// a multi-line puzzle always lands as Visual. Add a Split puzzle manually
-// instead if you need that exact tag (same escape hatch as any other
-// type).
+// a multi-line puzzle with no explicit Type: is always guessed as Visual.
+// Say `Type: split` on that puzzle (or add it manually) if you need that
+// exact tag instead.
 //
 // 1) JSON array of objects, e.g.:
 //    [
 //      { "display_text": "SIR USE LEE", "answer_text": "Seriously",
-//        "accepted_answers": ["Seriously"], "points": 200, "time_limit_seconds": 10 }
+//        "accepted_answers": ["Seriously"], "points": 200, "time_limit_seconds": 10,
+//        "puzzle_type": "phonetic" }
 //    ]
 //    display_text may contain "\n" for a multi-line (Visual/Split-shaped)
-//    puzzle — the plain-text template below can't represent that, since
-//    its line-based format only ever reads one line per "Display:".
+//    puzzle. `puzzle_type` is optional — omit it to let detectPuzzleType
+//    guess, same as the plain-text template below.
 //
-// 2) A plain-text template, one puzzle per blank-line-separated block:
+// 2) A plain-text template. Every puzzle starts a new "Display:" line —
+//    that's the only thing that marks a new puzzle, not a blank line
+//    (blank lines between puzzles are fine and ignored, but not
+//    required — a paste with zero blank lines in it, like a straight
+//    copy from a spreadsheet or another chat, still splits correctly).
+//    Any line after "Display:" that isn't itself a recognized field
+//    ("Answer:"/"Accepted:"/"Points:"/"Time:"/"Type:") is treated as
+//    another line of the display text — this is how a Visual or Split
+//    puzzle's line break is expressed here, no JSON required:
+//
 //    Display: SIR USE LEE
 //    Answer: Seriously
 //    Accepted: Seriously
 //    Points: 200
 //    Time: 10
+//
+//    Display: MIND
+//    MATTER
+//    Answer: Mind over matter
+//    Type: visual
 
 import type { RebusPuzzleType, RebusRound } from "../types";
 
@@ -108,6 +124,26 @@ export function detectPuzzleType(display: string): RebusPuzzleType {
   return "phonetic";
 }
 
+const REBUS_TYPE_SLUGS = Object.keys(REBUS_PUZZLE_TYPE_LABELS) as RebusPuzzleType[];
+
+// Accepts an explicit `Type:` (template) or `puzzle_type` (JSON) value and
+// resolves it to one of the 7 real type slugs, tolerating the slug itself
+// ("numbers_letters"), its human label ("Numbers & letters"), spaces
+// instead of underscores, and mixed case — anything a MOD might
+// reasonably type. Returns null if it doesn't match anything recognized,
+// so the caller can surface a clear per-puzzle error instead of silently
+// guessing against the MOD's stated intent.
+function normalizePuzzleType(raw: string): RebusPuzzleType | null {
+  const normalized = raw.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  if (!normalized) return null;
+  const bySlug = REBUS_TYPE_SLUGS.find((slug) => slug === normalized);
+  if (bySlug) return bySlug;
+  const byLabel = REBUS_TYPE_SLUGS.find(
+    (slug) => REBUS_PUZZLE_TYPE_LABELS[slug].toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") === normalized
+  );
+  return byLabel ?? null;
+}
+
 export type ParsedRebusPuzzle = {
   round: RebusRound;
   puzzle_type: RebusPuzzleType;
@@ -135,17 +171,23 @@ export const REBUS_ROUND_DEFAULTS: Record<RebusRound, { points: number; time_lim
 };
 const ROUND_DEFAULTS = REBUS_ROUND_DEFAULTS;
 
-export function parseRebusPuzzleInput(raw: string, round: RebusRound): ParseResult {
+// `defaultType`, when set, applies to every puzzle in this batch that
+// doesn't say its own type ("Type:"/"puzzle_type") — for a paste that's
+// entirely one style (a whole "visual arrangement" set, say), this saves
+// tagging every single line individually. A puzzle's own explicit type
+// still wins over this batch default, so a mostly-uniform paste can still
+// call out the odd exception.
+export function parseRebusPuzzleInput(raw: string, round: RebusRound, defaultType?: RebusPuzzleType): ParseResult {
   const trimmed = raw.trim();
   if (!trimmed) return { puzzles: [], errors: ["Nothing to import — paste some puzzles first."] };
 
   if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
-    return parseJson(trimmed, round);
+    return parseJson(trimmed, round, defaultType);
   }
-  return parseTemplate(trimmed, round);
+  return parseTemplate(trimmed, round, defaultType);
 }
 
-function parseJson(trimmed: string, round: RebusRound): ParseResult {
+function parseJson(trimmed: string, round: RebusRound, defaultType?: RebusPuzzleType): ParseResult {
   let data: unknown;
   try {
     data = JSON.parse(trimmed);
@@ -168,9 +210,22 @@ function parseJson(trimmed: string, round: RebusRound): ParseResult {
       errors.push(`${label}: missing "answer_text"`);
       return;
     }
+
+    let puzzleType: RebusPuzzleType;
+    if (typeof item.puzzle_type === "string" && item.puzzle_type.trim()) {
+      const normalized = normalizePuzzleType(item.puzzle_type);
+      if (!normalized) {
+        errors.push(`${label}: unrecognized "puzzle_type" "${item.puzzle_type}"`);
+        return;
+      }
+      puzzleType = normalized;
+    } else {
+      puzzleType = defaultType ?? detectPuzzleType(item.display_text);
+    }
+
     puzzles.push({
       round,
-      puzzle_type: detectPuzzleType(item.display_text),
+      puzzle_type: puzzleType,
       display_text: item.display_text,
       answer_text: item.answer_text,
       accepted_answers: Array.isArray(item.accepted_answers) && item.accepted_answers.length > 0
@@ -184,63 +239,121 @@ function parseJson(trimmed: string, round: RebusRound): ParseResult {
   return { puzzles, errors };
 }
 
-function parseTemplate(trimmed: string, round: RebusRound): ParseResult {
-  const blocks = trimmed.split(/\n\s*\n+/).map((b) => b.trim()).filter(Boolean);
+// A single puzzle's fields as they're accumulated line by line. displayLines
+// is an array (not a string) specifically so a Visual/Split puzzle's line
+// break survives: every unlabeled line encountered right after "Display:"
+// (or before any label, for a bare first line) gets pushed here instead of
+// being dropped, and the final display_text joins them with "\n".
+type TemplateDraft = {
+  displayLines: string[];
+  answer: string | null;
+  acceptedRaw: string | null;
+  points: number | null;
+  timeLimit: number | null;
+  typeRaw: string | null;
+};
+
+function parseTemplate(trimmed: string, round: RebusRound, defaultType?: RebusPuzzleType): ParseResult {
+  // Deliberately NOT split into blocks by blank line first — a paste with
+  // no blank lines between puzzles at all (e.g. straight from a
+  // spreadsheet or another chat) is common and shouldn't silently merge
+  // every puzzle into one. Instead, "Display:" itself is the only thing
+  // that starts a new puzzle: every time one is seen, whatever puzzle was
+  // being built is finalized first. Blank lines are still fine to include
+  // for readability — they're just skipped like any other empty line.
+  const lines = trimmed.split("\n");
   const puzzles: ParsedRebusPuzzle[] = [];
   const errors: string[] = [];
   const defaults = ROUND_DEFAULTS[round];
 
-  blocks.forEach((block, i) => {
-    const label = `Puzzle ${i + 1}`;
-    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+  let draft: TemplateDraft | null = null;
+  let count = 0;
 
-    let display: string | null = null;
-    let answer: string | null = null;
-    let acceptedRaw: string | null = null;
-    let points: number | null = null;
-    let timeLimit: number | null = null;
+  function newDraft(firstDisplayLine: string): TemplateDraft {
+    return { displayLines: [firstDisplayLine], answer: null, acceptedRaw: null, points: null, timeLimit: null, typeRaw: null };
+  }
 
-    for (const line of lines) {
-      if (/^Display:/i.test(line)) display = line.replace(/^Display:/i, "").trim();
-      else if (/^Answer:/i.test(line)) answer = line.replace(/^Answer:/i, "").trim();
-      else if (/^Accepted:/i.test(line)) acceptedRaw = line.replace(/^Accepted:/i, "").trim();
-      else if (/^Points:/i.test(line)) points = Number(line.replace(/^Points:/i, "").trim()) || null;
-      else if (/^Time:/i.test(line)) timeLimit = Number(line.replace(/^Time:/i, "").trim()) || null;
-      else if (!display) display = line; // allow a bare first line
-    }
+  function flush() {
+    if (!draft) return;
+    count += 1;
+    const label = `Puzzle ${count}`;
+    const current = draft;
+    draft = null;
 
+    const display = current.displayLines.join("\n").trim();
     if (!display) {
       errors.push(`${label}: missing "Display: <puzzle text>"`);
       return;
     }
-    if (!answer) {
+    if (!current.answer) {
       errors.push(`${label}: missing "Answer: <the hidden word/phrase>"`);
       return;
     }
 
-    const accepted = acceptedRaw
-      ? acceptedRaw.split(",").map((a) => a.trim()).filter(Boolean)
-      : [answer];
+    let puzzleType: RebusPuzzleType;
+    if (current.typeRaw) {
+      const normalized = normalizePuzzleType(current.typeRaw);
+      if (!normalized) {
+        errors.push(
+          `${label}: unrecognized "Type: ${current.typeRaw}" — expected one of ${REBUS_TYPE_SLUGS.join(", ")}`
+        );
+        return;
+      }
+      puzzleType = normalized;
+    } else {
+      puzzleType = defaultType ?? detectPuzzleType(display);
+    }
+
+    const accepted = current.acceptedRaw
+      ? current.acceptedRaw.split(",").map((a) => a.trim()).filter(Boolean)
+      : [current.answer];
 
     puzzles.push({
       round,
-      puzzle_type: detectPuzzleType(display),
+      puzzle_type: puzzleType,
       display_text: display,
-      answer_text: answer,
+      answer_text: current.answer,
       accepted_answers: accepted,
-      points: points ?? defaults.points,
-      time_limit_seconds: timeLimit ?? defaults.time_limit_seconds,
+      points: current.points ?? defaults.points,
+      time_limit_seconds: current.timeLimit ?? defaults.time_limit_seconds,
     });
-  });
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue; // blank lines are just visual spacing now, never required
+
+    if (/^Display:/i.test(line)) {
+      flush(); // a new "Display:" always starts the next puzzle
+      draft = newDraft(line.replace(/^Display:/i, "").trim());
+      continue;
+    }
+    if (!draft) {
+      // No "Display:" prefix on this puzzle's first line — allow it, same
+      // as before, treating the bare line itself as the start of Display.
+      draft = newDraft(line);
+      continue;
+    }
+    if (/^Answer:/i.test(line)) draft.answer = line.replace(/^Answer:/i, "").trim();
+    else if (/^Accepted:/i.test(line)) draft.acceptedRaw = line.replace(/^Accepted:/i, "").trim();
+    else if (/^Points:/i.test(line)) draft.points = Number(line.replace(/^Points:/i, "").trim()) || null;
+    else if (/^Time:/i.test(line)) draft.timeLimit = Number(line.replace(/^Time:/i, "").trim()) || null;
+    else if (/^Type:/i.test(line)) draft.typeRaw = line.replace(/^Type:/i, "").trim();
+    else draft.displayLines.push(line); // continuation of a multi-line Display
+  }
+  flush();
 
   return { puzzles, errors };
 }
 
-// Covers every type detectPuzzleType() can actually reach from a single
-// line of text — Visual/Split need a real line break in display_text,
-// which this plain-text format has no syntax for (see the file header),
-// so those two aren't shown here; REBUS_JSON_MULTILINE_EXAMPLE below is
-// the way to paste one of those instead.
+// A line break under "Display:" (before the next recognized field) is
+// part of the display text — that's how Visual/Split puzzles are written
+// here, no JSON needed. "Type:" is only shown on the two puzzles whose
+// type the guesser genuinely can't resolve on its own (Split looks
+// identical to Visual once pasted); leave it off anywhere else and
+// detectPuzzleType() guesses it, same as always. Blank lines between
+// puzzles are just for readability — "Display:" is what actually starts
+// a new one, so a paste with none still splits correctly.
 export const REBUS_TEMPLATE_EXAMPLE = `Display: SIR USE LEE
 Answer: Seriously
 
@@ -259,14 +372,25 @@ Display: ${REBUS_TYPE_EXAMPLES.repeated.display}
 Answer: ${REBUS_TYPE_EXAMPLES.repeated.answer}
 
 Display: ${REBUS_TYPE_EXAMPLES.homophone.display}
-Answer: ${REBUS_TYPE_EXAMPLES.homophone.answer}`;
+Answer: ${REBUS_TYPE_EXAMPLES.homophone.answer}
 
-// A Visual/Split-shaped puzzle needs a real newline in display_text, which
-// only the JSON format can carry — shown separately since pasting it as-is
-// alongside the plain-text template above would be invalid input.
+Display: ${REBUS_TYPE_EXAMPLES.visual.display}
+Answer: ${REBUS_TYPE_EXAMPLES.visual.answer}
+
+Display: ${REBUS_TYPE_EXAMPLES.split.display}
+Answer: ${REBUS_TYPE_EXAMPLES.split.answer}
+Type: split`;
+
+// The JSON format still works exactly the same way and is still useful
+// for a very large machine-generated batch — display_text just carries
+// "\n" directly instead of a real line break, and puzzle_type is the
+// same optional override as "Type:" above.
 export const REBUS_JSON_MULTILINE_EXAMPLE = `[
   { "display_text": "${REBUS_TYPE_EXAMPLES.visual.display.replace(/\n/g, "\\n")}",
-    "answer_text": "${REBUS_TYPE_EXAMPLES.visual.answer}" }
+    "answer_text": "${REBUS_TYPE_EXAMPLES.visual.answer}" },
+  { "display_text": "${REBUS_TYPE_EXAMPLES.split.display.replace(/\n/g, "\\n")}",
+    "answer_text": "${REBUS_TYPE_EXAMPLES.split.answer}",
+    "puzzle_type": "split" }
 ]`;
 
 // --- Sprint pool (Round 4) — simpler content, no round/type/points/time ---

@@ -8,7 +8,17 @@ import {
   REBUS_DIFFICULTY_ORDER,
   type ParsedRebusPuzzle,
 } from "../utils/rebusPuzzleParser";
-import type { RebusRound } from "../types";
+import type { RebusPuzzleType, RebusRound } from "../types";
+
+const REBUS_TYPE_ORDER: RebusPuzzleType[] = [
+  "phonetic",
+  "split",
+  "numbers_letters",
+  "visual",
+  "missing_letters",
+  "repeated",
+  "homophone",
+];
 
 type RebusImportModalProps = {
   onCancel: () => void;
@@ -20,6 +30,12 @@ export default function RebusImportModal({ onCancel, onConfirm }: RebusImportMod
   // batch's difficulty is picked right here instead of being inferred
   // from whichever tab the modal was opened from.
   const [round, setRound] = useState<RebusRound>("warmup");
+  // "auto" = guess each puzzle's type from its own text (detectPuzzleType);
+  // any real type forces every puzzle in this batch to that type unless it
+  // says its own "Type:"/"puzzle_type" — the escape hatch for a batch
+  // that's almost entirely one style, like a whole visual-arrangement set,
+  // where tagging every line individually would be its own chore.
+  const [batchType, setBatchType] = useState<RebusPuzzleType | "auto">("auto");
   const [raw, setRaw] = useState("");
   const [parsed, setParsed] = useState<ParsedRebusPuzzle[] | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -27,7 +43,7 @@ export default function RebusImportModal({ onCancel, onConfirm }: RebusImportMod
   const [showExample, setShowExample] = useState(false);
 
   function handlePreview() {
-    const result = parseRebusPuzzleInput(raw, round);
+    const result = parseRebusPuzzleInput(raw, round, batchType === "auto" ? undefined : batchType);
     setParsed(result.puzzles);
     setErrors(result.errors);
   }
@@ -75,13 +91,39 @@ export default function RebusImportModal({ onCancel, onConfirm }: RebusImportMod
           </select>
         </div>
 
+        <div className="field">
+          <label>Type for this whole batch</label>
+          <select
+            value={batchType}
+            onChange={(e) => {
+              setBatchType(e.target.value as RebusPuzzleType | "auto");
+              setParsed(null);
+            }}
+          >
+            <option value="auto">Auto-detect per puzzle (default)</option>
+            {REBUS_TYPE_ORDER.map((t) => (
+              <option key={t} value={t}>
+                {REBUS_PUZZLE_TYPE_LABELS[t]} — force every puzzle below to this
+              </option>
+            ))}
+          </select>
+          <p className="hint" style={{ marginTop: "4px" }}>
+            Pasting a whole set of one style (all Visual arrangement, say)? Pick it here instead of tagging every
+            puzzle — a puzzle with its own "Type:" line still overrides this.
+          </p>
+        </div>
+
         <p className="text-muted">
           Paste a JSON array, or use the simple text template. Every puzzle in this batch gets the difficulty picked
-          above — no need to say it per puzzle. Puzzle type isn't asked for either — it's guessed from each puzzle's
-          own text (numbers → Numbers & letters, an underscore → Missing letters, a repeated word → Repeated words,
-          and so on); the preview below always shows the guess so you can catch a wrong one before importing, since
-          there's no way to change a puzzle's type after it's in (add it manually instead if you need an exact
-          type).{" "}
+          above — no need to say it per puzzle. A new "Display:" line always starts a new puzzle, so it's fine to
+          paste with or without blank lines between them. Want a Visual or Split puzzle with a line break in it? Just
+          put the extra line(s) right under "Display:" — no JSON needed for that. Puzzle type isn't required either —
+          it's guessed from each puzzle's own text (a line break → Visual arrangement, numbers → Numbers & letters,
+          an underscore → Missing letters, a repeated word → Repeated words, and so on) — but you can say it
+          explicitly with a "Type:" line if you want to be sure, especially for Split (which looks identical to
+          Visual once pasted, so it's always guessed as Visual unless you say otherwise). The preview below always
+          shows the resolved type so you can catch a wrong guess before importing — there's no way to change a
+          puzzle's type after it's in (add it manually instead if you need to fix one).{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setShowExample((s) => !s)} style={{ padding: 0 }}>
             {showExample ? "Hide example" : "Show example"}
           </button>
@@ -102,8 +144,9 @@ export default function RebusImportModal({ onCancel, onConfirm }: RebusImportMod
               {REBUS_TEMPLATE_EXAMPLE}
             </pre>
             <p className="hint">
-              A Visual-arrangement or Split-words puzzle needs an actual line break in its display text, which this
-              text template can't express — paste JSON instead for one of those, e.g.:
+              JSON still works too, and is handy for a very large machine-generated batch — display_text just carries
+              "\n" directly instead of a real line break, and "puzzle_type" is the same optional override as "Type:"
+              above:
             </p>
             <pre
               style={{
@@ -117,10 +160,6 @@ export default function RebusImportModal({ onCancel, onConfirm }: RebusImportMod
             >
               {REBUS_JSON_MULTILINE_EXAMPLE}
             </pre>
-            <p className="hint">
-              Split and Visual look identical once pasted (both are just line breaks), so a multi-line puzzle is
-              always guessed as Visual arrangement — add a Split puzzle manually instead if you need that exact tag.
-            </p>
           </>
         )}
 
@@ -162,7 +201,7 @@ export default function RebusImportModal({ onCancel, onConfirm }: RebusImportMod
               {parsed.map((p, i) => (
                 <div key={i} className="card card--tight">
                   <div className="row-between">
-                    <strong>{p.display_text}</strong>
+                    <strong style={{ whiteSpace: "pre-line" }}>{p.display_text}</strong>
                     <span className="badge badge-neutral">{REBUS_PUZZLE_TYPE_LABELS[p.puzzle_type]}</span>
                   </div>
                   <p className="hint" style={{ marginTop: "4px" }}>
