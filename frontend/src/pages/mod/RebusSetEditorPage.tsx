@@ -44,6 +44,11 @@ export default function RebusSetEditorPage() {
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<"puzzles" | "sprint">("puzzles");
+  // Which difficulty's puzzle list is showing — a second row of tabs
+  // nested under "Puzzles", so switching difficulties doesn't mean
+  // scrolling past every other difficulty's full list to get there (that
+  // was the whole complaint with a set that has hundreds of Easy puzzles).
+  const [activeDifficulty, setActiveDifficulty] = useState<RebusRound>("warmup");
   const [showManualForm, setShowManualForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [draft, setDraft] = useState(emptyDraft("warmup"));
@@ -219,6 +224,14 @@ export default function RebusSetEditorPage() {
     loadData();
   }
 
+  function handleSwitchDifficulty(round: RebusRound) {
+    setActiveDifficulty(round);
+    // Keep the manual-add form's difficulty (and its points/time defaults)
+    // in step with whichever tab is showing, so it doesn't default back to
+    // Easy every time — the dropdown inside the form can still override it.
+    setDraft((d) => ({ ...d, round, points: REBUS_ROUND_DEFAULTS[round].points, timeLimit: REBUS_ROUND_DEFAULTS[round].time_limit_seconds }));
+  }
+
   async function handleDeleteSprint(id: string) {
     if (!confirm("Delete this Sprint puzzle?")) return;
     setDeleteBusyId(id);
@@ -272,6 +285,20 @@ export default function RebusSetEditorPage() {
             ⚡ Sprint Pool ({sprintPuzzles.length})
           </button>
         </div>
+
+        {activeTab !== "sprint" && (
+          <div className="row" style={{ marginTop: "10px", flexWrap: "wrap", gap: "6px" }}>
+            {puzzlesByDifficulty.map((group) => (
+              <button
+                key={group.round}
+                className={`btn btn-sm ${activeDifficulty === group.round ? "btn-primary" : "btn-ghost"}`}
+                onClick={() => handleSwitchDifficulty(group.round)}
+              >
+                {group.label} ({group.items.length})
+              </button>
+            ))}
+          </div>
+        )}
 
         {activeTab !== "sprint" ? (
           <>
@@ -379,66 +406,67 @@ export default function RebusSetEditorPage() {
               </div>
             )}
 
-            {puzzlesByDifficulty.map((group) => (
-              <div key={group.round} style={{ marginTop: "20px" }}>
-                <h3 style={{ marginBottom: "8px" }}>
-                  {group.label} <span className="text-muted">({group.items.length})</span>
-                </h3>
-                <div className="stack">
-                  {group.items.map((p, i) => (
-                    <div key={p.id} className="card card--tight">
-                      <div className="row-between">
-                        <strong>
-                          {i + 1}. {p.display_text}
-                        </strong>
-                        <div className="row">
-                          <span className="badge badge-neutral">{REBUS_PUZZLE_TYPE_LABELS[p.puzzle_type]}</span>
-                          <button className="btn btn-ghost btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleDelete(p)}>
-                            {deleteBusyId === p.id ? <span className="spinner" /> : "Delete"}
-                          </button>
+            {(() => {
+              const activeGroup = puzzlesByDifficulty.find((g) => g.round === activeDifficulty)!;
+              return (
+                <>
+                  <div style={{ marginTop: "8px" }}>
+                    <div className="stack">
+                      {activeGroup.items.map((p, i) => (
+                        <div key={p.id} className="card card--tight">
+                          <div className="row-between">
+                            <strong>
+                              {i + 1}. {p.display_text}
+                            </strong>
+                            <div className="row">
+                              <span className="badge badge-neutral">{REBUS_PUZZLE_TYPE_LABELS[p.puzzle_type]}</span>
+                              <button className="btn btn-ghost btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleDelete(p)}>
+                                {deleteBusyId === p.id ? <span className="spinner" /> : "Delete"}
+                              </button>
+                            </div>
+                          </div>
+                          <p className="hint" style={{ marginTop: "6px" }}>
+                            {p.points} pts (+300 speed bonus) · {p.time_limit_seconds}s · answer: {p.answer_text}
+                            {p.accepted_answers.length > 1 && ` (also: ${p.accepted_answers.filter((a) => a !== p.answer_text).join(", ")})`}
+                          </p>
                         </div>
-                      </div>
-                      <p className="hint" style={{ marginTop: "6px" }}>
-                        {p.points} pts (+300 speed bonus) · {p.time_limit_seconds}s · answer: {p.answer_text}
-                        {p.accepted_answers.length > 1 && ` (also: ${p.accepted_answers.filter((a) => a !== p.answer_text).join(", ")})`}
-                      </p>
+                      ))}
+                      {activeGroup.items.length === 0 && (
+                        <div className="card text-center">
+                          <p className="text-muted">No {activeGroup.label} puzzles yet — add one manually or import a list.</p>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {group.items.length === 0 && (
-                    <div className="card text-center">
-                      <p className="text-muted">No {group.label} puzzles yet — add one manually or import a list.</p>
+                  </div>
+
+                  {activeGroup.archived.length > 0 && (
+                    <div style={{ marginTop: "24px" }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setShowArchived((s) => !s)}>
+                        {showArchived ? "Hide" : "Show"} archived {activeGroup.label} ({activeGroup.archived.length})
+                      </button>
+
+                      {showArchived && (
+                        <div className="stack" style={{ marginTop: "12px" }}>
+                          {activeGroup.archived.map((p) => (
+                            <div key={p.id} className="card card--tight" style={{ opacity: 0.7 }}>
+                              <div className="row-between">
+                                <strong>{p.display_text}</strong>
+                                <div className="row">
+                                  <span className="badge badge-neutral">Archived</span>
+                                  <button className="btn btn-secondary btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleRestore(p)}>
+                                    {deleteBusyId === p.id ? <span className="spinner" /> : "Restore"}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              </div>
-            ))}
-
-            {archivedPuzzles.length > 0 && (
-              <div style={{ marginTop: "24px" }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => setShowArchived((s) => !s)}>
-                  {showArchived ? "Hide" : "Show"} archived ({archivedPuzzles.length})
-                </button>
-
-                {showArchived && (
-                  <div className="stack" style={{ marginTop: "12px" }}>
-                    {archivedPuzzles.map((p) => (
-                      <div key={p.id} className="card card--tight" style={{ opacity: 0.7 }}>
-                        <div className="row-between">
-                          <strong>{p.display_text}</strong>
-                          <div className="row">
-                            <span className="badge badge-neutral">{REBUS_DIFFICULTY_LABELS[p.round]}</span>
-                            <span className="badge badge-neutral">Archived</span>
-                            <button className="btn btn-secondary btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleRestore(p)}>
-                              {deleteBusyId === p.id ? <span className="spinner" /> : "Restore"}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                </>
+              );
+            })()}
           </>
         ) : (
           <>
@@ -522,7 +550,7 @@ export default function RebusSetEditorPage() {
       </div>
 
       {showImport && activeTab === "puzzles" && (
-        <RebusImportModal onCancel={() => setShowImport(false)} onConfirm={handleImportConfirm} />
+        <RebusImportModal initialRound={activeDifficulty} onCancel={() => setShowImport(false)} onConfirm={handleImportConfirm} />
       )}
     </div>
   );

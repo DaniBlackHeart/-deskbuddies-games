@@ -23,13 +23,14 @@ const REBUS_TYPE_ORDER: RebusPuzzleType[] = [
 type RebusImportModalProps = {
   onCancel: () => void;
   onConfirm: (puzzles: ParsedRebusPuzzle[]) => Promise<void>;
+  // Defaults the batch-difficulty dropdown to whichever difficulty tab was
+  // active on RebusSetEditorPage when "Import" was clicked (2026-09-06) —
+  // still just a starting point, changeable right here before previewing.
+  initialRound?: RebusRound;
 };
 
-export default function RebusImportModal({ onCancel, onConfirm }: RebusImportModalProps) {
-  // Sets no longer have per-round authoring tabs (2026-08-29), so this
-  // batch's difficulty is picked right here instead of being inferred
-  // from whichever tab the modal was opened from.
-  const [round, setRound] = useState<RebusRound>("warmup");
+export default function RebusImportModal({ onCancel, onConfirm, initialRound }: RebusImportModalProps) {
+  const [round, setRound] = useState<RebusRound>(initialRound ?? "warmup");
   // "auto" = guess each puzzle's type from its own text (detectPuzzleType);
   // any real type forces every puzzle in this batch to that type unless it
   // says its own "Type:"/"puzzle_type" — the escape hatch for a batch
