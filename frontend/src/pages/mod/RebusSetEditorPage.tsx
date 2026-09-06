@@ -58,6 +58,16 @@ export default function RebusSetEditorPage() {
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
+  // Bulk edit: every field here starts blank/unset, meaning "don't change
+  // this" — only fields the mod actually fills in get applied, to every
+  // active puzzle in the current difficulty tab (2026-09-06).
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [bulkEditPoints, setBulkEditPoints] = useState("");
+  const [bulkEditTimeLimit, setBulkEditTimeLimit] = useState("");
+  const [bulkEditType, setBulkEditType] = useState<RebusPuzzleType | "">("");
+  const [bulkEditMoveTo, setBulkEditMoveTo] = useState<RebusRound | "">("");
+  const [bulkEditing, setBulkEditing] = useState(false);
+
   const [sprintDisplay, setSprintDisplay] = useState("");
   const [sprintAnswer, setSprintAnswer] = useState("");
   const [sprintAccepted, setSprintAccepted] = useState("");
@@ -203,6 +213,75 @@ export default function RebusSetEditorPage() {
     loadData();
   }
 
+  function resetBulkEditForm() {
+    setBulkEditPoints("");
+    setBulkEditTimeLimit("");
+    setBulkEditType("");
+    setBulkEditMoveTo("");
+  }
+
+  async function handleBulkEdit(round: RebusRound, count: number) {
+    if (!setId || count === 0) return;
+    const label = REBUS_DIFFICULTY_LABELS[round];
+
+    // Only fields the mod actually filled in get applied — everything else
+    // is left as-is per puzzle. No value-based filtering: this always
+    // applies to every active puzzle in the tab, per how it was scoped.
+    const updates: Record<string, unknown> = {};
+    const changeDescriptions: string[] = [];
+
+    if (bulkEditPoints.trim() !== "") {
+      const points = Number(bulkEditPoints);
+      updates.points = points;
+      changeDescriptions.push(`Points → ${points}`);
+    }
+    if (bulkEditTimeLimit.trim() !== "") {
+      const timeLimit = Number(bulkEditTimeLimit);
+      updates.time_limit_seconds = timeLimit;
+      changeDescriptions.push(`Time limit → ${timeLimit}s`);
+    }
+    if (bulkEditType !== "") {
+      updates.puzzle_type = bulkEditType;
+      changeDescriptions.push(`Puzzle type → ${REBUS_PUZZLE_TYPE_LABELS[bulkEditType]}`);
+    }
+    if (bulkEditMoveTo !== "") {
+      updates.round = bulkEditMoveTo;
+      changeDescriptions.push(`Difficulty → ${REBUS_DIFFICULTY_LABELS[bulkEditMoveTo]}`);
+    }
+
+    if (changeDescriptions.length === 0) {
+      setDeleteMessage("Pick at least one field to change before applying a bulk edit.");
+      return;
+    }
+
+    if (
+      !confirm(
+        `Apply this to all ${count} ${label} puzzle${count === 1 ? "" : "s"} in this set?\n\n${changeDescriptions.join("\n")}`
+      )
+    ) {
+      return;
+    }
+
+    setBulkEditing(true);
+    const { error } = await supabase
+      .from("rebus_puzzles")
+      .update(updates)
+      .eq("rebus_set_id", setId)
+      .eq("round", round)
+      .is("archived_at", null);
+    setBulkEditing(false);
+
+    if (error) {
+      setDeleteMessage("Could not update those puzzles. Try again.");
+      return;
+    }
+
+    setDeleteMessage(`Updated ${count} ${label} puzzle${count === 1 ? "" : "s"}.`);
+    setShowBulkEdit(false);
+    resetBulkEditForm();
+    loadData();
+  }
+
   async function handleAddSprintManual() {
     setSprintError(null);
     if (!sprintDisplay.trim() || !sprintAnswer.trim()) {
@@ -258,6 +337,10 @@ export default function RebusSetEditorPage() {
     // in step with whichever tab is showing, so it doesn't default back to
     // Easy every time — the dropdown inside the form can still override it.
     setDraft((d) => ({ ...d, round, points: REBUS_ROUND_DEFAULTS[round].points, timeLimit: REBUS_ROUND_DEFAULTS[round].time_limit_seconds }));
+    // Never carry a half-filled bulk-edit form over to a different
+    // difficulty tab — close it and clear its fields.
+    setShowBulkEdit(false);
+    resetBulkEditForm();
   }
 
   async function handleDeleteSprint(id: string) {
@@ -340,14 +423,98 @@ export default function RebusSetEditorPage() {
                   📋 Import / paste puzzles
                 </button>
               </div>
-              <button
-                className="btn btn-ghost"
-                disabled={bulkDeleting || activeGroup.items.length === 0}
-                onClick={() => handleBulkDelete(activeDifficulty, activeGroup.items.length)}
-              >
-                {bulkDeleting ? <span className="spinner" /> : `🗑 Delete all ${activeGroup.label} (${activeGroup.items.length})`}
-              </button>
+              <div className="row" style={{ margin: 0 }}>
+                <button
+                  className="btn btn-ghost"
+                  disabled={activeGroup.items.length === 0}
+                  onClick={() => setShowBulkEdit((s) => !s)}
+                >
+                  ✏️ Bulk edit {activeGroup.label} ({activeGroup.items.length})
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  disabled={bulkDeleting || activeGroup.items.length === 0}
+                  onClick={() => handleBulkDelete(activeDifficulty, activeGroup.items.length)}
+                >
+                  {bulkDeleting ? <span className="spinner" /> : `🗑 Delete all ${activeGroup.label} (${activeGroup.items.length})`}
+                </button>
+              </div>
             </div>
+
+            {showBulkEdit && (
+              <div className="card" style={{ marginBottom: "20px" }}>
+                <h3>Bulk edit all {activeGroup.label} puzzles ({activeGroup.items.length})</h3>
+                <p className="text-muted">
+                  Only fields you fill in below get changed — leave the rest blank to leave them as-is. This applies
+                  to every active {activeGroup.label} puzzle in this set, all at once.
+                </p>
+
+                <div className="row">
+                  <div className="field" style={{ flex: 1 }}>
+                    <label>Points (leave blank to keep as-is)</label>
+                    <input
+                      type="number"
+                      value={bulkEditPoints}
+                      onChange={(e) => setBulkEditPoints(e.target.value)}
+                      placeholder="unchanged"
+                    />
+                  </div>
+                  <div className="field" style={{ flex: 1 }}>
+                    <label>Time limit in seconds (leave blank to keep as-is)</label>
+                    <input
+                      type="number"
+                      value={bulkEditTimeLimit}
+                      onChange={(e) => setBulkEditTimeLimit(e.target.value)}
+                      placeholder="unchanged"
+                    />
+                  </div>
+                </div>
+
+                <div className="row">
+                  <div className="field" style={{ flex: 1 }}>
+                    <label>Puzzle type</label>
+                    <select value={bulkEditType} onChange={(e) => setBulkEditType(e.target.value as RebusPuzzleType | "")}>
+                      <option value="">Leave as-is</option>
+                      {TYPE_OPTIONS.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field" style={{ flex: 1 }}>
+                    <label>Move to a different difficulty</label>
+                    <select value={bulkEditMoveTo} onChange={(e) => setBulkEditMoveTo(e.target.value as RebusRound | "")}>
+                      <option value="">Leave as-is</option>
+                      {REBUS_DIFFICULTY_ORDER.filter((r) => r !== activeDifficulty).map((r) => (
+                        <option key={r} value={r}>
+                          {REBUS_DIFFICULTY_LABELS[r]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="row">
+                  <button
+                    className="btn btn-primary"
+                    disabled={bulkEditing}
+                    onClick={() => handleBulkEdit(activeDifficulty, activeGroup.items.length)}
+                  >
+                    {bulkEditing ? <span className="spinner" /> : `Apply to ${activeGroup.items.length} puzzle${activeGroup.items.length === 1 ? "" : "s"}`}
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => {
+                      setShowBulkEdit(false);
+                      resetBulkEditForm();
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {showManualForm && (
               <div className="card" style={{ marginBottom: "20px" }}>
