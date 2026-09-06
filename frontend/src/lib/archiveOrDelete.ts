@@ -20,6 +20,7 @@
 // Requires migration 0010_archive_question_sets_and_questions.sql.
 
 import { supabase } from "./supabaseClient";
+import { fetchAllRows } from "./fetchAllRows";
 import type { Question, RebusRound } from "../types";
 
 const FOREIGN_KEY_VIOLATION = "23503";
@@ -284,8 +285,16 @@ async function wasRebusPuzzleUsed(puzzleId: string): Promise<boolean> {
 }
 
 async function wasRebusSetUsed(rebusSetId: string): Promise<boolean> {
-  const { data: setPuzzles } = await supabase.from("rebus_puzzles").select("id").eq("rebus_set_id", rebusSetId);
-  const puzzleIds = (setPuzzles ?? []).map((p) => p.id);
+  // A set that's grown past 1000 puzzles (Visual Arrangement has, as of
+  // 2026-09-06) would silently lose its tail end to Supabase's per-request
+  // row cap with a bare `.select()` — see fetchAllRows.ts. Paginating here
+  // matters more than most call sites: missing a used puzzle's id would
+  // make this wrongly report "never used" and hard-delete a puzzle that
+  // should have been archived.
+  const { data: setPuzzles } = await fetchAllRows<{ id: string }>((from, to) =>
+    supabase.from("rebus_puzzles").select("id").eq("rebus_set_id", rebusSetId).range(from, to)
+  );
+  const puzzleIds = setPuzzles.map((p) => p.id);
   if (puzzleIds.length === 0) return false;
 
   const { data } = await supabase.from("rebus_session_puzzles").select("id").in("source_puzzle_id", puzzleIds).limit(1);
@@ -293,20 +302,26 @@ async function wasRebusSetUsed(rebusSetId: string): Promise<boolean> {
 }
 
 async function renumberActiveRebusPuzzles(rebusSetId: string): Promise<string | null> {
-  const { data: remaining, error } = await supabase
-    .from("rebus_puzzles")
-    .select("id, order_index")
-    .eq("rebus_set_id", rebusSetId)
-    .is("archived_at", null)
-    .order("order_index", { ascending: true });
+  // Same row-cap concern as wasRebusSetUsed above: a bare `.select()` past
+  // 1000 active puzzles in one set would only renumber the first 1000,
+  // leaving the rest with stale/possibly-colliding order_index values.
+  const { data: remaining, error } = await fetchAllRows<{ id: string; order_index: number }>((from, to) =>
+    supabase
+      .from("rebus_puzzles")
+      .select("id, order_index")
+      .eq("rebus_set_id", rebusSetId)
+      .is("archived_at", null)
+      .order("order_index", { ascending: true })
+      .range(from, to)
+  );
 
   if (error) {
     console.error("rebus renumber fetch failed", error);
     return "Removed, but couldn't renumber the remaining puzzles — reload to check the order.";
   }
 
-  for (let i = 0; i < (remaining ?? []).length; i++) {
-    const p = remaining![i];
+  for (let i = 0; i < remaining.length; i++) {
+    const p = remaining[i];
     if (p.order_index !== i) {
       const { error: updateError } = await supabase.from("rebus_puzzles").update({ order_index: i }).eq("id", p.id);
       if (updateError) {
@@ -361,25 +376,30 @@ export type BulkDeleteResult =
 // round-scoped — order_index has always been contiguous across the whole
 // set, not per difficulty, same as the single-delete path relies on).
 export async function deleteRebusPuzzlesByRound(rebusSetId: string, round: RebusRound): Promise<BulkDeleteResult> {
-  const { data: activePuzzles, error: fetchError } = await supabase
-    .from("rebus_puzzles")
-    .select("id")
-    .eq("rebus_set_id", rebusSetId)
-    .eq("round", round)
-    .is("archived_at", null);
+  // A single difficulty's active count is under 1000 for every set today,
+  // but paginating here too means a round that grows past that later
+  // doesn't quietly start "bulk deleting" only its first 1000 puzzles.
+  const { data: activePuzzles, error: fetchError } = await fetchAllRows<{ id: string }>((from, to) =>
+    supabase
+      .from("rebus_puzzles")
+      .select("id")
+      .eq("rebus_set_id", rebusSetId)
+      .eq("round", round)
+      .is("archived_at", null)
+      .range(from, to)
+  );
 
   if (fetchError) {
     console.error("rebus bulk delete fetch failed", fetchError);
     return { outcome: "error", message: "Couldn't load those puzzles. Please try again." };
   }
 
-  const ids = (activePuzzles ?? []).map((p) => p.id);
+  const ids = activePuzzles.map((p) => p.id);
   if (ids.length === 0) return { outcome: "success", deletedCount: 0, archivedCount: 0 };
 
-  const { data: usedRows, error: usedError } = await supabase
-    .from("rebus_session_puzzles")
-    .select("source_puzzle_id")
-    .in("source_puzzle_id", ids);
+  const { data: usedRows, error: usedError } = await fetchAllRows<{ source_puzzle_id: string | null }>((from, to) =>
+    supabase.from("rebus_session_puzzles").select("source_puzzle_id").in("source_puzzle_id", ids).range(from, to)
+  );
 
   if (usedError) {
     console.error("rebus bulk delete usage check failed", usedError);

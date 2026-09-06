@@ -4,6 +4,7 @@ import AppHeader from "../../components/AppHeader";
 import RebusImportModal from "../../components/RebusImportModal";
 import { supabase } from "../../lib/supabaseClient";
 import { deleteRebusPuzzle, restoreRebusPuzzle, deleteRebusSprintPuzzle, deleteRebusPuzzlesByRound } from "../../lib/archiveOrDelete";
+import { fetchAllRows } from "../../lib/fetchAllRows";
 import {
   parseRebusSprintInput,
   REBUS_SPRINT_TEMPLATE_EXAMPLE,
@@ -77,15 +78,26 @@ export default function RebusSetEditorPage() {
 
   async function loadData() {
     setLoading(true);
+    // A bare `.select()` only ever returns Supabase's per-request row cap
+    // (1000 here) — fine for every other set so far, but the Visual
+    // Arrangement set alone now has 1000+ active puzzles, so a plain select
+    // was silently dropping the tail end (that's what made the last Hard
+    // import collide on order_index — this page thought the set was 18
+    // puzzles smaller than it really was). fetchAllRows pages through until
+    // it has everything.
     const [{ data: setData }, { data: puzzleData }, { data: sprintData }] = await Promise.all([
       supabase.from("rebus_sets").select("*").eq("id", setId).single(),
-      supabase.from("rebus_puzzles").select("*").eq("rebus_set_id", setId).order("order_index", { ascending: true }),
-      supabase.from("rebus_sprint_puzzles").select("*").eq("rebus_set_id", setId).order("order_index", { ascending: true }),
+      fetchAllRows<RebusPuzzle>((from, to) =>
+        supabase.from("rebus_puzzles").select("*").eq("rebus_set_id", setId).order("order_index", { ascending: true }).range(from, to)
+      ),
+      fetchAllRows<RebusSprintPuzzle>((from, to) =>
+        supabase.from("rebus_sprint_puzzles").select("*").eq("rebus_set_id", setId).order("order_index", { ascending: true }).range(from, to)
+      ),
     ]);
     setSet(setData);
-    setPuzzles((puzzleData ?? []).filter((p) => !p.archived_at));
-    setArchivedPuzzles((puzzleData ?? []).filter((p) => p.archived_at));
-    setSprintPuzzles(sprintData ?? []);
+    setPuzzles(puzzleData.filter((p) => !p.archived_at));
+    setArchivedPuzzles(puzzleData.filter((p) => p.archived_at));
+    setSprintPuzzles(sprintData);
     setLoading(false);
   }
 
@@ -155,7 +167,15 @@ export default function RebusSetEditorPage() {
     const { error } = await supabase.from("rebus_puzzles").insert(rows);
     if (error) {
       console.error(error);
-      return;
+      // Throw instead of just logging — the modal shows this to the mod
+      // instead of the import silently looking like it did nothing (which
+      // is exactly what happened here: an order_index collision failed the
+      // whole insert and there was no way to see why from the UI).
+      throw new Error(
+        error.message.includes("duplicate key")
+          ? "Import failed: some of these puzzles collided with existing ones. Reload the page and try importing again."
+          : `Import failed: ${error.message}`
+      );
     }
     setShowImport(false);
     loadData();

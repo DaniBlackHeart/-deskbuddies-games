@@ -41,19 +41,28 @@ export default function RebusImportModal({ onCancel, onConfirm, initialRound }: 
   const [parsed, setParsed] = useState<ParsedRebusPuzzle[] | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
+  // Surfaces a failed insert (e.g. an order_index collision) instead of
+  // the modal just sitting there looking like the button did nothing —
+  // that silence was the whole reason a real import failure was hard to
+  // tell apart from a UI bug (2026-09-06).
+  const [importError, setImportError] = useState<string | null>(null);
   const [showExample, setShowExample] = useState(false);
 
   function handlePreview() {
     const result = parseRebusPuzzleInput(raw, round, batchType === "auto" ? undefined : batchType);
     setParsed(result.puzzles);
     setErrors(result.errors);
+    setImportError(null);
   }
 
   async function handleConfirm() {
     if (!parsed || parsed.length === 0) return;
     setImporting(true);
+    setImportError(null);
     try {
       await onConfirm(parsed);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Something went wrong importing those puzzles. Please try again.");
     } finally {
       setImporting(false);
     }
@@ -212,6 +221,12 @@ export default function RebusImportModal({ onCancel, onConfirm, initialRound }: 
               ))}
             </div>
           </div>
+        )}
+
+        {importError && (
+          <p className="error-text" style={{ marginTop: "16px" }}>
+            {importError}
+          </p>
         )}
 
         <div className="row" style={{ marginTop: "20px", justifyContent: "flex-end" }}>

@@ -23,6 +23,35 @@ export function handleOptions(req: Request): Response | null {
   return null;
 }
 
+// Supabase/PostgREST caps every response at a fixed row count (1000 on
+// this project) no matter how many rows actually match — a bare
+// `.select()` past that point doesn't error, it just silently hands back
+// the first page. Found 2026-09-06: rebus_puzzles has 4,645 active rows
+// system-wide, so pickRebusSessionPuzzles' unpaginated select had been
+// quietly sampling every session's warmup/round2/round3/final pool from
+// only ~1000 of them (whichever page order happened to return) — most
+// authored puzzles were never actually eligible to appear in a session.
+// Use this for any select whose result isn't already bounded by a small
+// `.limit()` or a known-small table.
+async function fetchAllRows<T>(
+  buildQuery: (from: number, to: number) => Promise<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const PAGE_SIZE = 1000;
+  const rows: T[] = [];
+  let from = 0;
+
+  for (;;) {
+    const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return rows;
+}
+
 /** Admin client using the service role key — bypasses RLS. Server-side only. */
 export function getAdminClient() {
   return createClient(
@@ -714,7 +743,16 @@ const REBUS_MAIN_ROUNDS = ["warmup", "round2", "round3"] as const;
  * just gives more variety in which one shows up.
  */
 export async function pickRebusSessionPuzzles(admin: ReturnType<typeof getAdminClient>) {
-  const { data: allPuzzles } = await admin.from("rebus_puzzles").select("*").is("archived_at", null);
+  const allPuzzles = await fetchAllRows<{
+    id: string;
+    round: string;
+    puzzle_type: string;
+    display_text: string;
+    answer_text: string;
+    accepted_answers: unknown;
+    points: number;
+    time_limit_seconds: number;
+  }>((from, to) => admin.from("rebus_puzzles").select("*").is("archived_at", null).range(from, to));
 
   type Row = {
     round: string;
@@ -778,8 +816,13 @@ export async function pickRebusSessionPuzzles(admin: ReturnType<typeof getAdminC
  * rebus_session_sprint_puzzles (session_id not yet attached).
  */
 export async function pickRebusSessionSprintPuzzles(admin: ReturnType<typeof getAdminClient>) {
-  const { data: allSprint } = await admin.from("rebus_sprint_puzzles").select("*");
-  return shuffle(allSprint ?? [])
+  const allSprint = await fetchAllRows<{
+    id: string;
+    display_text: string;
+    answer_text: string;
+    accepted_answers: unknown;
+  }>((from, to) => admin.from("rebus_sprint_puzzles").select("*").range(from, to));
+  return shuffle(allSprint)
     .slice(0, REBUS_SPRINT_PUZZLES_PER_SESSION)
     .map((p, i) => ({
       order_index: i,
