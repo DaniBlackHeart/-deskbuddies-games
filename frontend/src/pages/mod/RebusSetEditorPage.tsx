@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import RebusImportModal from "../../components/RebusImportModal";
 import { supabase } from "../../lib/supabaseClient";
-import { deleteRebusPuzzle, restoreRebusPuzzle, deleteRebusSprintPuzzle } from "../../lib/archiveOrDelete";
+import { deleteRebusPuzzle, restoreRebusPuzzle, deleteRebusSprintPuzzle, deleteRebusPuzzlesByRound } from "../../lib/archiveOrDelete";
 import {
   parseRebusSprintInput,
   REBUS_SPRINT_TEMPLATE_EXAMPLE,
@@ -56,6 +56,7 @@ export default function RebusSetEditorPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const [sprintDisplay, setSprintDisplay] = useState("");
   const [sprintAnswer, setSprintAnswer] = useState("");
@@ -175,6 +176,33 @@ export default function RebusSetEditorPage() {
     loadData();
   }
 
+  async function handleBulkDelete(round: RebusRound, count: number) {
+    if (!setId || count === 0) return;
+    const label = REBUS_DIFFICULTY_LABELS[round];
+    if (
+      !confirm(
+        `Delete all ${count} ${label} puzzle${count === 1 ? "" : "s"} in this set? Any that have already been played in a session will be archived instead of deleted.`
+      )
+    ) {
+      return;
+    }
+
+    setBulkDeleting(true);
+    const result = await deleteRebusPuzzlesByRound(setId, round);
+    setBulkDeleting(false);
+
+    if (result.outcome === "error") {
+      setDeleteMessage(result.message);
+    } else if (result.archivedCount > 0) {
+      setDeleteMessage(
+        `Deleted ${result.deletedCount} ${label} puzzle${result.deletedCount === 1 ? "" : "s"}. ${result.archivedCount} had already been played in a session, so ${result.archivedCount === 1 ? "it was" : "they were"} archived instead — you can restore ${result.archivedCount === 1 ? "it" : "them"} from "Show archived" below.`
+      );
+    } else {
+      setDeleteMessage(`Deleted ${result.deletedCount} ${label} puzzle${result.deletedCount === 1 ? "" : "s"}.`);
+    }
+    loadData();
+  }
+
   async function handleAddSprintManual() {
     setSprintError(null);
     if (!sprintDisplay.trim() || !sprintAnswer.trim()) {
@@ -254,6 +282,7 @@ export default function RebusSetEditorPage() {
     items: puzzles.filter((p) => p.round === round),
     archived: archivedPuzzles.filter((p) => p.round === round),
   }));
+  const activeGroup = puzzlesByDifficulty.find((g) => g.round === activeDifficulty)!;
   const summary = puzzlesByDifficulty.map((g) => `${g.items.length} ${g.label}`).join(" · ");
 
   return (
@@ -302,12 +331,21 @@ export default function RebusSetEditorPage() {
 
         {activeTab !== "sprint" ? (
           <>
-            <div className="row" style={{ margin: "16px 0" }}>
-              <button className="btn btn-secondary" onClick={() => setShowManualForm((s) => !s)}>
-                + Add puzzle manually
-              </button>
-              <button className="btn btn-secondary" onClick={() => setShowImport(true)}>
-                📋 Import / paste puzzles
+            <div className="row-between" style={{ margin: "16px 0", flexWrap: "wrap", gap: "8px" }}>
+              <div className="row" style={{ margin: 0 }}>
+                <button className="btn btn-secondary" onClick={() => setShowManualForm((s) => !s)}>
+                  + Add puzzle manually
+                </button>
+                <button className="btn btn-secondary" onClick={() => setShowImport(true)}>
+                  📋 Import / paste puzzles
+                </button>
+              </div>
+              <button
+                className="btn btn-ghost"
+                disabled={bulkDeleting || activeGroup.items.length === 0}
+                onClick={() => handleBulkDelete(activeDifficulty, activeGroup.items.length)}
+              >
+                {bulkDeleting ? <span className="spinner" /> : `🗑 Delete all ${activeGroup.label} (${activeGroup.items.length})`}
               </button>
             </div>
 
@@ -406,67 +444,60 @@ export default function RebusSetEditorPage() {
               </div>
             )}
 
-            {(() => {
-              const activeGroup = puzzlesByDifficulty.find((g) => g.round === activeDifficulty)!;
-              return (
-                <>
-                  <div style={{ marginTop: "8px" }}>
-                    <div className="stack">
-                      {activeGroup.items.map((p, i) => (
-                        <div key={p.id} className="card card--tight">
-                          <div className="row-between">
-                            <strong>
-                              {i + 1}. {p.display_text}
-                            </strong>
-                            <div className="row">
-                              <span className="badge badge-neutral">{REBUS_PUZZLE_TYPE_LABELS[p.puzzle_type]}</span>
-                              <button className="btn btn-ghost btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleDelete(p)}>
-                                {deleteBusyId === p.id ? <span className="spinner" /> : "Delete"}
-                              </button>
-                            </div>
-                          </div>
-                          <p className="hint" style={{ marginTop: "6px" }}>
-                            {p.points} pts (+300 speed bonus) · {p.time_limit_seconds}s · answer: {p.answer_text}
-                            {p.accepted_answers.length > 1 && ` (also: ${p.accepted_answers.filter((a) => a !== p.answer_text).join(", ")})`}
-                          </p>
-                        </div>
-                      ))}
-                      {activeGroup.items.length === 0 && (
-                        <div className="card text-center">
-                          <p className="text-muted">No {activeGroup.label} puzzles yet — add one manually or import a list.</p>
-                        </div>
-                      )}
+            <div style={{ marginTop: "8px" }}>
+              <div className="stack">
+                {activeGroup.items.map((p, i) => (
+                  <div key={p.id} className="card card--tight">
+                    <div className="row-between">
+                      <strong>
+                        {i + 1}. {p.display_text}
+                      </strong>
+                      <div className="row">
+                        <span className="badge badge-neutral">{REBUS_PUZZLE_TYPE_LABELS[p.puzzle_type]}</span>
+                        <button className="btn btn-ghost btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleDelete(p)}>
+                          {deleteBusyId === p.id ? <span className="spinner" /> : "Delete"}
+                        </button>
+                      </div>
                     </div>
+                    <p className="hint" style={{ marginTop: "6px" }}>
+                      {p.points} pts (+300 speed bonus) · {p.time_limit_seconds}s · answer: {p.answer_text}
+                      {p.accepted_answers.length > 1 && ` (also: ${p.accepted_answers.filter((a) => a !== p.answer_text).join(", ")})`}
+                    </p>
                   </div>
+                ))}
+                {activeGroup.items.length === 0 && (
+                  <div className="card text-center">
+                    <p className="text-muted">No {activeGroup.label} puzzles yet — add one manually or import a list.</p>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                  {activeGroup.archived.length > 0 && (
-                    <div style={{ marginTop: "24px" }}>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setShowArchived((s) => !s)}>
-                        {showArchived ? "Hide" : "Show"} archived {activeGroup.label} ({activeGroup.archived.length})
-                      </button>
+            {activeGroup.archived.length > 0 && (
+              <div style={{ marginTop: "24px" }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => setShowArchived((s) => !s)}>
+                  {showArchived ? "Hide" : "Show"} archived {activeGroup.label} ({activeGroup.archived.length})
+                </button>
 
-                      {showArchived && (
-                        <div className="stack" style={{ marginTop: "12px" }}>
-                          {activeGroup.archived.map((p) => (
-                            <div key={p.id} className="card card--tight" style={{ opacity: 0.7 }}>
-                              <div className="row-between">
-                                <strong>{p.display_text}</strong>
-                                <div className="row">
-                                  <span className="badge badge-neutral">Archived</span>
-                                  <button className="btn btn-secondary btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleRestore(p)}>
-                                    {deleteBusyId === p.id ? <span className="spinner" /> : "Restore"}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                {showArchived && (
+                  <div className="stack" style={{ marginTop: "12px" }}>
+                    {activeGroup.archived.map((p) => (
+                      <div key={p.id} className="card card--tight" style={{ opacity: 0.7 }}>
+                        <div className="row-between">
+                          <strong>{p.display_text}</strong>
+                          <div className="row">
+                            <span className="badge badge-neutral">Archived</span>
+                            <button className="btn btn-secondary btn-sm" disabled={deleteBusyId === p.id} onClick={() => handleRestore(p)}>
+                              {deleteBusyId === p.id ? <span className="spinner" /> : "Restore"}
+                            </button>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </>
-              );
-            })()}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </>
         ) : (
           <>

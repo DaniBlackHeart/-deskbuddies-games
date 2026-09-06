@@ -20,7 +20,7 @@
 // Requires migration 0010_archive_question_sets_and_questions.sql.
 
 import { supabase } from "./supabaseClient";
-import type { Question } from "../types";
+import type { Question, RebusRound } from "../types";
 
 const FOREIGN_KEY_VIOLATION = "23503";
 
@@ -343,6 +343,76 @@ export async function deleteRebusPuzzle(puzzle: { id: string; rebus_set_id: stri
 
   const renumberError = await renumberActiveRebusPuzzles(puzzle.rebus_set_id);
   return renumberError ? { outcome: "error", message: renumberError } : { outcome: "deleted" };
+}
+
+export type BulkDeleteResult =
+  | { outcome: "success"; deletedCount: number; archivedCount: number }
+  | { outcome: "error"; message: string };
+
+// Deletes every active (non-archived) puzzle in one difficulty at once —
+// the bulk counterpart to deleteRebusPuzzle, for clearing out a whole
+// Easy/Medium/Hard/Final Round tab instead of one at a time. Same
+// archive-vs-delete rule per puzzle (played puzzles are archived, not
+// lost), just batched: one query to list the round's active puzzles, one
+// to check which of them were ever used (instead of one round-trip per
+// puzzle — this can be hundreds), then one bulk archive and one bulk
+// delete instead of N individual writes. Renumbering still runs once at
+// the end over the whole set (renumberActiveRebusPuzzles isn't
+// round-scoped — order_index has always been contiguous across the whole
+// set, not per difficulty, same as the single-delete path relies on).
+export async function deleteRebusPuzzlesByRound(rebusSetId: string, round: RebusRound): Promise<BulkDeleteResult> {
+  const { data: activePuzzles, error: fetchError } = await supabase
+    .from("rebus_puzzles")
+    .select("id")
+    .eq("rebus_set_id", rebusSetId)
+    .eq("round", round)
+    .is("archived_at", null);
+
+  if (fetchError) {
+    console.error("rebus bulk delete fetch failed", fetchError);
+    return { outcome: "error", message: "Couldn't load those puzzles. Please try again." };
+  }
+
+  const ids = (activePuzzles ?? []).map((p) => p.id);
+  if (ids.length === 0) return { outcome: "success", deletedCount: 0, archivedCount: 0 };
+
+  const { data: usedRows, error: usedError } = await supabase
+    .from("rebus_session_puzzles")
+    .select("source_puzzle_id")
+    .in("source_puzzle_id", ids);
+
+  if (usedError) {
+    console.error("rebus bulk delete usage check failed", usedError);
+    return { outcome: "error", message: "Couldn't check which of those puzzles have been played. Please try again." };
+  }
+
+  const usedIds = new Set((usedRows ?? []).map((r) => r.source_puzzle_id).filter((id): id is string => !!id));
+  const toArchive = ids.filter((id) => usedIds.has(id));
+  const toDelete = ids.filter((id) => !usedIds.has(id));
+
+  if (toArchive.length > 0) {
+    const { error: archiveError } = await supabase
+      .from("rebus_puzzles")
+      .update({ archived_at: new Date().toISOString() })
+      .in("id", toArchive);
+    if (archiveError) {
+      console.error("rebus bulk archive failed", archiveError);
+      return { outcome: "error", message: "Couldn't archive the puzzles that have been played. Please try again." };
+    }
+  }
+
+  if (toDelete.length > 0) {
+    const { error: deleteError } = await supabase.from("rebus_puzzles").delete().in("id", toDelete);
+    if (deleteError) {
+      console.error("rebus bulk delete failed", deleteError);
+      return { outcome: "error", message: "Couldn't delete those puzzles. Please try again." };
+    }
+  }
+
+  const renumberError = await renumberActiveRebusPuzzles(rebusSetId);
+  if (renumberError) return { outcome: "error", message: renumberError };
+
+  return { outcome: "success", deletedCount: toDelete.length, archivedCount: toArchive.length };
 }
 
 export async function restoreRebusPuzzle(puzzle: { id: string; rebus_set_id: string }): Promise<ArchiveOrDeleteResult> {
