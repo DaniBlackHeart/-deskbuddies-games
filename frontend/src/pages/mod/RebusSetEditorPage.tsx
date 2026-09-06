@@ -2,18 +2,18 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import RebusImportModal from "../../components/RebusImportModal";
+import RebusSprintImportModal from "../../components/RebusSprintImportModal";
 import { supabase } from "../../lib/supabaseClient";
 import { deleteRebusPuzzle, restoreRebusPuzzle, deleteRebusSprintPuzzle, deleteRebusPuzzlesByRound } from "../../lib/archiveOrDelete";
 import { fetchAllRows } from "../../lib/fetchAllRows";
 import {
-  parseRebusSprintInput,
-  REBUS_SPRINT_TEMPLATE_EXAMPLE,
   REBUS_PUZZLE_TYPE_LABELS,
   REBUS_TYPE_EXAMPLES,
   REBUS_DIFFICULTY_LABELS,
   REBUS_DIFFICULTY_ORDER,
   REBUS_ROUND_DEFAULTS,
   type ParsedRebusPuzzle,
+  type ParsedRebusSprintPuzzle,
 } from "../../utils/rebusPuzzleParser";
 import type { RebusPuzzle, RebusPuzzleType, RebusRound, RebusSet, RebusSprintPuzzle } from "../../types";
 
@@ -72,8 +72,7 @@ export default function RebusSetEditorPage() {
   const [sprintDisplay, setSprintDisplay] = useState("");
   const [sprintAnswer, setSprintAnswer] = useState("");
   const [sprintAccepted, setSprintAccepted] = useState("");
-  const [sprintBulk, setSprintBulk] = useState("");
-  const [showSprintExample, setShowSprintExample] = useState(false);
+  const [showSprintImport, setShowSprintImport] = useState(false);
   const [sprintError, setSprintError] = useState<string | null>(null);
 
   async function loadData() {
@@ -326,28 +325,28 @@ export default function RebusSetEditorPage() {
     loadData();
   }
 
-  async function handleSprintBulkImport() {
-    setSprintError(null);
-    const { puzzles: parsed, errors } = parseRebusSprintInput(sprintBulk);
-    if (errors.length > 0) {
-      setSprintError(errors.join(" · "));
-      return;
-    }
-    if (parsed.length === 0) return;
+  async function handleSprintImportConfirm(parsedPuzzles: ParsedRebusSprintPuzzle[]) {
     const startIndex = nextSprintOrderIndex();
-    const rows = parsed.map((p, i) => ({
+    const rows = parsedPuzzles.map((p, i) => ({
       rebus_set_id: setId,
       order_index: startIndex + i,
       display_text: p.display_text,
       answer_text: p.answer_text,
       accepted_answers: p.accepted_answers,
     }));
+
     const { error } = await supabase.from("rebus_sprint_puzzles").insert(rows);
     if (error) {
-      setSprintError("Could not import those puzzles. Try again.");
-      return;
+      console.error(error);
+      // Same reasoning as the main puzzle import: throw so the modal shows
+      // the mod what actually went wrong instead of just closing.
+      throw new Error(
+        error.message.includes("duplicate key")
+          ? "Import failed: some of these puzzles collided with existing ones. Reload the page and try importing again."
+          : `Import failed: ${error.message}`
+      );
     }
-    setSprintBulk("");
+    setShowSprintImport(false);
     loadData();
   }
 
@@ -694,7 +693,13 @@ export default function RebusSetEditorPage() {
               points flat.
             </p>
 
-            <div className="card" style={{ marginTop: "12px" }}>
+            <div className="row" style={{ marginTop: "12px", flexWrap: "wrap", gap: "8px" }}>
+              <button className="btn btn-secondary" onClick={() => setShowSprintImport(true)}>
+                📋 Import / paste puzzles
+              </button>
+            </div>
+
+            <div className="card" style={{ marginTop: "16px" }}>
               <h3>Add one</h3>
               <div className="row">
                 <div className="field" style={{ flex: 1 }}>
@@ -713,30 +718,6 @@ export default function RebusSetEditorPage() {
               {sprintError && <p className="error-text">{sprintError}</p>}
               <button className="btn btn-primary" onClick={handleAddSprintManual}>
                 Add puzzle
-              </button>
-            </div>
-
-            <div className="card" style={{ marginTop: "16px" }}>
-              <h3>Bulk paste</h3>
-              <p className="text-muted">
-                One puzzle per line: <code>DISPLAY :: ANSWER</code> or <code>DISPLAY :: ANSWER :: alt1, alt2</code>.{" "}
-                <button className="btn btn-ghost btn-sm" onClick={() => setShowSprintExample((s) => !s)} style={{ padding: 0 }}>
-                  {showSprintExample ? "Hide example" : "Show example"}
-                </button>
-              </p>
-              {showSprintExample && (
-                <pre style={{ background: "var(--color-bg-alt)", padding: "12px", borderRadius: "var(--radius-sm)", fontSize: "0.8rem", whiteSpace: "pre-wrap" }}>
-                  {REBUS_SPRINT_TEMPLATE_EXAMPLE}
-                </pre>
-              )}
-              <textarea
-                value={sprintBulk}
-                onChange={(e) => setSprintBulk(e.target.value)}
-                placeholder={"GR8 :: Great\n2 + NIGHT :: Tonight"}
-                style={{ minHeight: "120px", fontFamily: "monospace", fontSize: "0.85rem" }}
-              />
-              <button className="btn btn-secondary" onClick={handleSprintBulkImport} disabled={!sprintBulk.trim()} style={{ marginTop: "8px" }}>
-                Import
               </button>
             </div>
 
@@ -769,6 +750,10 @@ export default function RebusSetEditorPage() {
 
       {showImport && activeTab === "puzzles" && (
         <RebusImportModal initialRound={activeDifficulty} onCancel={() => setShowImport(false)} onConfirm={handleImportConfirm} />
+      )}
+
+      {showSprintImport && activeTab === "sprint" && (
+        <RebusSprintImportModal onCancel={() => setShowSprintImport(false)} onConfirm={handleSprintImportConfirm} />
       )}
     </div>
   );

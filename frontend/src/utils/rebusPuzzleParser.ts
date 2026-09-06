@@ -393,7 +393,14 @@ export const REBUS_JSON_MULTILINE_EXAMPLE = `[
     "puzzle_type": "split" }
 ]`;
 
-// --- Sprint pool (Round 4) — simpler content, no round/type/points/time ---
+// --- Sprint pool (Round 4) ---
+// Same import mechanics as the main puzzle list above (JSON array, or a
+// "Display:"-delimited plain-text template with blank lines optional and
+// multi-line Display support) — just without round/type/points/time,
+// since the Sprint pool has none of those fields. Replaced the old
+// one-line "DISPLAY :: ANSWER" format with this on 2026-09-06, at Dani's
+// request, to match the main import's settings before any real Sprint
+// content existed to migrate off the old format.
 
 export type ParsedRebusSprintPuzzle = {
   display_text: string;
@@ -401,31 +408,132 @@ export type ParsedRebusSprintPuzzle = {
   accepted_answers: string[];
 };
 
-/**
- * One sprint puzzle per non-empty line: "DISPLAY :: ANSWER" or
- * "DISPLAY :: ANSWER :: alt1, alt2". Deliberately simpler than the main
- * puzzle template — the Sprint pool has no round/type/points/time to set.
- */
-export function parseRebusSprintInput(raw: string): { puzzles: ParsedRebusSprintPuzzle[]; errors: string[] } {
-  const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
-  if (lines.length === 0) return { puzzles: [], errors: ["Nothing to import — paste some puzzles first."] };
+export type SprintParseResult = {
+  puzzles: ParsedRebusSprintPuzzle[];
+  errors: string[];
+};
 
+export function parseRebusSprintInput(raw: string): SprintParseResult {
+  const trimmed = raw.trim();
+  if (!trimmed) return { puzzles: [], errors: ["Nothing to import — paste some puzzles first."] };
+
+  if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+    return parseSprintJson(trimmed);
+  }
+  return parseSprintTemplate(trimmed);
+}
+
+function parseSprintJson(trimmed: string): SprintParseResult {
+  let data: unknown;
+  try {
+    data = JSON.parse(trimmed);
+  } catch (e) {
+    return { puzzles: [], errors: [`Invalid JSON: ${(e as Error).message}`] };
+  }
+
+  const items = Array.isArray(data) ? data : [data];
   const puzzles: ParsedRebusSprintPuzzle[] = [];
   const errors: string[] = [];
 
-  lines.forEach((line, i) => {
-    const parts = line.split("::").map((p) => p.trim());
-    if (parts.length < 2 || !parts[0] || !parts[1]) {
-      errors.push(`Line ${i + 1}: expected "DISPLAY :: ANSWER" — got "${line}"`);
+  items.forEach((item: any, i) => {
+    const label = `Item ${i + 1}`;
+    if (!item?.display_text || typeof item.display_text !== "string") {
+      errors.push(`${label}: missing "display_text"`);
       return;
     }
-    const accepted = parts[2] ? parts[2].split(",").map((a) => a.trim()).filter(Boolean) : [parts[1]];
-    puzzles.push({ display_text: parts[0], answer_text: parts[1], accepted_answers: accepted });
+    if (!item?.answer_text || typeof item.answer_text !== "string") {
+      errors.push(`${label}: missing "answer_text"`);
+      return;
+    }
+    puzzles.push({
+      display_text: item.display_text,
+      answer_text: item.answer_text,
+      accepted_answers:
+        Array.isArray(item.accepted_answers) && item.accepted_answers.length > 0
+          ? item.accepted_answers
+          : [item.answer_text],
+    });
   });
 
   return { puzzles, errors };
 }
 
-export const REBUS_SPRINT_TEMPLATE_EXAMPLE = `GR8 :: Great
-2 + NIGHT :: Tonight :: Tonight
-L + 8 + R :: Later`;
+// Same "Display:" line-based state machine as parseTemplate above, minus
+// the fields Sprint puzzles don't have — a new "Display:" line is still
+// the only thing that starts a new puzzle (not a blank line), and any
+// unlabeled line right after it is still a continuation of a multi-line
+// Display.
+type SprintDraft = { displayLines: string[]; answer: string | null; acceptedRaw: string | null };
+
+function parseSprintTemplate(trimmed: string): SprintParseResult {
+  const lines = trimmed.split("\n");
+  const puzzles: ParsedRebusSprintPuzzle[] = [];
+  const errors: string[] = [];
+
+  let draft: SprintDraft | null = null;
+  let count = 0;
+
+  function newDraft(firstLine: string): SprintDraft {
+    return { displayLines: [firstLine], answer: null, acceptedRaw: null };
+  }
+
+  function flush() {
+    if (!draft) return;
+    count += 1;
+    const label = `Puzzle ${count}`;
+    const current = draft;
+    draft = null;
+
+    const display = current.displayLines.join("\n").trim();
+    if (!display) {
+      errors.push(`${label}: missing "Display: <puzzle text>"`);
+      return;
+    }
+    if (!current.answer) {
+      errors.push(`${label}: missing "Answer: <the hidden word/phrase>"`);
+      return;
+    }
+
+    const accepted = current.acceptedRaw
+      ? current.acceptedRaw.split(",").map((a) => a.trim()).filter(Boolean)
+      : [current.answer];
+
+    puzzles.push({ display_text: display, answer_text: current.answer, accepted_answers: accepted });
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue; // blank lines are just visual spacing, never required
+
+    if (/^Display:/i.test(line)) {
+      flush();
+      draft = newDraft(line.replace(/^Display:/i, "").trim());
+      continue;
+    }
+    if (!draft) {
+      draft = newDraft(line);
+      continue;
+    }
+    if (/^Answer:/i.test(line)) draft.answer = line.replace(/^Answer:/i, "").trim();
+    else if (/^Accepted:/i.test(line)) draft.acceptedRaw = line.replace(/^Accepted:/i, "").trim();
+    else draft.displayLines.push(line); // continuation of a multi-line Display
+  }
+  flush();
+
+  return { puzzles, errors };
+}
+
+export const REBUS_SPRINT_TEMPLATE_EXAMPLE = `Display: GR8
+Answer: Great
+
+Display: 2 + NIGHT
+Answer: Tonight
+Accepted: Tonight
+
+Display: L + 8 + R
+Answer: Later`;
+
+export const REBUS_SPRINT_JSON_EXAMPLE = `[
+  { "display_text": "GR8", "answer_text": "Great" },
+  { "display_text": "2 + NIGHT", "answer_text": "Tonight", "accepted_answers": ["Tonight"] }
+]`;

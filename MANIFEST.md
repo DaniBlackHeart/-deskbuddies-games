@@ -1,106 +1,71 @@
-# Type What You See — fixed the Hard import that "did nothing"
+# Type What You See — Sprint Pool now imports the same way as the categories
 
-Frontend + one Edge Function. 5 files (1 new, 4 changed).
+Frontend-only, no migration, no edge function change. 3 files (1 new).
 
-## Root cause
+## What changed
 
-Confirmed against your project's live Postgres logs (`duplicate key value
-violates unique constraint "rebus_puzzles_active_order_idx"`, logged
-several times matching your retries): Supabase caps every `.select()` at
-1000 rows per request, silently — it doesn't error, it just hands back the
-first 1000 and nothing after. Your Visual Arrangement set has 1018 active
-puzzles (357 Easy + 661 Medium), so the set editor's `loadData()` was only
-ever seeing puzzles 0–999, not the real last 18. That made it think the
-set's next free order slot was 1000, when the true next slot was 1018 —
-so the moment you tried to import 343 Hard puzzles starting at "1000," 18
-of them collided with puzzles that already existed there. Postgres
-rejected the whole batch as one transaction, so 0 puzzles got saved, and
-the code only `console.error`'d it instead of showing you anything — which
-is exactly why it looked like the button just did nothing, on the first
-try and every retry after.
+The Sprint Pool tab's "Bulk paste" box is gone — it's now a
+"📋 Import / paste puzzles" button that opens a modal, same pattern as the
+Puzzles tab:
 
-Nothing was left half-imported — confirmed your Hard round is still at 0
-puzzles, so this is a clean retry once this ships, not a cleanup job.
+- Paste a JSON array, or the plain-text template (`Display:` / `Answer:` /
+  `Accepted:`).
+- A new "Display:" line is the only thing that starts a new puzzle — blank
+  lines between puzzles are optional, not required, same as categories.
+- A multi-line puzzle works directly in the template (extra line(s) right
+  under "Display:"), no JSON needed for that.
+- "Preview" shows exactly what will be imported and how many, before
+  anything is saved.
+- If the import fails for any reason, the modal shows the actual error
+  instead of silently doing nothing (same fix as the categories import got
+  last time).
 
-## The bigger thing this surfaced
+The old one-line `DISPLAY :: ANSWER :: alt1, alt2` format is gone — your
+Sprint pool is still at 0 puzzles, so there was nothing drafted in that
+format to lose. There's no round, puzzle type, points, or time limit in
+this modal, because the Sprint pool genuinely has none of those fields
+(unchanged) — that part of the mechanics isn't different, just the import
+box now matches.
 
-The same "bare `.select()` past 1000 rows" pattern existed in three other
-spots, and one of them affects actual live games, not just this screen:
+The "Add one" manual single-puzzle form is untouched.
 
-- **`pickRebusSessionPuzzles` (the Edge Function that builds every Rebus
-  session's puzzle pool)** was fetching *every* active puzzle
-  system-wide with no pagination — and you now have 4,645 active puzzles
-  across all your sets, over four and a half times the cap. That means
-  every warmup/round2/round3/final draw for every session has been
-  sampling from only ~1000 of those 4,645 puzzles (whichever page
-  Postgres happened to return), not the full pool. Most of your authored
-  puzzles have likely never had a chance to show up in an actual session.
-  This is fixed now and will take full effect once `rebus-host` is
-  redeployed (command below).
-- `wasRebusSetUsed` and `renumberActiveRebusPuzzles` (the internals behind
-  every single delete, restore, and the bulk delete from last time) had
-  the same gap — for a set over 1000 active puzzles specifically, a delete
-  today could renumber only the first 1000 and leave the rest with stale
-  order_index, or wrongly hard-delete a puzzle that had actually been
-  played. Visual Arrangement is the only set at risk of this right now,
-  but it's fixed for any set that grows past 1000 going forward.
+## Why this is safe at the scale you're planning
 
-All four are fixed with one small shared helper (`fetchAllRows.ts` on the
-frontend, an equivalent in the Edge Function's `_shared/utils.ts`) that
-pages through 1000 rows at a time until there's nothing left, instead of
-trusting a single `.select()` to return everything.
+You mentioned aiming for ~200 Sprint puzzles per category, which could put
+the Sprint pool itself in the thousands eventually. Two things from the
+last fix already cover that without any further changes needed here:
 
-## Also fixed: imports fail loudly now
+- `loadData()` on this page already fetches the full Sprint list in pages
+  of 1,000 instead of a single capped `.select()`, so `nextSprintOrderIndex()`
+  (which decides where a new import starts numbering) stays correct no
+  matter how large the pool gets.
+- `pickRebusSessionSprintPuzzles` (the Edge Function that draws the 3
+  puzzles for an actual Sprint round) got the same pagination fix, so it'll
+  keep drawing from your entire Sprint pool once it's real, not a
+  truncated slice of it.
 
-Separately from the root cause — if a puzzle import ever fails for any
-reason (this one included), the import modal now shows the actual error
-on screen instead of silently closing or sitting there. No more
-"nothing happens."
-
-## Validated against your real production data
-
-- Confirmed via your project's Postgres logs that the actual failure was
-  the duplicate-key error above, not a frontend crash or a parsing issue.
-- Confirmed Visual Arrangement currently has exactly 1018 active puzzles
-  (357 Easy, 661 Medium), contiguous order_index 0–1017, 0 archived — so
-  the fix will start your next Hard import cleanly at order_index 1018.
-- Confirmed 0 Hard puzzles exist on that set right now — none of your
-  failed attempts left partial data behind.
-- Confirmed system-wide active puzzle counts: 4,645 in `rebus_puzzles`,
-  1,130 in `impostor_words` (Impostor WHO? has crossed 1000 too — flagging
-  that one for a separate look since it's a different game's table, not
-  touched in this fix).
-
-`tsc -b`, `oxlint`, and `vite build` all ran clean on the frontend changes.
+`tsc -b`, `oxlint`, and `vite build` all ran clean.
 
 ## Files
 
-- `frontend/src/lib/fetchAllRows.ts` — new. Pages through a Supabase
-  select 1000 rows at a time until it has everything.
-- `frontend/src/lib/archiveOrDelete.ts` — `wasRebusSetUsed` and
-  `renumberActiveRebusPuzzles` now use it; so does `deleteRebusPuzzlesByRound`
-  for the same reason, even though no single difficulty has hit 1000 yet.
-- `frontend/src/pages/mod/RebusSetEditorPage.tsx` — `loadData()` now
-  fetches the full puzzle and sprint lists via the helper; `handleImportConfirm`
-  now throws a real error message instead of swallowing it.
-- `frontend/src/components/RebusImportModal.tsx` — shows that error on
-  screen if an import fails.
-- `supabase/functions/_shared/utils.ts` — `pickRebusSessionPuzzles` and
-  `pickRebusSessionSprintPuzzles` now page through the full active pool
-  instead of only the first 1000 rows.
+- `frontend/src/components/RebusSprintImportModal.tsx` — new. The Sprint
+  pool's import modal, mirroring `RebusImportModal.tsx` minus the fields
+  Sprint doesn't have.
+- `frontend/src/utils/rebusPuzzleParser.ts` — `parseRebusSprintInput`
+  rewritten to support JSON and the `Display:`/`Answer:`/`Accepted:`
+  template (was the old `DISPLAY :: ANSWER` one-liner parser); added
+  `REBUS_SPRINT_JSON_EXAMPLE` alongside the updated `REBUS_SPRINT_TEMPLATE_EXAMPLE`.
+- `frontend/src/pages/mod/RebusSetEditorPage.tsx` — swapped the inline
+  bulk-paste card for the "📋 Import / paste puzzles" button + modal, and
+  `handleSprintImportConfirm` now throws a real error message on failure
+  instead of just setting `sprintError` silently.
 
 ## Deploy
 
 ```bash
-git add frontend/src/lib/fetchAllRows.ts frontend/src/lib/archiveOrDelete.ts frontend/src/pages/mod/RebusSetEditorPage.tsx frontend/src/components/RebusImportModal.tsx supabase/functions/_shared/utils.ts
-git commit -m "Fix Rebus import failing silently past 1000 puzzles, and the same row-cap bug in session puzzle picking"
+git add frontend/src/components/RebusSprintImportModal.tsx frontend/src/utils/rebusPuzzleParser.ts frontend/src/pages/mod/RebusSetEditorPage.tsx
+git commit -m "Give the Sprint Pool the same import settings as the main puzzle categories"
 git push
-npx supabase functions deploy rebus-host
 ```
 
-Vercel redeploys the frontend automatically on push. The last command is
-the important one this time — the session-puzzle-picking fix lives in
-`_shared/utils.ts`, and Edge Functions only pick up a shared-file change
-when the function that uses it gets redeployed; `rebus-host` is the only
-function that calls `pickRebusSessionPuzzles`/`pickRebusSessionSprintPuzzles`,
-so that's the one to deploy. No migration needed — no schema changed.
+No migration or function deploy needed — Vercel picks it up on push.
