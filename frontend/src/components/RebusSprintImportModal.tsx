@@ -13,12 +13,24 @@ import {
 // (JSON or a "Display:" template, blank lines optional, multi-line
 // Display support, a Preview step before confirming) instead of the old
 // single-line "DISPLAY :: ANSWER" paste box.
+//
+// `mode: "replace"` (added the same day, alongside bulk delete) reuses
+// this exact Preview/parse flow for the Sprint pool's "bulk edit"
+// equivalent: since Sprint puzzles have no round/type/points/time to set
+// the same value across many rows the way the main Puzzles tab's bulk
+// edit does, "bulk edit" here means "delete everything currently in the
+// pool and paste in a fresh list" instead — same component, just
+// relabeled with a destructive-action warning so it's never mistaken for
+// a normal append.
 type RebusSprintImportModalProps = {
   onCancel: () => void;
   onConfirm: (puzzles: ParsedRebusSprintPuzzle[]) => Promise<void>;
+  mode?: "append" | "replace";
+  existingCount?: number;
 };
 
-export default function RebusSprintImportModal({ onCancel, onConfirm }: RebusSprintImportModalProps) {
+export default function RebusSprintImportModal({ onCancel, onConfirm, mode = "append", existingCount = 0 }: RebusSprintImportModalProps) {
+  const isReplace = mode === "replace";
   const [raw, setRaw] = useState("");
   const [parsed, setParsed] = useState<ParsedRebusSprintPuzzle[] | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -60,7 +72,15 @@ export default function RebusSprintImportModal({ onCancel, onConfirm }: RebusSpr
       }}
     >
       <div className="card" style={{ maxWidth: "620px", width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
-        <h2>Import Sprint puzzles</h2>
+        <h2>{isReplace ? "Replace all Sprint puzzles" : "Import Sprint puzzles"}</h2>
+
+        {isReplace && (
+          <p className="error-text" style={{ fontWeight: 700 }}>
+            This deletes all {existingCount} existing Sprint puzzle{existingCount === 1 ? "" : "s"} in this set and
+            replaces them with whatever you paste below. This can't be undone — make sure you have a copy of the
+            current list somewhere if you might want it back.
+          </p>
+        )}
 
         <p className="text-muted">
           Paste a JSON array, or use the simple text template — same format as the main puzzle import, just without
@@ -133,7 +153,9 @@ export default function RebusSprintImportModal({ onCancel, onConfirm }: RebusSpr
         {parsed && parsed.length > 0 && (
           <div style={{ marginTop: "16px" }}>
             <p style={{ fontWeight: 700 }}>
-              Ready to import {parsed.length} puzzle{parsed.length > 1 ? "s" : ""}:
+              {isReplace
+                ? `Ready to replace ${existingCount} existing puzzle${existingCount === 1 ? "" : "s"} with these ${parsed.length}:`
+                : `Ready to import ${parsed.length} puzzle${parsed.length > 1 ? "s" : ""}:`}
             </p>
             <div className="stack">
               {parsed.map((p, i) => (
@@ -160,11 +182,17 @@ export default function RebusSprintImportModal({ onCancel, onConfirm }: RebusSpr
             Cancel
           </button>
           <button
-            className="btn btn-primary"
+            className={isReplace ? "btn btn-danger" : "btn btn-primary"}
             disabled={!parsed || parsed.length === 0 || importing}
             onClick={handleConfirm}
           >
-            {importing ? <span className="spinner" /> : `Import ${parsed?.length ?? ""} puzzle(s)`}
+            {importing ? (
+              <span className="spinner" />
+            ) : isReplace ? (
+              `Delete ${existingCount} & replace with ${parsed?.length ?? ""}`
+            ) : (
+              `Import ${parsed?.length ?? ""} puzzle(s)`
+            )}
           </button>
         </div>
       </div>

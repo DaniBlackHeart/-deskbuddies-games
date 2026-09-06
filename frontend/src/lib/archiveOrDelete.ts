@@ -498,3 +498,29 @@ export async function deleteRebusSprintPuzzle(id: string): Promise<{ error: stri
   }
   return { error: null };
 }
+
+/**
+ * Deletes every Sprint puzzle in one set at once — the bulk counterpart to
+ * deleteRebusSprintPuzzle, added 2026-09-06 alongside the "replace all"
+ * bulk-paste flow. No archive dance and no renumbering needed afterward:
+ * same reasoning as the single-delete version above (nothing references a
+ * Sprint puzzle row by id, only a session's own independent snapshot by
+ * pool position), and a full-set delete leaves nothing behind to renumber.
+ */
+export async function deleteAllRebusSprintPuzzles(rebusSetId: string): Promise<{ error: string | null; deletedCount: number }> {
+  const { data: existing, error: fetchError } = await fetchAllRows<{ id: string }>((from, to) =>
+    supabase.from("rebus_sprint_puzzles").select("id").eq("rebus_set_id", rebusSetId).range(from, to)
+  );
+  if (fetchError) {
+    console.error("rebus_sprint_puzzle bulk delete fetch failed", fetchError);
+    return { error: "Couldn't load those puzzles. Please try again.", deletedCount: 0 };
+  }
+  if (existing.length === 0) return { error: null, deletedCount: 0 };
+
+  const { error: deleteError } = await supabase.from("rebus_sprint_puzzles").delete().eq("rebus_set_id", rebusSetId);
+  if (deleteError) {
+    console.error("rebus_sprint_puzzle bulk delete failed", deleteError);
+    return { error: "Something went wrong deleting those puzzles. Please try again.", deletedCount: 0 };
+  }
+  return { error: null, deletedCount: existing.length };
+}

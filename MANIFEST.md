@@ -1,71 +1,70 @@
-# Type What You See — Sprint Pool now imports the same way as the categories
+# Sprint Pool bulk delete + bulk edit (replace-all) — 2026-09-06
 
-Frontend-only, no migration, no edge function change. 3 files (1 new).
+Adds bulk actions to the Sprint Pool tab in `RebusSetEditorPage.tsx`. Since
+this is shared code used by every rebus set, this covers "every category" —
+no per-category duplication.
 
-## What changed
+## What's new
 
-The Sprint Pool tab's "Bulk paste" box is gone — it's now a
-"📋 Import / paste puzzles" button that opens a modal, same pattern as the
-Puzzles tab:
+- **Bulk delete**: a "🗑 Delete all Sprint (N)" button that deletes every
+  Sprint puzzle in the current set at once, matching the "Delete all
+  {difficulty}" pattern already on the main Puzzles tab. Confirms first;
+  always a hard delete (Sprint puzzles never need the archive dance — see
+  the comment on `deleteAllRebusSprintPuzzles`).
+- **Bulk edit (replace-all)**: a "🔁 Replace all Sprint puzzles" button that
+  opens the existing `RebusSprintImportModal` in a new `mode="replace"` —
+  same JSON/template paste-and-preview flow as the normal import, just
+  relabeled with a destructive-action warning banner and a danger-styled
+  confirm button ("Delete N & replace with M"). Confirming deletes every
+  existing Sprint puzzle in the set, then inserts the pasted list fresh
+  (order_index starting at 0 — Sprint order_index isn't gameplay-significant,
+  the Sprint round draws a random shuffled sample, so no renumbering concerns).
+  Sprint puzzles genuinely have no round/type/points/time fields to bulk-set
+  the way the main Puzzles tab's bulk edit does, so "bulk edit" here means
+  wipe-and-repaste instead.
 
-- Paste a JSON array, or the plain-text template (`Display:` / `Answer:` /
-  `Accepted:`).
-- A new "Display:" line is the only thing that starts a new puzzle — blank
-  lines between puzzles are optional, not required, same as categories.
-- A multi-line puzzle works directly in the template (extra line(s) right
-  under "Display:"), no JSON needed for that.
-- "Preview" shows exactly what will be imported and how many, before
-  anything is saved.
-- If the import fails for any reason, the modal shows the actual error
-  instead of silently doing nothing (same fix as the categories import got
-  last time).
+## Files changed
 
-The old one-line `DISPLAY :: ANSWER :: alt1, alt2` format is gone — your
-Sprint pool is still at 0 puzzles, so there was nothing drafted in that
-format to lose. There's no round, puzzle type, points, or time limit in
-this modal, because the Sprint pool genuinely has none of those fields
-(unchanged) — that part of the mechanics isn't different, just the import
-box now matches.
+- `frontend/src/lib/archiveOrDelete.ts` — new `deleteAllRebusSprintPuzzles(rebusSetId)`.
+  Fetches all matching ids first (via `fetchAllRows`, to get an accurate count
+  past Supabase's 1000-row cap) then does one unconditional `.delete()` — safe
+  because nothing ever references a Sprint puzzle row by id.
+- `frontend/src/components/RebusSprintImportModal.tsx` — added `mode?: "append" | "replace"`
+  and `existingCount?: number` props. In replace mode: different heading,
+  a bold warning banner, different preview/button copy, and `btn-danger`
+  styling on confirm. Append mode (used everywhere else this modal is already
+  rendered) is unchanged.
+- `frontend/src/pages/mod/RebusSetEditorPage.tsx`:
+  - imports `deleteAllRebusSprintPuzzles`
+  - new state: `bulkSprintDeleting`, `showSprintReplace`
+  - new `handleBulkDeleteSprint()` — confirm, call `deleteAllRebusSprintPuzzles`, set `deleteMessage`, reload
+  - new `handleSprintReplaceConfirm(parsedPuzzles)` — confirm, delete-all, insert fresh rows, throws on
+    failure so the modal surfaces the error (matching the existing import-modal convention)
+  - two new buttons in the Sprint tab's button row, and a `deleteMessage` result banner (the Sprint tab
+    didn't show this before — it does now, same as the Puzzles tab)
+  - conditional render of `<RebusSprintImportModal mode="replace" .../>` alongside the existing append-mode one
 
-The "Add one" manual single-puzzle form is untouched.
+## Validation run before packaging
 
-## Why this is safe at the scale you're planning
-
-You mentioned aiming for ~200 Sprint puzzles per category, which could put
-the Sprint pool itself in the thousands eventually. Two things from the
-last fix already cover that without any further changes needed here:
-
-- `loadData()` on this page already fetches the full Sprint list in pages
-  of 1,000 instead of a single capped `.select()`, so `nextSprintOrderIndex()`
-  (which decides where a new import starts numbering) stays correct no
-  matter how large the pool gets.
-- `pickRebusSessionSprintPuzzles` (the Edge Function that draws the 3
-  puzzles for an actual Sprint round) got the same pagination fix, so it'll
-  keep drawing from your entire Sprint pool once it's real, not a
-  truncated slice of it.
-
-`tsc -b`, `oxlint`, and `vite build` all ran clean.
-
-## Files
-
-- `frontend/src/components/RebusSprintImportModal.tsx` — new. The Sprint
-  pool's import modal, mirroring `RebusImportModal.tsx` minus the fields
-  Sprint doesn't have.
-- `frontend/src/utils/rebusPuzzleParser.ts` — `parseRebusSprintInput`
-  rewritten to support JSON and the `Display:`/`Answer:`/`Accepted:`
-  template (was the old `DISPLAY :: ANSWER` one-liner parser); added
-  `REBUS_SPRINT_JSON_EXAMPLE` alongside the updated `REBUS_SPRINT_TEMPLATE_EXAMPLE`.
-- `frontend/src/pages/mod/RebusSetEditorPage.tsx` — swapped the inline
-  bulk-paste card for the "📋 Import / paste puzzles" button + modal, and
-  `handleSprintImportConfirm` now throws a real error message on failure
-  instead of just setting `sprintError` silently.
-
-## Deploy
-
-```bash
-git add frontend/src/components/RebusSprintImportModal.tsx frontend/src/utils/rebusPuzzleParser.ts frontend/src/pages/mod/RebusSetEditorPage.tsx
-git commit -m "Give the Sprint Pool the same import settings as the main puzzle categories"
-git push
+```
+npx tsc -b        # clean
+npx oxlint <changed files>   # clean
+npx vite build    # clean, 1.47s
 ```
 
-No migration or function deploy needed — Vercel picks it up on push.
+## Ship it
+
+No schema or Edge Function changes — frontend only.
+
+```bash
+git add frontend/src/lib/archiveOrDelete.ts frontend/src/components/RebusSprintImportModal.tsx frontend/src/pages/mod/RebusSetEditorPage.tsx
+git commit -m "Add bulk delete and replace-all to the Sprint Pool editor tab
+
+Delete-all button matches the existing Puzzles-tab pattern; replace-all
+reuses RebusSprintImportModal in a new mode, since Sprint puzzles have
+no round/type/points/time fields for a field-level bulk edit.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01J3kK8m8X51UzCFsUVrJZ4Z"
+git push
+```

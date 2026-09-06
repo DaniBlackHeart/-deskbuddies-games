@@ -4,7 +4,13 @@ import AppHeader from "../../components/AppHeader";
 import RebusImportModal from "../../components/RebusImportModal";
 import RebusSprintImportModal from "../../components/RebusSprintImportModal";
 import { supabase } from "../../lib/supabaseClient";
-import { deleteRebusPuzzle, restoreRebusPuzzle, deleteRebusSprintPuzzle, deleteRebusPuzzlesByRound } from "../../lib/archiveOrDelete";
+import {
+  deleteRebusPuzzle,
+  restoreRebusPuzzle,
+  deleteRebusSprintPuzzle,
+  deleteRebusPuzzlesByRound,
+  deleteAllRebusSprintPuzzles,
+} from "../../lib/archiveOrDelete";
 import { fetchAllRows } from "../../lib/fetchAllRows";
 import {
   REBUS_PUZZLE_TYPE_LABELS,
@@ -74,6 +80,13 @@ export default function RebusSetEditorPage() {
   const [sprintAccepted, setSprintAccepted] = useState("");
   const [showSprintImport, setShowSprintImport] = useState(false);
   const [sprintError, setSprintError] = useState<string | null>(null);
+  // Bulk delete / "bulk edit" for the Sprint pool (2026-09-06). Sprint
+  // puzzles have no round/type/points/time fields to set the same value
+  // across many rows the way the main Puzzles tab's bulk edit does, so its
+  // "bulk edit" equivalent is a destructive replace-all: wipe the pool and
+  // paste in a fresh list, reusing RebusSprintImportModal in "replace" mode.
+  const [bulkSprintDeleting, setBulkSprintDeleting] = useState(false);
+  const [showSprintReplace, setShowSprintReplace] = useState(false);
 
   async function loadData() {
     setLoading(true);
@@ -347,6 +360,62 @@ export default function RebusSetEditorPage() {
       );
     }
     setShowSprintImport(false);
+    loadData();
+  }
+
+  async function handleBulkDeleteSprint() {
+    if (!setId || sprintPuzzles.length === 0) return;
+    const count = sprintPuzzles.length;
+    if (!confirm(`Delete all ${count} Sprint puzzle${count === 1 ? "" : "s"} in this set? This can't be undone.`)) {
+      return;
+    }
+
+    setBulkSprintDeleting(true);
+    const result = await deleteAllRebusSprintPuzzles(setId);
+    setBulkSprintDeleting(false);
+
+    if (result.error) {
+      setDeleteMessage(result.error);
+    } else {
+      setDeleteMessage(`Deleted ${result.deletedCount} Sprint puzzle${result.deletedCount === 1 ? "" : "s"}.`);
+    }
+    loadData();
+  }
+
+  async function handleSprintReplaceConfirm(parsedPuzzles: ParsedRebusSprintPuzzle[]) {
+    if (!setId) return;
+    const existingCount = sprintPuzzles.length;
+    if (
+      !confirm(
+        `Delete all ${existingCount} existing Sprint puzzle${existingCount === 1 ? "" : "s"} and replace with these ${parsedPuzzles.length}? This can't be undone.`
+      )
+    ) {
+      return;
+    }
+
+    const deleteResult = await deleteAllRebusSprintPuzzles(setId);
+    if (deleteResult.error) {
+      throw new Error(deleteResult.error);
+    }
+
+    const rows = parsedPuzzles.map((p, i) => ({
+      rebus_set_id: setId,
+      order_index: i,
+      display_text: p.display_text,
+      answer_text: p.answer_text,
+      accepted_answers: p.accepted_answers,
+    }));
+
+    const { error } = await supabase.from("rebus_sprint_puzzles").insert(rows);
+    if (error) {
+      console.error(error);
+      throw new Error(
+        `Replace failed after deleting the old puzzles: ${error.message}. The Sprint pool for this set is now empty — reload and try importing again.`
+      );
+    }
+
+    setShowSprintReplace(false);
+    setDeleteMessage(`Replaced the Sprint pool: deleted ${existingCount}, added ${parsedPuzzles.length}.`);
     loadData();
   }
 
@@ -697,7 +766,25 @@ export default function RebusSetEditorPage() {
               <button className="btn btn-secondary" onClick={() => setShowSprintImport(true)}>
                 📋 Import / paste puzzles
               </button>
+              <button className="btn btn-ghost" onClick={() => setShowSprintReplace(true)}>
+                🔁 Replace all Sprint puzzles
+              </button>
+              <button
+                className="btn btn-ghost"
+                disabled={bulkSprintDeleting || sprintPuzzles.length === 0}
+                onClick={handleBulkDeleteSprint}
+              >
+                {bulkSprintDeleting ? <span className="spinner" /> : `🗑 Delete all Sprint (${sprintPuzzles.length})`}
+              </button>
             </div>
+
+            {deleteMessage && (
+              <div className="card card--tight" style={{ marginTop: "16px" }}>
+                <p className="hint" style={{ margin: 0 }}>
+                  {deleteMessage}
+                </p>
+              </div>
+            )}
 
             <div className="card" style={{ marginTop: "16px" }}>
               <h3>Add one</h3>
@@ -754,6 +841,15 @@ export default function RebusSetEditorPage() {
 
       {showSprintImport && activeTab === "sprint" && (
         <RebusSprintImportModal onCancel={() => setShowSprintImport(false)} onConfirm={handleSprintImportConfirm} />
+      )}
+
+      {showSprintReplace && activeTab === "sprint" && (
+        <RebusSprintImportModal
+          mode="replace"
+          existingCount={sprintPuzzles.length}
+          onCancel={() => setShowSprintReplace(false)}
+          onConfirm={handleSprintReplaceConfirm}
+        />
       )}
     </div>
   );
