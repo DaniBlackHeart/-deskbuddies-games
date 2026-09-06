@@ -123,10 +123,7 @@ export default function RebusSetsPage() {
         </div>
 
         <div className="card card--tight" style={{ marginBottom: "16px" }}>
-          <p className="hint" style={{ margin: 0 }}>
-            🧩 Every session randomly mixes puzzles from all your sets — nothing to pick up front.
-          </p>
-          <div className="row" style={{ marginTop: "10px", flexWrap: "wrap", gap: "8px" }}>
+          <div className="row" style={{ flexWrap: "wrap", gap: "8px" }}>
             <button
               className="btn btn-sm"
               onClick={() => setSessionMode("chill")}
@@ -175,13 +172,6 @@ export default function RebusSetsPage() {
               {launching ? <span className="spinner" /> : "▶ Start a session"}
             </button>
           </div>
-          <p className="hint" style={{ marginTop: "8px", marginBottom: 0 }}>
-            {sessionMode === "chill"
-              ? "Chill: wrong or missed answers just score 0 — no risk."
-              : "Hard: wrong answers cost half the puzzle's points, not answering costs 25% — scores can go negative."}
-            {" "}
-            {gameMode === "team" ? "Team mode: players self-select teams in the lobby." : "Solo mode: everyone scores for themselves."}
-          </p>
           {totalPuzzleCount === 0 && (
             <p className="hint" style={{ marginTop: "8px", marginBottom: 0 }}>
               Add at least one set with some puzzles before starting.

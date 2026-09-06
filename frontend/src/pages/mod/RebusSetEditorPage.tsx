@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import RebusImportModal from "../../components/RebusImportModal";
 import RebusSprintImportModal from "../../components/RebusSprintImportModal";
@@ -464,10 +464,6 @@ export default function RebusSetEditorPage() {
           <h1>{set?.name}</h1>
           <p className="text-muted" style={{ marginTop: "-8px" }}>
             {summary} · {sprintPuzzles.length} Sprint puzzle{sprintPuzzles.length === 1 ? "" : "s"}
-          </p>
-          <p className="hint" style={{ marginTop: "-4px" }}>
-            Chill/Hard, Solo/Team, and starting a session now live on the{" "}
-            <Link to="/mod/rebus-sets">Type What You See</Link> page — every session mixes puzzles from all your sets.
           </p>
         </div>
 

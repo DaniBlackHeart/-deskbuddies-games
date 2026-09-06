@@ -1,55 +1,43 @@
-# Sprint Pool bulk delete + bulk edit (replace-all) — 2026-09-06
+# Remove muted subtitle/hint lines — 2026-09-06
 
-Adds bulk actions to the Sprint Pool tab in `RebusSetEditorPage.tsx`. Since
-this is shared code used by every rebus set, this covers "every category" —
-no per-category duplication.
-
-## What's new
-
-- **Bulk delete**: a "🗑 Delete all Sprint (N)" button that deletes every
-  Sprint puzzle in the current set at once, matching the "Delete all
-  {difficulty}" pattern already on the main Puzzles tab. Confirms first;
-  always a hard delete (Sprint puzzles never need the archive dance — see
-  the comment on `deleteAllRebusSprintPuzzles`).
-- **Bulk edit (replace-all)**: a "🔁 Replace all Sprint puzzles" button that
-  opens the existing `RebusSprintImportModal` in a new `mode="replace"` —
-  same JSON/template paste-and-preview flow as the normal import, just
-  relabeled with a destructive-action warning banner and a danger-styled
-  confirm button ("Delete N & replace with M"). Confirming deletes every
-  existing Sprint puzzle in the set, then inserts the pasted list fresh
-  (order_index starting at 0 — Sprint order_index isn't gameplay-significant,
-  the Sprint round draws a random shuffled sample, so no renumbering concerns).
-  Sprint puzzles genuinely have no round/type/points/time fields to bulk-set
-  the way the main Puzzles tab's bulk edit does, so "bulk edit" here means
-  wipe-and-repaste instead.
+Removes every muted "subtitle" line called out from the 11 screenshots — both
+the one-line descriptions under page headings, and the hint text inside the
+game mode-selection cards (Chill/Hard, Solo/Team explanations). Functional
+warnings that only appear conditionally (e.g. "Add at least one set with some
+questions before starting") were left in place — they weren't in the
+screenshots and aren't decorative.
 
 ## Files changed
 
-- `frontend/src/lib/archiveOrDelete.ts` — new `deleteAllRebusSprintPuzzles(rebusSetId)`.
-  Fetches all matching ids first (via `fetchAllRows`, to get an accurate count
-  past Supabase's 1000-row cap) then does one unconditional `.delete()` — safe
-  because nothing ever references a Sprint puzzle row by id.
-- `frontend/src/components/RebusSprintImportModal.tsx` — added `mode?: "append" | "replace"`
-  and `existingCount?: number` props. In replace mode: different heading,
-  a bold warning banner, different preview/button copy, and `btn-danger`
-  styling on confirm. Append mode (used everywhere else this modal is already
-  rendered) is unchanged.
-- `frontend/src/pages/mod/RebusSetEditorPage.tsx`:
-  - imports `deleteAllRebusSprintPuzzles`
-  - new state: `bulkSprintDeleting`, `showSprintReplace`
-  - new `handleBulkDeleteSprint()` — confirm, call `deleteAllRebusSprintPuzzles`, set `deleteMessage`, reload
-  - new `handleSprintReplaceConfirm(parsedPuzzles)` — confirm, delete-all, insert fresh rows, throws on
-    failure so the modal surfaces the error (matching the existing import-modal convention)
-  - two new buttons in the Sprint tab's button row, and a `deleteMessage` result banner (the Sprint tab
-    didn't show this before — it does now, same as the Puzzles tab)
-  - conditional render of `<RebusSprintImportModal mode="replace" .../>` alongside the existing append-mode one
+- `frontend/src/pages/mod/ModDashboardPage.tsx` — removed the "Manage
+  question sets and run Trivia Night, Family Feud, UNO, Impostor WHO?,
+  Wheel of Fortune, and Type What You See." line under the H1.
+- `frontend/src/pages/mod/QuestionSetsPage.tsx` (Trivia hub) — removed the
+  "Every session randomly mixes up to 30 questions..." hint above the mode
+  buttons, and the "Chill: wrong or missed answers..." / "Hard: wrong
+  answers cost points..." hint below them.
+- `frontend/src/pages/mod/RebusSetsPage.tsx` (Type What You See hub) —
+  removed the "Every session randomly mixes puzzles..." hint above the mode
+  buttons, and the Chill/Hard + Solo/Team explanation line below them.
+- `frontend/src/pages/mod/WheelCategoriesPage.tsx` — removed the "Every
+  round randomizes its own category and phrase..." hint above the Solo/Teams
+  buttons.
+- `frontend/src/pages/mod/QuestionSetEditorPage.tsx` (a set's own editor,
+  e.g. "Brand and Logos") — removed the "Chill: wrong or missed answers..."
+  / "Hard: ..." hint below the Chill/Hard toggle. The "{N} questions" count
+  line was left as-is — that's data, not a subtitle.
+- `frontend/src/pages/mod/RebusSetEditorPage.tsx` (each rebus category's own
+  editor) — removed the "Chill/Hard, Solo/Team, and starting a session now
+  live on the Type What You See page..." line under the puzzle-count summary;
+  also dropped the now-unused `Link` import this line was the only user of.
+  The puzzle-count summary line itself was left as-is (data, not a subtitle).
 
 ## Validation run before packaging
 
 ```
 npx tsc -b        # clean
 npx oxlint <changed files>   # clean
-npx vite build    # clean, 1.47s
+npx vite build    # clean, 1.28s
 ```
 
 ## Ship it
@@ -57,12 +45,13 @@ npx vite build    # clean, 1.47s
 No schema or Edge Function changes — frontend only.
 
 ```bash
-git add frontend/src/lib/archiveOrDelete.ts frontend/src/components/RebusSprintImportModal.tsx frontend/src/pages/mod/RebusSetEditorPage.tsx
-git commit -m "Add bulk delete and replace-all to the Sprint Pool editor tab
+git add frontend/src/pages/mod/ModDashboardPage.tsx frontend/src/pages/mod/QuestionSetsPage.tsx frontend/src/pages/mod/RebusSetsPage.tsx frontend/src/pages/mod/WheelCategoriesPage.tsx frontend/src/pages/mod/QuestionSetEditorPage.tsx frontend/src/pages/mod/RebusSetEditorPage.tsx
+git commit -m "Remove muted subtitle/hint lines from Mod Dashboard and game hub pages
 
-Delete-all button matches the existing Puzzles-tab pattern; replace-all
-reuses RebusSprintImportModal in a new mode, since Sprint puzzles have
-no round/type/points/time fields for a field-level bulk edit.
+Drops the descriptive one-liners under page headings and the mode-selection
+card hints (Chill/Hard, Solo/Team explanations) across the Dashboard,
+Trivia, Type What You See, Wheel of Fortune, and question-set/rebus-set
+editor pages, per screenshot review.
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01J3kK8m8X51UzCFsUVrJZ4Z"

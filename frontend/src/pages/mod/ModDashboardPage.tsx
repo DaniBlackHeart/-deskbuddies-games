@@ -151,7 +151,6 @@ export default function ModDashboardPage() {
       <AppHeader />
       <div className="container">
         <h1>🛠️ MOD Dashboard</h1>
-        <p className="text-muted">Manage question sets and run Trivia Night, Family Feud, UNO, Impostor WHO?, Wheel of Fortune, and Type What You See.</p>
 
         {active.length > 0 && (
           <div className="card" style={{ marginBottom: "20px" }}>

@@ -244,11 +244,6 @@ export default function QuestionSetEditorPage() {
             </button>
           </div>
         </div>
-        <p className="hint" style={{ marginTop: "4px" }}>
-          {sessionMode === "chill"
-            ? "Chill: wrong or missed answers just score 0 — no risk."
-            : "Hard: wrong answers cost points, not answering costs 25% — scores can go negative."}
-        </p>
 
         <div className="row" style={{ margin: "16px 0" }}>
           <button className="btn btn-secondary" onClick={() => setShowManualForm((s) => !s)}>

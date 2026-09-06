@@ -135,12 +135,7 @@ export default function WheelCategoriesPage() {
         </div>
 
         <div className="card card--tight" style={{ marginBottom: "16px" }}>
-          <div className="row-between" style={{ flexWrap: "wrap", gap: "8px" }}>
-            <p className="hint" style={{ margin: 0 }}>
-              🎡 Every round randomizes its own category and phrase — nothing to pick up front.
-            </p>
-          </div>
-          <div className="row" style={{ marginTop: "10px", flexWrap: "wrap", gap: "8px" }}>
+          <div className="row" style={{ flexWrap: "wrap", gap: "8px" }}>
             <button
               className={gameMode === "solo" ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}
               onClick={() => setGameMode("solo")}
