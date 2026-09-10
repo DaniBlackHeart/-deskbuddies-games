@@ -1,5 +1,6 @@
 import AppHeader from "../components/AppHeader";
 import GameCard from "../components/GameCard";
+import ActiveGameStatus from "../components/ActiveGameStatus";
 
 export default function DashboardPage() {
   return (
@@ -8,6 +9,8 @@ export default function DashboardPage() {
       <div className="container">
         <h1>Game Night</h1>
         <p className="text-muted">Pick a game to jump into.</p>
+
+        <ActiveGameStatus />
 
         <div
           style={{
