@@ -298,6 +298,18 @@ session across any game can be open at once.
 - **MOD Dashboard button doesn't show up**: confirm the `DISCORD_MOD_ROLE_ID` is
   right, and that you signed in *after* getting the role (sign out/in to
   re-check).
+- **Someone who left the Discord server still seems to have access, or a
+  member suddenly sees empty lists**: stored membership is only trusted for a
+  limited time (migration `0026`). The app re-checks Discord every 5 minutes
+  while open, every Edge Function re-checks when the last confirmation is over
+  5 minutes old, and the database stops honoring it after 30 minutes
+  (`membership_trust_window()` in `0026`, which must match
+  `MEMBERSHIP_TRUST_WINDOW_MS` in `supabase/functions/_shared/utils.ts`). So a
+  person who left loses access within minutes. A member who briefly sees empty
+  lists after a long idle period just needs the next background re-check (or a
+  refresh). If Discord itself is down, people confirmed within the last 30
+  minutes keep working. Check `membership_verified_at` on `profiles` to see
+  when someone was last confirmed.
 - **`npx supabase functions deploy ...` fails with "Entrypoint path does not
   exist"**: you're very likely running the command from the wrong working
   directory. `cd` into the actual project root first.

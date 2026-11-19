@@ -1,15 +1,24 @@
 // verify-membership
-// Called by the frontend right after Discord login.
+// Called by the frontend right after Discord login, and again in the
+// background every few minutes while the app is open (see AuthContext.tsx).
 // Confirms the user is a member of the DeskBuddies Discord server
 // (and whether they hold the MOD role) using the bot token — this
 // check can ONLY be done server-side, since the bot token must
 // never reach the browser.
+//
+// Every successful check stamps profiles.membership_verified_at. Stored
+// membership is only trusted for a limited time after that stamp (see
+// 0026_membership_trust_expiry.sql and _shared/utils.ts), so a member who
+// leaves the server loses access instead of keeping it indefinitely.
 
-import { corsHeaders, jsonResponse, handleOptions, getAdminClient, discordAvatarUrl } from "../_shared/utils.ts";
-
-const DISCORD_GUILD_ID = Deno.env.get("DISCORD_GUILD_ID")!;
-const DISCORD_MOD_ROLE_ID = Deno.env.get("DISCORD_MOD_ROLE_ID")!;
-const DISCORD_BOT_TOKEN = Deno.env.get("DISCORD_BOT_TOKEN")!;
+import {
+  jsonResponse,
+  handleOptions,
+  getAdminClient,
+  discordAvatarUrl,
+  checkDiscordMembership,
+  revokeMembership,
+} from "../_shared/utils.ts";
 
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
@@ -47,25 +56,37 @@ Deno.serve(async (req) => {
     const providedAvatar: string | null = claims.avatar_url ?? null;
 
     // --- Check guild membership + role via the bot token ---
-    const memberRes = await fetch(
-      `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${discordId}`,
-      { headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}` } }
-    );
+    const check = await checkDiscordMembership(discordId);
 
-    if (memberRes.status === 404) {
-      // Not in the server — make sure any stale profile reflects that.
-      await admin.from("profiles").update({ is_member: false, is_mod: false }).eq("id", user.id);
+    if (check.status === "not_member") {
+      // Not in the server (never was, or left). Remove any stored trust.
+      //
+      // If this person WAS a member until now, they've just left: also revoke
+      // their sessions so they're signed out everywhere and can't keep
+      // refreshing tokens. Someone who was never a member (e.g. just
+      // signed in before joining the server) keeps their session, so the
+      // "I just joined — check again" button on the Members only page still
+      // works for them.
+      const { data: existing } = await admin
+        .from("profiles")
+        .select("is_member")
+        .eq("id", user.id)
+        .maybeSingle();
+      const wasMember = existing?.is_member === true;
+
+      await revokeMembership(admin, user.id, wasMember ? token : null);
       return jsonResponse({ is_member: false });
     }
 
-    if (!memberRes.ok) {
-      console.error("Discord API error", memberRes.status, await memberRes.text());
+    if (check.status === "error") {
+      // Discord is unreachable or rate-limiting us. Don't guess either way:
+      // the client keeps its current state and retries later, and the
+      // database stops trusting stored membership on its own once it's
+      // older than the trust window.
       return jsonResponse({ error: "Could not verify Discord membership right now" }, 502);
     }
 
-    const member = await memberRes.json();
-    const roles: string[] = member.roles ?? [];
-    const isMod = roles.includes(DISCORD_MOD_ROLE_ID);
+    const member = check.member;
 
     // Prefer the member's DeskBuddies server nickname (what everyone actually
     // knows them as in-server) over their global Discord display name.
@@ -90,7 +111,8 @@ Deno.serve(async (req) => {
           username,
           avatar_url: resolvedAvatar,
           is_member: true,
-          is_mod: isMod,
+          is_mod: check.isMod,
+          membership_verified_at: new Date().toISOString(),
         },
         { onConflict: "id" }
       )

@@ -22,6 +22,9 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+// How often an open, visible tab re-confirms membership with the server.
+const MEMBERSHIP_RECHECK_MS = 5 * 60 * 1000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [session, setSession] = useState<Session | null>(null);
@@ -60,6 +63,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus("member");
     } catch (err) {
       console.error("Membership verification failed:", err);
+      // 401 means the server no longer accepts this login at all (e.g. the
+      // person left the server and their sessions were revoked). Clear it
+      // locally instead of leaving a dead session sitting in the browser.
+      if ((err as { context?: { status?: number } })?.context?.status === 401) {
+        await supabase.auth.signOut({ scope: "local" });
+        verifiedUserId.current = null;
+        setSession(null);
+        setProfile(null);
+        setStatus("signed_out");
+        return;
+      }
       if (silent) {
         // A background recheck (e.g. triggered by refocusing the tab)
         // failing shouldn't sign someone out from under themselves over a
@@ -134,6 +148,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-check membership in the background while the app is open and visible.
+  // The server only trusts a stored "yes, still a member" for a limited time
+  // (see 0026_membership_trust_expiry.sql), so this keeps legitimate members
+  // fresh — and means someone who left the server is noticed within minutes
+  // and sent to the Members only page. Keep this comfortably shorter than the
+  // 30-minute database trust window.
+  useEffect(() => {
+    if (status !== "member" || !session) return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        verifyMembership(session, { silent: true });
+      }
+    }, MEMBERSHIP_RECHECK_MS);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session]);
 
   async function signInWithDiscord() {
     await supabase.auth.signInWithOAuth({

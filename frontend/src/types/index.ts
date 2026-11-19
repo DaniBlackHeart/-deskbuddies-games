@@ -8,6 +8,10 @@ export type Profile = {
   avatar_url: string | null;
   is_member: boolean;
   is_mod: boolean;
+  // When Discord last confirmed this person is in the server (see
+  // 0026_membership_trust_expiry.sql). Stored membership is only trusted
+  // for a limited time after this.
+  membership_verified_at: string | null;
   created_at: string;
 };
 

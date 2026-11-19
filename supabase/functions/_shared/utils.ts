@@ -75,6 +75,130 @@ export async function getCallingUser(req: Request) {
   return data.user;
 }
 
+// --- Membership trust (expires; see 0026_membership_trust_expiry.sql) ---
+//
+// profiles.is_member / is_mod are a CACHE of what Discord last told us, not
+// a permanent fact. membership_verified_at says how old that cache is:
+//   - younger than MEMBERSHIP_REFRESH_AFTER_MS: trust it as-is (cheap path —
+//     the common case for every game action).
+//   - older: ask Discord again right now, before letting the request through.
+//     Left the server → flags are cleared, sessions revoked, request refused.
+//   - Discord itself unreachable (outage / rate limit): keep allowing people
+//     we confirmed within MEMBERSHIP_TRUST_WINDOW_MS, refuse beyond that.
+// MEMBERSHIP_TRUST_WINDOW_MS must match membership_trust_window() in the
+// database, which is what RLS uses.
+
+export const MEMBERSHIP_REFRESH_AFTER_MS = 5 * 60 * 1000;
+export const MEMBERSHIP_TRUST_WINDOW_MS = 30 * 60 * 1000;
+
+export type DiscordMembershipCheck =
+  | { status: "member"; isMod: boolean; member: { nick?: string | null; user?: { global_name?: string | null } } }
+  | { status: "not_member" }
+  | { status: "error" };
+
+/**
+ * Asks Discord (using the bot token, server-side only) whether this Discord
+ * user is currently in the DeskBuddies server and whether they hold the MOD
+ * role. Only a definite 404 means "not a member" — any other failure is
+ * reported as "error" so an outage is never mistaken for someone leaving.
+ */
+export async function checkDiscordMembership(discordId: string): Promise<DiscordMembershipCheck> {
+  const guildId = Deno.env.get("DISCORD_GUILD_ID");
+  const modRoleId = Deno.env.get("DISCORD_MOD_ROLE_ID");
+  const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
+  if (!guildId || !modRoleId || !botToken) {
+    console.error("checkDiscordMembership: Discord env vars are not set");
+    return { status: "error" };
+  }
+
+  try {
+    const res = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, {
+      headers: { Authorization: `Bot ${botToken}` },
+    });
+    if (res.status === 404) return { status: "not_member" };
+    if (!res.ok) {
+      console.error("Discord API error", res.status, await res.text());
+      return { status: "error" };
+    }
+    const member = await res.json();
+    const roles: string[] = member.roles ?? [];
+    return { status: "member", isMod: roles.includes(modRoleId), member };
+  } catch (err) {
+    console.error("Discord membership check failed", err);
+    return { status: "error" };
+  }
+}
+
+/**
+ * Removes a person's stored trust: clears the member/MOD flags and the
+ * verification timestamp, and (when we have their access token) revokes
+ * their Supabase sessions so they're signed out everywhere and their
+ * refresh tokens stop working. Safe to call repeatedly.
+ */
+export async function revokeMembership(
+  admin: ReturnType<typeof getAdminClient>,
+  userId: string,
+  accessToken?: string | null
+) {
+  const { error } = await admin
+    .from("profiles")
+    .update({ is_member: false, is_mod: false, membership_verified_at: null })
+    .eq("id", userId);
+  if (error) console.error("revokeMembership: profile update failed", error);
+
+  if (accessToken) {
+    try {
+      await admin.auth.admin.signOut(accessToken, "global");
+    } catch (err) {
+      console.error("revokeMembership: session revoke failed", err);
+    }
+  }
+}
+
+function bearerToken(req: Request): string | null {
+  const authHeader = req.headers.get("Authorization");
+  return authHeader ? authHeader.replace("Bearer ", "") : null;
+}
+
+/**
+ * Given a profile that CLAIMS is_member = true, returns it unchanged if the
+ * claim is recent enough to trust, otherwise re-checks Discord first.
+ */
+// deno-lint-ignore no-explicit-any
+async function ensureFreshMembership(admin: ReturnType<typeof getAdminClient>, profile: any, req: Request) {
+  const verifiedAtMs = profile.membership_verified_at ? Date.parse(profile.membership_verified_at) : 0;
+  const ageMs = Date.now() - verifiedAtMs;
+  if (ageMs < MEMBERSHIP_REFRESH_AFTER_MS) return { profile };
+
+  const check = await checkDiscordMembership(profile.discord_id);
+
+  if (check.status === "not_member") {
+    await revokeMembership(admin, profile.id, bearerToken(req));
+    return { error: jsonResponse({ error: "Membership required" }, 403) };
+  }
+
+  if (check.status === "member") {
+    const refreshed = {
+      is_member: true,
+      is_mod: check.isMod,
+      membership_verified_at: new Date().toISOString(),
+    };
+    const { error } = await admin.from("profiles").update(refreshed).eq("id", profile.id);
+    if (error) console.error("ensureFreshMembership: profile update failed", error);
+    return { profile: { ...profile, ...refreshed } };
+  }
+
+  // Discord couldn't be reached. Don't punish people for Discord's outage, but
+  // don't extend trust indefinitely either.
+  if (ageMs < MEMBERSHIP_TRUST_WINDOW_MS) return { profile };
+  return {
+    error: jsonResponse(
+      { error: "We couldn't verify your DeskBuddies membership right now. Please try again in a moment." },
+      503
+    ),
+  };
+}
+
 /** Confirms the caller is a verified MOD (checked server-side, never trusted from the client). */
 export async function requireMod(req: Request) {
   const user = await getCallingUser(req);
@@ -87,10 +211,18 @@ export async function requireMod(req: Request) {
     .eq("id", user.id)
     .single();
 
-  if (!profile?.is_mod) {
+  if (!profile?.is_member) {
+    return { error: jsonResponse({ error: "Membership required" }, 403) };
+  }
+
+  const fresh = await ensureFreshMembership(admin, profile, req);
+  if ("error" in fresh) return { error: fresh.error };
+
+  // Checked AFTER the refresh, so a MOD who lost the role is demoted here too.
+  if (!fresh.profile.is_mod) {
     return { error: jsonResponse({ error: "MOD access required" }, 403) };
   }
-  return { user, profile };
+  return { user, profile: fresh.profile };
 }
 
 /** Confirms the caller is a verified DeskBuddies member. */
@@ -108,7 +240,11 @@ export async function requireMember(req: Request) {
   if (!profile?.is_member) {
     return { error: jsonResponse({ error: "Membership required" }, 403) };
   }
-  return { user, profile };
+
+  const fresh = await ensureFreshMembership(admin, profile, req);
+  if ("error" in fresh) return { error: fresh.error };
+
+  return { user, profile: fresh.profile };
 }
 
 /** Normalizes text for typed-answer matching: lowercase, trim, collapse whitespace, strip punctuation. */
