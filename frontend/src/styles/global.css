@@ -1279,3 +1279,34 @@ button {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }
+
+/* Tabs on small screens: share the row evenly and shrink so all six fit
+   without a scrollbar. Very narrow screens fall back to a hidden-scrollbar
+   swipe so nothing is ever cut off. */
+.app-tabs {
+  scrollbar-width: none;
+}
+.app-tabs::-webkit-scrollbar {
+  display: none;
+}
+@media (max-width: 640px) {
+  .app-tabs {
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
+    gap: 0;
+  }
+  .app-tab {
+    flex: 1 1 auto;
+    text-align: center;
+    padding: 10px 6px;
+    font-size: 0.7rem;
+    letter-spacing: 0.02em;
+  }
+}
+@media (max-width: 380px) {
+  .app-tab {
+    padding: 10px 4px;
+    font-size: 0.62rem;
+    letter-spacing: 0;
+  }
+}
