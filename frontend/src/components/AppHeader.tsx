@@ -1,10 +1,9 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
+import { isGamesRoute } from "../lib/gameRoutes";
 
 // Tab order is fixed by product direction: Home, Games, Boards, Events,
 // DeskFinds, Profile. Labels are rendered uppercase via CSS (.app-tab), so the
 // text here stays in normal case for screen readers.
-const GAME_PREFIXES = ["/games", "/trivia", "/feud", "/uno", "/impostor", "/wheel", "/rebus", "/mod"];
-
 const TABS: { to: string; label: string; end?: boolean }[] = [
   { to: "/", label: "Home", end: true },
   { to: "/games", label: "Games" },
@@ -19,7 +18,7 @@ export default function AppHeader() {
 
   // Game lobby/play and MOD pages live outside /games, but they belong to the
   // Games tab, so keep it highlighted there.
-  const inGames = GAME_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const inGames = isGamesRoute(pathname);
 
   return (
     <header

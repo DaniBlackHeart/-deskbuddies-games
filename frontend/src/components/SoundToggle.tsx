@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { isGamesRoute } from "../lib/gameRoutes";
 import { getVolume, isAudioUnlocked, setVolume, sounds, unlockAudio } from "../lib/sounds";
 
 /**
  * Small floating volume control, mounted once at the app root so it's
- * present on every screen — including the bare center-screen player pages
+ * present on every Games-tab screen — including the bare center-screen player pages
  * that don't render AppHeader.
  *
  * Browsers refuse to play ANY audio — including sounds triggered later by a
@@ -18,6 +20,7 @@ import { getVolume, isAudioUnlocked, setVolume, sounds, unlockAudio } from "../l
  * looking like nothing is happening.
  */
 export default function SoundToggle() {
+  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [unlocked, setUnlocked] = useState(() => isAudioUnlocked());
   const [volume, setVolumeState] = useState(() => getVolume());
@@ -57,6 +60,9 @@ export default function SoundToggle() {
   function toggleMute() {
     applyVolume(volume > 0 ? 0 : lastNonZeroRef.current || 70, true);
   }
+
+  // Sound controls belong to the Games tab only.
+  if (!isGamesRoute(pathname)) return null;
 
   return (
     <div style={{ position: "fixed", bottom: "16px", right: "16px", zIndex: 50, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
