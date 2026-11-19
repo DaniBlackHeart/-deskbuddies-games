@@ -65,7 +65,7 @@ button {
 
 .container {
   width: 100%;
-  max-width: 880px;
+  max-width: 1080px;
   margin: 0 auto;
   padding: var(--space-5);
 }
