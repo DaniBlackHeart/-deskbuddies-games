@@ -1,10 +1,9 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
 
 // Tab order is fixed by product direction: Home, Games, Boards, Events,
 // DeskFinds, Profile. Labels are rendered uppercase via CSS (.app-tab), so the
 // text here stays in normal case for screen readers.
-const GAME_PREFIXES = ["/games", "/trivia", "/feud", "/uno", "/impostor", "/wheel", "/rebus"];
+const GAME_PREFIXES = ["/games", "/trivia", "/feud", "/uno", "/impostor", "/wheel", "/rebus", "/mod"];
 
 const TABS: { to: string; label: string; end?: boolean }[] = [
   { to: "/", label: "Home", end: true },
@@ -16,10 +15,9 @@ const TABS: { to: string; label: string; end?: boolean }[] = [
 ];
 
 export default function AppHeader() {
-  const { profile } = useAuth();
   const { pathname } = useLocation();
 
-  // Game lobby/play pages live outside /games, but they still belong to the
+  // Game lobby/play and MOD pages live outside /games, but they belong to the
   // Games tab, so keep it highlighted there.
   const inGames = GAME_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
@@ -30,16 +28,11 @@ export default function AppHeader() {
         background: "var(--color-surface)",
       }}
     >
-      <div className="container row-between" style={{ padding: "16px 24px 8px" }}>
+      <div className="container" style={{ padding: "16px 24px 8px" }}>
         <Link to="/" className="app-brand">
           Debbie
         </Link>
 
-        {profile?.is_mod && (
-          <Link to="/mod" className="btn btn-secondary btn-sm">
-            🛠️ MOD Dashboard
-          </Link>
-        )}
       </div>
 
       <nav className="container app-tabs" aria-label="Main">

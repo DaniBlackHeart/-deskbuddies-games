@@ -1,13 +1,24 @@
 import AppHeader from "../components/AppHeader";
 import GameCard from "../components/GameCard";
 import ActiveGameStatus from "../components/ActiveGameStatus";
+import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function DashboardPage() {
+  const { profile } = useAuth();
+
   return (
     <div className="app-shell">
       <AppHeader />
       <div className="container">
-        <h1>Game Night</h1>
+        <div className="row-between">
+          <h1>Game Night</h1>
+          {profile?.is_mod && (
+            <Link to="/mod" className="btn btn-secondary btn-sm">
+              🛠️ MOD Dashboard
+            </Link>
+          )}
+        </div>
         <p className="text-muted">Pick a game to jump into.</p>
 
         <ActiveGameStatus />
