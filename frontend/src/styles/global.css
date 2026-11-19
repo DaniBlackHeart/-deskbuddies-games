@@ -1239,3 +1239,43 @@ button {
   border-radius: var(--radius-lg);
   margin: var(--space-4) 0;
 }
+
+/* ---- App header: brand + main tabs ---- */
+.app-brand {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-text);
+}
+.app-tabs {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.app-tab {
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-text-muted);
+  border-bottom: 3px solid transparent;
+}
+.app-tab:hover {
+  color: var(--color-text);
+}
+.app-tab--active {
+  color: var(--color-primary-hover);
+  border-bottom-color: var(--color-primary);
+}
+.app-tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}

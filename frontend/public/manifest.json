@@ -1,7 +1,7 @@
 {
-  "name": "DeskBuddies Games",
-  "short_name": "DB Games",
-  "description": "Trivia Night and more games for the DeskBuddies Discord server.",
+  "name": "DeskBuddies",
+  "short_name": "Debbie",
+  "description": "Debbie, the companion app for the DeskBuddies Discord community.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fbf3e7",

@@ -127,7 +127,7 @@ export default function UnoLobbyPage() {
                   ? "This game was cancelled by the mod."
                   : "No UNO game happening right now. Keep an eye on Discord for the next announcement!"}
               </p>
-              <button className="btn btn-secondary" onClick={() => navigate("/")}>
+              <button className="btn btn-secondary" onClick={() => navigate("/games")}>
                 Back to games
               </button>
             </>

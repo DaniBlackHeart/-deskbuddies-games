@@ -359,7 +359,7 @@ export default function WheelPlayPage() {
                 {session.bonus_solved_phrase && <p className="text-muted" style={{ marginTop: "6px" }}>The phrase was: <strong>{session.bonus_solved_phrase}</strong></p>}
               </div>
             )}
-            <button className="btn btn-secondary" style={{ marginTop: "16px" }} onClick={() => navigate("/")}>
+            <button className="btn btn-secondary" style={{ marginTop: "16px" }} onClick={() => navigate("/games")}>
               Back to games
             </button>
           </div>

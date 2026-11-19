@@ -1,8 +1,27 @@
-import { Link } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
+// Tab order is fixed by product direction: Home, Games, Boards, Events,
+// DeskFinds, Profile. Labels are rendered uppercase via CSS (.app-tab), so the
+// text here stays in normal case for screen readers.
+const GAME_PREFIXES = ["/games", "/trivia", "/feud", "/uno", "/impostor", "/wheel", "/rebus"];
+
+const TABS: { to: string; label: string; end?: boolean }[] = [
+  { to: "/", label: "Home", end: true },
+  { to: "/games", label: "Games" },
+  { to: "/boards", label: "Boards" },
+  { to: "/events", label: "Events" },
+  { to: "/deskfinds", label: "DeskFinds" },
+  { to: "/profile", label: "Profile" },
+];
+
 export default function AppHeader() {
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
+  const { pathname } = useLocation();
+
+  // Game lobby/play pages live outside /games, but they still belong to the
+  // Games tab, so keep it highlighted there.
+  const inGames = GAME_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   return (
     <header
@@ -11,41 +30,36 @@ export default function AppHeader() {
         background: "var(--color-surface)",
       }}
     >
-      <div className="container row-between" style={{ padding: "16px 24px" }}>
-        <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
-          <div className="row" style={{ gap: "8px" }}>
-            <span style={{ fontSize: "1.4rem" }}>🎲</span>
-            <strong style={{ fontFamily: "var(--font-heading)", fontSize: "1.1rem" }}>
-              DeskBuddies Games
-            </strong>
-          </div>
+      <div className="container row-between" style={{ padding: "16px 24px 8px" }}>
+        <Link to="/" className="app-brand">
+          Debbie
         </Link>
 
-        <div className="row">
-          {profile?.is_mod && (
-            <Link to="/mod" className="btn btn-secondary btn-sm">
-              🛠️ MOD Dashboard
-            </Link>
-          )}
-          <div className="row" style={{ gap: "8px" }}>
-            {profile?.avatar_url && (
-              <img
-                src={profile.avatar_url}
-                alt=""
-                width={28}
-                height={28}
-                style={{ borderRadius: "50%" }}
-              />
-            )}
-            <span className="text-muted" style={{ fontSize: "0.9rem" }}>
-              {profile?.username}
-            </span>
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => signOut()}>
-            Sign out
-          </button>
-        </div>
+        {profile?.is_mod && (
+          <Link to="/mod" className="btn btn-secondary btn-sm">
+            🛠️ MOD Dashboard
+          </Link>
+        )}
       </div>
+
+      <nav className="container app-tabs" aria-label="Main">
+        {TABS.map((tab) => {
+          const forceActive = tab.to === "/games" && inGames;
+          return (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              end={tab.end}
+              className={({ isActive }) =>
+                "app-tab" + (isActive || forceActive ? " app-tab--active" : "")
+              }
+              aria-current={undefined}
+            >
+              {tab.label}
+            </NavLink>
+          );
+        })}
+      </nav>
     </header>
   );
 }

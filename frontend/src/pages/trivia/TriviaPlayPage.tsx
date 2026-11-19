@@ -249,7 +249,7 @@ export default function TriviaPlayPage() {
         <div className="card container--narrow">
           <h1 className="text-center">🎉 Final Results</h1>
           <Leaderboard entries={leaderboard} highlightUserId={profile?.id} />
-          <button className="btn btn-primary btn-block" style={{ marginTop: "20px" }} onClick={() => navigate("/")}>
+          <button className="btn btn-primary btn-block" style={{ marginTop: "20px" }} onClick={() => navigate("/games")}>
             Back to games
           </button>
         </div>

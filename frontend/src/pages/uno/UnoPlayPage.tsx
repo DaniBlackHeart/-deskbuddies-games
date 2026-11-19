@@ -202,7 +202,7 @@ export default function UnoPlayPage() {
                 ))}
               </div>
             )}
-            <button className="btn btn-secondary" style={{ marginTop: "16px" }} onClick={() => navigate("/")}>
+            <button className="btn btn-secondary" style={{ marginTop: "16px" }} onClick={() => navigate("/games")}>
               Back to games
             </button>
           </div>

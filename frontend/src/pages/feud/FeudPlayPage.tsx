@@ -547,7 +547,7 @@ export default function FeudPlayPage() {
                 <button className="btn btn-secondary btn-sm" onClick={() => setChoseToWatchFastMoney(true)}>
                   👀 Watch Fast Money
                 </button>
-                <button className="btn btn-ghost btn-sm" onClick={() => navigate("/")}>
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate("/games")}>
                   Back to games
                 </button>
               </div>
@@ -661,7 +661,7 @@ export default function FeudPlayPage() {
             {session.fastmoney_total_points >= 200 ? "🏆 They won the grand prize!" : `Fast Money total: ${session.fastmoney_total_points} — not quite 200.`}
           </p>
         )}
-        <button className="btn btn-secondary" style={{ marginTop: "16px" }} onClick={() => navigate("/")}>
+        <button className="btn btn-secondary" style={{ marginTop: "16px" }} onClick={() => navigate("/games")}>
           Back to games
         </button>
       </div>

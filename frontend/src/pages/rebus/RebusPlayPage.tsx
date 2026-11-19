@@ -375,7 +375,7 @@ export default function RebusPlayPage() {
           <div style={{ marginTop: gameMode === "team" ? "20px" : 0 }}>
             <Leaderboard entries={leaderboard} highlightUserId={profile?.id} />
           </div>
-          <button className="btn btn-primary btn-block" style={{ marginTop: "20px" }} onClick={() => navigate("/")}>
+          <button className="btn btn-primary btn-block" style={{ marginTop: "20px" }} onClick={() => navigate("/games")}>
             Back to games
           </button>
         </div>

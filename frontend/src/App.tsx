@@ -11,6 +11,9 @@ import RouteLoadingFallback from "./components/RouteLoadingFallback";
 import LoginPage from "./pages/LoginPage";
 import NotAMemberPage from "./pages/NotAMemberPage";
 import DashboardPage from "./pages/DashboardPage";
+import HomePage from "./pages/HomePage";
+import ProfilePage from "./pages/ProfilePage";
+import ComingSoonPage from "./components/ComingSoonPage";
 
 // Everything below is lazy-loaded, grouped into one chunk per game. Each
 // game's pages (lobby, play, and its mod pages, which live flat in
@@ -111,7 +114,47 @@ export default function App() {
               path="/"
               element={
                 <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/games"
+              element={
+                <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/boards"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="Buddy Boards" blurb="Game rankings and community highlights will live here." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="Events" blurb="Upcoming community events and activities will live here." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/deskfinds"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="DeskFinds" blurb="The shop for desk goodies and buddies will live here." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
                 </ProtectedRoute>
               }
             />

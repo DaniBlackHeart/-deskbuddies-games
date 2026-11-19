@@ -237,7 +237,7 @@ export default function ImpostorPlayPage() {
                 <p className="impostor-reveal__word">{session.revealed_secret_word}</p>
               </>
             )}
-            <button className="btn btn-secondary" style={{ marginTop: "16px" }} onClick={() => navigate("/")}>
+            <button className="btn btn-secondary" style={{ marginTop: "16px" }} onClick={() => navigate("/games")}>
               Back to games
             </button>
           </div>

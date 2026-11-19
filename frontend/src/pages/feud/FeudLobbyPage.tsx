@@ -140,7 +140,7 @@ export default function FeudLobbyPage() {
                   ? "This session was cancelled by the mod."
                   : "No Family Feud game happening right now. Keep an eye on Discord for the next announcement!"}
               </p>
-              <button className="btn btn-secondary" onClick={() => navigate("/")}>
+              <button className="btn btn-secondary" onClick={() => navigate("/games")}>
                 Back to games
               </button>
             </>

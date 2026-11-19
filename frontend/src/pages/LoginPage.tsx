@@ -11,10 +11,9 @@ export default function LoginPage() {
     <div className="center-screen">
       <div className="card container--narrow text-center">
         <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>🎲</div>
-        <h1>DeskBuddies Games</h1>
+        <h1>Debbie</h1>
         <p className="text-muted">
-          Trivia Night and more, made for the DeskBuddies crew. Sign in with your Discord
-          account to play.
+          The DeskBuddies companion app. Sign in with your Discord account to jump in.
         </p>
 
         {verifyError && <p className="error-text">{verifyError}</p>}
