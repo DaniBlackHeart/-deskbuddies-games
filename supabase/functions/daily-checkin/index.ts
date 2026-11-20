@@ -3,9 +3,16 @@
 //   { action: "status" } -> where the caller's streak stands (read-only)
 //   { action: "claim" }  -> check in for today (safe to call repeatedly)
 //
-// The browser never says what day it is or what the streak is. The day is
-// computed here in Asia/Manila, and the streak is derived from stored rows.
-// Streak-only for now: no XP/currency is granted (reward values undecided).
+// The browser never says what day it is or what the streak is. The day comes
+// from the database (community_today(), Asia/Manila, set in earning_settings),
+// and the streak is derived from stored rows.
+//
+// Rewards: a claim also asks the database to pay the "daily_checkin" rule via
+// grant_reward(). Amounts, caps and the on/off master switch live in the
+// database, not here. grant_reward is idempotent per day (source key
+// "checkin:<date>"), so calling it on every claim is safe and also repairs a
+// claim whose payout failed the first time. A payout failure never fails the
+// check-in itself.
 
 import {
   jsonResponse,
@@ -14,23 +21,44 @@ import {
   requireMember,
 } from "../_shared/utils.ts";
 
-// Community day boundary. Change here (one place) if the community moves.
-const CHECKIN_TIMEZONE = "Asia/Manila";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function dateInZone(ms: number): string {
-  // en-CA formats as YYYY-MM-DD.
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: CHECKIN_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(ms));
-}
+type RewardResult = {
+  status: string; // granted | capped | duplicate | disabled | no_rule | not_member
+  xp: number;
+  deskbits: number;
+  payout?: string;
+};
 
 function dayNumber(ymd: string): number {
   // Whole days since epoch for a YYYY-MM-DD string (timezone-free math).
   return Math.round(Date.parse(ymd + "T00:00:00Z") / DAY_MS);
+}
+
+async function getCommunityToday(admin: ReturnType<typeof getAdminClient>): Promise<string> {
+  const { data, error } = await admin.rpc("community_today");
+  if (error || typeof data !== "string") {
+    throw error ?? new Error("community_today returned no date");
+  }
+  return data; // YYYY-MM-DD
+}
+
+async function grantCheckinReward(
+  admin: ReturnType<typeof getAdminClient>,
+  userId: string,
+  today: string
+): Promise<RewardResult | null> {
+  const { data, error } = await admin.rpc("grant_reward", {
+    p_user_id: userId,
+    p_event_type: "daily_checkin",
+    p_source_key: `checkin:${today}`,
+    p_meta: {},
+  });
+  if (error) {
+    console.error("daily-checkin: grant_reward failed:", error);
+    return null;
+  }
+  return data as RewardResult;
 }
 
 async function getStatus(admin: ReturnType<typeof getAdminClient>, userId: string, today: string) {
@@ -91,9 +119,10 @@ Deno.serve(async (req) => {
     }
 
     const admin = getAdminClient();
-    const today = dateInZone(Date.now());
+    const today = await getCommunityToday(admin);
 
     let newlyClaimed = false;
+    let reward: RewardResult | null = null;
     if (action === "claim") {
       // ignoreDuplicates => a second claim the same day is a harmless no-op.
       const { data, error } = await admin
@@ -105,10 +134,14 @@ Deno.serve(async (req) => {
         .select("id");
       if (error) throw error;
       newlyClaimed = (data ?? []).length > 0;
+
+      // Always ask, even when not newly claimed: grant_reward is idempotent, and
+      // this repairs a claim whose payout failed earlier.
+      reward = await grantCheckinReward(admin, user.id, today);
     }
 
     const status = await getStatus(admin, user.id, today);
-    return jsonResponse({ ...status, newly_claimed: newlyClaimed });
+    return jsonResponse({ ...status, newly_claimed: newlyClaimed, reward });
   } catch (err) {
     console.error("daily-checkin failed:", err);
     return jsonResponse({ error: "Could not process check-in" }, 500);
