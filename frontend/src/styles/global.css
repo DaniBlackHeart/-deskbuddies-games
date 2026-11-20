@@ -1,5 +1,6 @@
 @import "./tokens.css";
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Nunito+Sans:wght@400;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600&family=Silkscreen:wght@400;700&display=swap");
 
 * {
   box-sizing: border-box;
@@ -50,7 +51,7 @@ p {
 }
 
 a {
-  color: var(--color-primary);
+  color: var(--color-accent-text);
 }
 
 button {
@@ -1240,15 +1241,23 @@ button {
   margin: var(--space-4) 0;
 }
 
-/* ---- App header: brand + main tabs ---- */
+/* ---- App header: brand + main tabs (Debbie v1 type + icons) ---- */
 .app-brand {
-  font-family: var(--font-heading);
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--db-font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   text-decoration: none;
   color: var(--color-text);
+}
+.app-brand__mark {
+  display: block;
+  image-rendering: pixelated;
 }
 .app-tabs {
   display: flex;
@@ -1259,20 +1268,44 @@ button {
   padding-bottom: 0;
 }
 .app-tab {
-  padding: 10px 14px;
-  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 14px;
+  font-family: var(--db-font-body);
+  font-size: 0.875rem; /* 14px nav label */
+  line-height: 1.25;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   text-decoration: none;
   color: var(--color-text-muted);
   border-bottom: 3px solid transparent;
+}
+.app-tab__icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+/* Profile has no icon in v1: no empty gap beside its label on desktop. */
+.app-tab__icon:empty {
+  display: none;
+}
+.app-tab__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.app-tab:hover,
+.app-tab--active {
+  background: var(--color-bg-alt);
+  --ifill: var(--color-surface); /* soft fill flips to the surface colour on hover/active */
 }
 .app-tab:hover {
   color: var(--color-text);
 }
 .app-tab--active {
-  color: var(--color-primary-hover);
+  color: var(--color-accent-text);
   border-bottom-color: var(--color-primary);
 }
 .app-tab:focus-visible {
@@ -1295,18 +1328,81 @@ button {
     padding-right: var(--space-2);
     gap: 0;
   }
+  /* Tab bar: 32px icon over a 12px label (whole-number icon scale). */
   .app-tab {
     flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-1);
+    min-height: 60px;
+    padding: 6px 4px;
     text-align: center;
-    padding: 10px 6px;
-    font-size: 0.7rem;
-    letter-spacing: 0.02em;
+    font-size: 0.75rem;
+    line-height: 1.33;
+  }
+  .app-tab__icon,
+  .app-tab__icon:empty {
+    display: inline-block; /* keep the slot on mobile so labels line up */
+    width: 32px;
+    height: 32px;
   }
 }
 @media (max-width: 380px) {
   .app-tab {
-    padding: 10px 4px;
-    font-size: 0.62rem;
-    letter-spacing: 0;
+    padding: 6px 2px;
   }
+}
+
+/* ---- Debbie v1 type system: opt-in, nothing here touches body/h1-h6 or the
+   live games until a page uses these classes. Sizes in rem (16px base) so
+   browser text-size settings still work. Mobile sizes apply under 640px. ---- */
+.db-page {
+  font-family: var(--db-font-body);
+}
+.db-page .btn {
+  font-family: var(--db-font-body);
+  font-size: 1rem;
+  line-height: 1.25;
+  font-weight: 700;
+  min-height: 44px;
+}
+.db-page .btn-sm {
+  min-height: 36px;
+  font-size: 0.875rem;
+}
+.t-display,
+.t-h1,
+.t-h2,
+.t-h3 {
+  font-family: var(--db-font-display);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-2);
+}
+.t-display { font-size: 2.75rem; line-height: 1.0909; }
+.t-h1 { font-size: 1.875rem; line-height: 1.267; }
+.t-h2 { font-size: 1.375rem; line-height: 1.273; }
+.t-h3 { font-size: 1.125rem; line-height: 1.444; }
+.t-subtitle { font-family: var(--db-font-body); font-size: 1.0625rem; line-height: 1.53; }
+.t-body { font-family: var(--db-font-body); font-size: 1rem; line-height: 1.5; }
+.t-body-sm { font-family: var(--db-font-body); font-size: 0.875rem; line-height: 1.43; }
+.t-caption { font-family: var(--db-font-body); font-size: 0.8125rem; line-height: 1.385; }
+.t-overline {
+  font-family: var(--db-font-body);
+  font-size: 0.75rem;
+  line-height: 1.33;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+/* Numbers: Silkscreen, 16px and up only. */
+.t-num { font-family: var(--db-font-number); font-size: 1.125rem; line-height: 1.33; }
+.t-num-lg { font-family: var(--db-font-number); font-size: 1.5rem; line-height: 1.33; }
+@media (min-width: 640px) {
+  .t-display { font-size: 3.5rem; line-height: 1.0714; }
+  .t-h1 { font-size: 2.25rem; line-height: 1.222; }
+  .t-h2 { font-size: 1.625rem; line-height: 1.231; }
+  .t-h3 { font-size: 1.25rem; line-height: 1.4; }
+  .t-subtitle { font-size: 1.125rem; line-height: 1.556; }
+  .t-num-lg { font-size: 1.75rem; line-height: 1.143; }
 }

@@ -10,9 +10,9 @@ export default function DashboardPage() {
   return (
     <div className="app-shell">
       <AppHeader />
-      <div className="container">
+      <div className="container db-page">
         <div className="row-between">
-          <h1>Game Night</h1>
+          <h1 className="t-h1">Game Night</h1>
           {profile?.is_mod && (
             <Link to="/mod" className="btn btn-secondary btn-sm">
               🛠️ MOD Dashboard

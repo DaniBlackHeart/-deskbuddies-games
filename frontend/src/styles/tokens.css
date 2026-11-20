@@ -18,13 +18,14 @@
 
   /* Text */
   --color-text: #3d3229;
-  --color-text-muted: #7a6c5d;
+  --color-text-muted: #7a5c4e; /* Debbie v1: 5.6:1 on cream */
   --color-text-faint: #a6987f;
   --color-text-on-primary: #fffaf3;
 
   /* Brand / accent */
-  --color-primary: #d97a5f;
-  --color-primary-hover: #c8664b;
+  --color-primary: #b5573a; /* Debbie v1: button fills and icons */
+  --color-primary-hover: #a94f33;
+  --color-accent-text: #a94f33; /* Debbie v1: accent TEXT and links, 5.1:1 on cream */
   --color-primary-soft: #f7ded2;
   --color-secondary: #7c9473;
   --color-secondary-soft: #e3ead9;
@@ -61,4 +62,26 @@
   --space-6: 32px;
   --space-7: 48px;
   --space-8: 64px;
+
+  /* ---- Debbie v1 (typography "Pixel Forward" + icon tokens) ----
+     Additive and --db- prefixed. Pixel faces (Pixelify Sans, Silkscreen) are
+     for headings, numbers and short labels only; anything read in full stays
+     in Figtree. Silkscreen is numbers only, 16px and up. Opt in with the
+     .t-* classes in global.css; existing game pages are unaffected. */
+  --db-font-display: "Pixelify Sans", "Figtree", system-ui, sans-serif;
+  --db-font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --db-font-number: "Silkscreen", "Pixelify Sans", monospace;
+
+  /* Icon tokens (light). Nav icons: lines = currentColor, --ifill soft fill,
+     --iacc accent. Sprites: fixed colours, --spO is the outline. */
+  --ifill: #f3e6d2;
+  --iacc: #b5573a;
+  --spO: #4a3228;
+}
+
+/* Dark-theme icon tokens, ready for when light/dark modes land. */
+[data-theme="dark"] {
+  --ifill: #3f3128;
+  --iacc: #e08a68;
+  --spO: #1c130f;
 }

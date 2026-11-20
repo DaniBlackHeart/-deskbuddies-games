@@ -5,11 +5,11 @@ export default function ComingSoonPage({ title, blurb }: { title: string; blurb:
   return (
     <div className="app-shell">
       <AppHeader />
-      <div className="container">
-        <h1>{title}</h1>
+      <div className="container db-page">
+        <h1 className="t-h1">{title}</h1>
         <div className="card">
           <span className="badge badge-neutral">Coming soon</span>
-          <p className="text-muted">{blurb}</p>
+          <p className="text-muted t-body">{blurb}</p>
         </div>
       </div>
     </div>

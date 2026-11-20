@@ -12,16 +12,16 @@ export default function HomePage() {
   return (
     <div className="app-shell">
       <AppHeader />
-      <div className="container">
-        <h1>Welcome{profile?.username ? `, ${profile.username}` : ""}</h1>
-        <p className="text-muted">Here's what's happening in DeskBuddies today.</p>
+      <div className="container db-page">
+        <h1 className="t-h1">Welcome{profile?.username ? `, ${profile.username}` : ""}</h1>
+        <p className="text-muted t-subtitle">Here's what's happening in DeskBuddies today.</p>
 
         <ActiveGameStatus />
 
         <DailyCheckInCard />
 
         <div className="card" style={{ marginTop: "var(--space-4)" }}>
-          <h2 style={{ marginTop: 0 }}>Game night</h2>
+          <h2 className="t-h2" style={{ marginTop: 0 }}>Game night</h2>
           <p className="text-muted">Trivia, UNO, Family Feud and more.</p>
           <Link to="/games" className="btn btn-primary">
             Go to Games

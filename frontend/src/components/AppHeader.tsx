@@ -1,15 +1,17 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { isGamesRoute } from "../lib/gameRoutes";
+import PixelIcon, { type PixelIconName } from "./PixelIcon";
 
 // Tab order is fixed by product direction: Home, Games, Boards, Events,
-// DeskFinds, Profile. Labels are rendered uppercase via CSS (.app-tab), so the
-// text here stays in normal case for screen readers.
-const TABS: { to: string; label: string; end?: boolean }[] = [
-  { to: "/", label: "Home", end: true },
-  { to: "/games", label: "Games" },
-  { to: "/boards", label: "Boards" },
-  { to: "/events", label: "Events" },
-  { to: "/deskfinds", label: "DeskFinds" },
+// Desk Finds, Profile. Icons come from the locked Debbie icon set v1 and sit
+// beside a visible label. Profile has no icon in v1 (see the .app-tab__icon
+// placeholder below) — it needs a v1.1 addition.
+const TABS: { to: string; label: string; icon?: PixelIconName; end?: boolean }[] = [
+  { to: "/", label: "Home", icon: "home", end: true },
+  { to: "/games", label: "Games", icon: "reality-break" },
+  { to: "/boards", label: "Boards", icon: "buddy-boards" },
+  { to: "/events", label: "Events", icon: "buddy-calendar" },
+  { to: "/deskfinds", label: "Desk Finds", icon: "desk-finds" },
   { to: "/profile", label: "Profile" },
 ];
 
@@ -29,9 +31,9 @@ export default function AppHeader() {
     >
       <div className="container" style={{ padding: "16px 24px 8px" }}>
         <Link to="/" className="app-brand">
+          <img src="/favicon.svg" alt="" width={32} height={32} className="app-brand__mark" />
           Debbie
         </Link>
-
       </div>
 
       <nav className="container app-tabs" aria-label="Main">
@@ -47,7 +49,10 @@ export default function AppHeader() {
               }
               aria-current={undefined}
             >
-              {tab.label}
+              <span className="app-tab__icon" aria-hidden="true">
+                {tab.icon && <PixelIcon name={tab.icon} size={16} />}
+              </span>
+              <span>{tab.label}</span>
             </NavLink>
           );
         })}

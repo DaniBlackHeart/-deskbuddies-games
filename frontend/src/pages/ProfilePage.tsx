@@ -7,8 +7,8 @@ export default function ProfilePage() {
   return (
     <div className="app-shell">
       <AppHeader />
-      <div className="container container--narrow">
-        <h1>Profile</h1>
+      <div className="container container--narrow db-page">
+        <h1 className="t-h1">Profile</h1>
         <div className="card">
           <div className="row" style={{ gap: "12px" }}>
             {profile?.avatar_url && (

@@ -146,7 +146,7 @@ export default function App() {
               path="/deskfinds"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="DeskFinds" blurb="The shop for desk goodies and buddies will live here." />
+                  <ComingSoonPage title="Desk Finds" blurb="The shop for desk goodies and buddies will live here." />
                 </ProtectedRoute>
               }
             />
