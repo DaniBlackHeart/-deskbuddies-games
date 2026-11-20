@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { isGamesRoute } from "../lib/gameRoutes";
 import PixelIcon, { type PixelIconName } from "./PixelIcon";
@@ -16,12 +17,48 @@ const TABS: { to: string; label: string; icon?: PixelIconName; end?: boolean }[]
   { to: "/profile", label: "Profile" },
 ];
 
+// Phone layout: a bottom bar with four tabs plus More. Desk Finds and Profile
+// live in the More sheet until My Desk, Desk Time and the rest exist.
+const BAR_TABS = TABS.filter((t) => ["/", "/games", "/boards", "/events"].includes(t.to));
+const MORE_TABS = TABS.filter((t) => ["/deskfinds", "/profile"].includes(t.to));
+
 export default function AppHeader() {
   const { pathname } = useLocation();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Reserve room under the page for the fixed bottom bar (phones only; the
+  // CSS does nothing on wider screens).
+  useEffect(() => {
+    document.body.classList.add("has-tabbar");
+    return () => document.body.classList.remove("has-tabbar");
+  }, []);
+
+  // Close the sheet after navigating.
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
+
+  // Sheet: Escape closes and returns focus to the More button; focus moves
+  // into the sheet when it opens.
+  useEffect(() => {
+    if (!moreOpen) return;
+    sheetRef.current?.querySelector<HTMLElement>("a")?.focus();
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMoreOpen(false);
+        moreBtnRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
 
   // Game lobby/play and MOD pages live outside /games, but they belong to the
   // Games tab, so keep it highlighted there.
   const inGames = isGamesRoute(pathname);
+  const moreActive = MORE_TABS.some((t) => pathname === t.to || pathname.startsWith(t.to + "/"));
 
   return (
     <header
@@ -63,6 +100,61 @@ export default function AppHeader() {
         </nav>
         <MemberStats className="app-stats--wide" />
       </div>
+      {/* Phones: bottom tab bar. Hidden on wider screens (see global.css). */}
+      {moreOpen && <div className="app-sheet-backdrop" onClick={() => setMoreOpen(false)} aria-hidden="true" />}
+      {moreOpen && (
+        <div className="app-sheet" id="more-sheet" ref={sheetRef} role="group" aria-label="More">
+          {MORE_TABS.map((tab) => (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              className={({ isActive }) => "app-sheet__item" + (isActive ? " app-sheet__item--active" : "")}
+            >
+              <span className="app-bt__icon" aria-hidden="true">
+                {tab.icon && <PixelIcon name={tab.icon} size={32} />}
+              </span>
+              <span>{tab.label}</span>
+            </NavLink>
+          ))}
+        </div>
+      )}
+      <nav className="app-bottombar" aria-label="Main">
+        <ul className="app-bottombar__list">
+          {BAR_TABS.map((tab) => {
+            const forceActive = tab.to === "/games" && inGames;
+            return (
+              <li key={tab.to}>
+                <NavLink
+                  to={tab.to}
+                  end={tab.end}
+                  className={({ isActive }) => "app-bt" + (isActive || forceActive ? " app-bt--active" : "")}
+                  aria-current={undefined}
+                >
+                  <span className="app-bt__icon" aria-hidden="true">
+                    {tab.icon && <PixelIcon name={tab.icon} size={32} />}
+                  </span>
+                  <span>{tab.label}</span>
+                </NavLink>
+              </li>
+            );
+          })}
+          <li>
+            <button
+              type="button"
+              ref={moreBtnRef}
+              className={"app-bt" + (moreActive || moreOpen ? " app-bt--active" : "")}
+              aria-expanded={moreOpen}
+              aria-controls="more-sheet"
+              onClick={() => setMoreOpen((o) => !o)}
+            >
+              <span className="app-bt__icon" aria-hidden="true">
+                <PixelIcon name="more" size={32} />
+              </span>
+              <span>More</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
     </header>
   );
 }

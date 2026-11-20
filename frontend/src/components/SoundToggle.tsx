@@ -65,7 +65,7 @@ export default function SoundToggle() {
   if (!isGamesRoute(pathname)) return null;
 
   return (
-    <div style={{ position: "fixed", bottom: "16px", right: "16px", zIndex: 50, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
+    <div style={{ position: "fixed", bottom: "var(--sound-bottom, 16px)", right: "16px", zIndex: 50, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
       {open && (
         <div className="card card--tight" style={{ padding: "10px 14px", boxShadow: "var(--shadow-md)" }}>
           <div className="row">

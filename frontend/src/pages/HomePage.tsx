@@ -30,9 +30,9 @@ function timeOfDayGreeting(): string {
   return "Good evening";
 }
 
-function ComingSoonPanel({ title, blurb, note }: { title: string; blurb: string; note: string }) {
+function ComingSoonPanel({ title, blurb, note, className }: { title: string; blurb: string; note: string; className?: string }) {
   return (
-    <section className="db-panel" aria-label={title}>
+    <section className={"db-panel" + (className ? " " + className : "")} aria-label={title}>
       <div className="row-between" style={{ alignItems: "flex-start", gap: "var(--space-3)" }}>
         <div>
           <h2 className="t-h2" style={{ margin: 0 }}>
@@ -99,12 +99,13 @@ export default function HomePage() {
         <div className="db-home-cols">
           <div className="db-home-main">
             <ComingSoonPanel
+              className="db-home__desk"
               title="My Desk"
               blurb="Your own little corner of DeskBuddies."
               note="Your desk and first companion will live here."
             />
 
-            <section className="db-panel" id="reality-break" aria-labelledby="rb">
+            <section className="db-panel db-home__rb" id="reality-break" aria-labelledby="rb">
               <div className="row-between" style={{ alignItems: "baseline", gap: "var(--space-3)" }}>
                 <div>
                   <h2 id="rb" className="t-h2" style={{ margin: 0 }}>
@@ -135,11 +136,13 @@ export default function HomePage() {
 
           <div className="db-home-side">
             <ComingSoonPanel
+              className="db-home__today"
               title="Today"
               blurb="A couple of good ways to spend it."
               note="Focus Blocks and the daily Brain Break are on their way."
             />
             <ComingSoonPanel
+              className="db-home__who"
               title="Who's around"
               blurb="A little company while you work."
               note="This will show people in a Focus Block once those exist."

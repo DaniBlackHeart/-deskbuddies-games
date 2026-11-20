@@ -1347,8 +1347,27 @@ button {
   }
 }
 @media (max-width: 640px) {
+  .app-brandrow {
+    flex-wrap: nowrap;
+    padding: 12px 16px;
+    gap: 8px;
+  }
+  .app-brand {
+    font-size: 1.25rem;
+    flex: none;
+  }
+  .app-stats--narrow {
+    min-width: 0;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .app-stats--narrow::-webkit-scrollbar {
+    display: none;
+  }
   .app-stat {
     min-height: 40px;
+    gap: 4px;
     padding: 0 10px 0 6px;
   }
   .app-stat__word,
@@ -1402,46 +1421,126 @@ button {
   outline-offset: -2px;
 }
 
-/* Tabs on small screens: share the row evenly and shrink so all six fit
-   without a scrollbar. Very narrow screens fall back to a hidden-scrollbar
-   swipe so nothing is ever cut off. */
 .app-tabs {
   scrollbar-width: none;
 }
 .app-tabs::-webkit-scrollbar {
   display: none;
 }
+
+/* ---- Phones: bottom tab bar (Home concept, mobile board) ----
+   Top tabs hide; a fixed bar holds Home, Games, Boards, Events and More.
+   32px icon over a 12px label, 56px+ targets. Desktop never sees it. */
+.app-bottombar,
+.app-sheet,
+.app-sheet-backdrop {
+  display: none;
+}
 @media (max-width: 640px) {
   .app-navrow {
-    padding-left: var(--space-2);
-    padding-right: var(--space-2);
+    display: none;
   }
-  .app-tabs {
-    flex: 1 1 auto;
-    gap: 0;
+  .app-bottombar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    background: var(--color-surface);
+    border-top: 2px solid var(--color-border);
+    padding: 6px 8px calc(10px + env(safe-area-inset-bottom, 0px));
   }
-  /* Tab bar: 32px icon over a 12px label (whole-number icon scale). */
-  .app-tab {
-    flex: 1 1 auto;
+  .app-bottombar__list {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .app-bt,
+  .app-sheet__item {
+    display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
-    gap: var(--space-1);
-    min-height: 60px;
-    padding: 6px 4px;
-    text-align: center;
-    font-size: 0.75rem;
+    gap: 2px;
+    width: 100%;
+    min-height: 56px;
+    padding: 4px 2px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--color-text-muted);
+    font-family: var(--db-font-body);
+    font-size: 0.75rem; /* 12px label */
     line-height: 1.33;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
   }
-  .app-tab__icon,
-  .app-tab__icon:empty {
-    display: inline-block; /* keep the slot on mobile so labels line up */
+  .app-bt--active,
+  .app-sheet__item--active {
+    background: var(--color-bg-alt);
+    --ifill: var(--color-surface);
+    color: var(--color-accent-text);
+    font-weight: 700;
+  }
+  .app-bt:focus-visible,
+  .app-sheet__item:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: -3px;
+  }
+  /* Keep the icon slot even when empty (Profile has no icon in v1) so rows line up. */
+  .app-bt__icon {
+    display: inline-block;
     width: 32px;
     height: 32px;
+    flex: none;
   }
-}
-@media (max-width: 380px) {
-  .app-tab {
-    padding: 6px 2px;
+  .app-bt__icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .app-sheet-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 38;
+    background: rgba(58, 42, 34, 0.35);
+  }
+  .app-sheet {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    z-index: 39;
+    padding: 8px;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-md);
+  }
+  .app-sheet__item {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    text-align: left;
+  }
+  /* Room under the page for the bar; lift the sound button above it. */
+  body.has-tabbar .app-shell {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+  body.has-tabbar {
+    --sound-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -1591,6 +1690,7 @@ button {
   align-items: center;
   min-height: 44px;
   font-weight: 700;
+  white-space: nowrap;
   color: var(--color-accent-text);
 }
 .db-games {
@@ -1626,14 +1726,70 @@ button {
   font-size: 1rem;
 }
 @media (max-width: 640px) {
+  .db-page {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
   .db-panel {
-    padding: 18px;
+    padding: 16px;
   }
   .db-checkin {
     flex-basis: 100%;
+    min-width: 0;
   }
   .db-checkin__btn {
     width: 100%;
+    min-height: 56px;
+    border-radius: 14px;
+    font-size: 1.25rem;
+  }
+  /* One column in the concept's order: greeting + check-in, My Desk, Today,
+     Who's around, Reality Break (a swipeable row of tiles). */
+  .db-home-cols,
+  .db-home-main,
+  .db-home-side {
+    display: contents;
+  }
+  .db-home__desk {
+    order: 1;
+  }
+  .db-home__today {
+    order: 2;
+  }
+  .db-home__who {
+    order: 3;
+  }
+  .db-home__rb {
+    order: 4;
+  }
+  .db-games {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    margin-left: -4px;
+    margin-right: -4px;
+    padding: 2px 4px 4px;
+  }
+  .db-games::-webkit-scrollbar {
+    display: none;
+  }
+  .db-game {
+    flex: none;
+    flex-direction: column;
+    justify-content: center;
+    width: 132px;
+    min-height: 104px;
+    padding: 12px 8px;
+    gap: 8px;
+    text-align: center;
+    scroll-snap-align: start;
+  }
+  .db-game__tile {
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
   }
 }
 

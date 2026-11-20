@@ -16,6 +16,11 @@ const ACC = "var(--iacc,#B5573A)";
 
 const ICONS = {
   // ---- navigation (two-tone: lines, soft fill, accent) ----
+  more: [
+    [LINE, "M2 2h5v1h-5zM9 2h5v1h-5zM2 3h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM13 3h1v1h-1zM2 4h1v1h-1zM6 4h1v1h-1zM9 4h1v1h-1zM13 4h1v1h-1zM2 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM13 5h1v1h-1zM2 6h5v1h-5zM9 6h5v1h-5zM2 9h5v1h-5zM9 9h5v1h-5zM2 10h1v1h-1zM6 10h1v1h-1zM9 10h1v1h-1zM13 10h1v1h-1zM2 11h1v1h-1zM6 11h1v1h-1zM9 11h1v1h-1zM13 11h1v1h-1zM2 12h1v1h-1zM6 12h1v1h-1zM9 12h1v1h-1zM13 12h1v1h-1zM2 13h5v1h-5zM9 13h5v1h-5z"],
+    [FILL, "M3 3h3v1h-3zM3 4h3v1h-3zM3 5h3v1h-3zM3 10h3v1h-3zM10 10h3v1h-3zM3 11h3v1h-3zM10 11h3v1h-3zM3 12h3v1h-3zM10 12h3v1h-3z"],
+    [ACC, "M10 3h3v1h-3zM10 4h3v1h-3zM10 5h3v1h-3z"],
+  ],
   home: [
     [LINE, "M7 1h2v1h-2zM6 2h4v1h-4zM5 3h2v1h-2zM9 3h2v1h-2zM4 4h2v1h-2zM10 4h2v1h-2zM3 5h2v1h-2zM11 5h2v1h-2zM2 6h2v1h-2zM12 6h2v1h-2zM1 7h14v1h-14zM3 8h1v1h-1zM12 8h1v1h-1zM3 9h1v1h-1zM12 9h1v1h-1zM3 10h1v1h-1zM12 10h1v1h-1zM3 11h1v1h-1zM12 11h1v1h-1zM3 12h1v1h-1zM12 12h1v1h-1zM3 13h10v1h-10z"],
     [FILL, "M4 8h8v1h-8zM4 9h8v1h-8zM4 10h2v1h-2zM10 10h2v1h-2zM4 11h2v1h-2zM10 11h2v1h-2zM4 12h2v1h-2zM10 12h2v1h-2z"],
