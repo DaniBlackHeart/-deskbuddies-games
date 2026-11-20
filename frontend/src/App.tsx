@@ -138,7 +138,7 @@ export default function App() {
               path="/events"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="Events" blurb="Upcoming community events and activities will live here." />
+                  <ComingSoonPage title="Buddy Calendar" blurb="Upcoming community events and activities will live here." />
                 </ProtectedRoute>
               }
             />
@@ -147,6 +147,54 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <ComingSoonPage title="Desk Finds" blurb="The shop for desk goodies and buddies will live here." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/common-room"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="The Common Room" blurb="The community's shared space will live here." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/desk-time"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="Desk Time" blurb="Focus Blocks and your desk time will live here." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/beyond-the-desk"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="Beyond the Desk" blurb="Daily Detours, Weekly Wins and the 52 Side Quests will live here." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-desk"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="My Desk" blurb="Your own desk and first companion will live here." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/buddybook"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="Buddybook" blurb="Your stamps and passport will live here." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/keep-the-desk-lit"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="Keep the Desk Lit" blurb="Ways to support the community will live here." />
                 </ProtectedRoute>
               }
             />

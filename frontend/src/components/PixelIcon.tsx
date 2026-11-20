@@ -21,6 +21,36 @@ const ICONS = {
     [FILL, "M3 3h3v1h-3zM3 4h3v1h-3zM3 5h3v1h-3zM3 10h3v1h-3zM10 10h3v1h-3zM3 11h3v1h-3zM10 11h3v1h-3zM3 12h3v1h-3zM10 12h3v1h-3z"],
     [ACC, "M10 3h3v1h-3zM10 4h3v1h-3zM10 5h3v1h-3z"],
   ],
+  "common-room": [
+    [LINE, "M2 2h12v1h-12zM1 3h1v1h-1zM14 3h1v1h-1zM1 4h1v1h-1zM14 4h1v1h-1zM1 5h1v1h-1zM14 5h1v1h-1zM1 6h1v1h-1zM14 6h1v1h-1zM1 7h1v1h-1zM14 7h1v1h-1zM1 8h1v1h-1zM14 8h1v1h-1zM1 9h1v1h-1zM14 9h1v1h-1zM2 10h12v1h-12zM4 11h1v1h-1zM7 11h1v1h-1zM4 12h1v1h-1zM6 12h1v1h-1zM4 13h2v1h-2z"],
+    [FILL, "M2 3h12v1h-12zM2 4h12v1h-12zM2 5h2v1h-2zM6 5h1v1h-1zM9 5h1v1h-1zM12 5h2v1h-2zM2 6h2v1h-2zM6 6h1v1h-1zM9 6h1v1h-1zM12 6h2v1h-2zM2 7h12v1h-12zM2 8h12v1h-12zM2 9h12v1h-12zM5 11h2v1h-2zM5 12h1v1h-1z"],
+    [ACC, "M4 5h2v1h-2zM7 5h2v1h-2zM10 5h2v1h-2zM4 6h2v1h-2zM7 6h2v1h-2zM10 6h2v1h-2z"],
+  ],
+  "desk-time": [
+    [LINE, "M6 1h4v1h-4zM7 2h2v1h-2zM5 3h6v1h-6zM12 3h1v1h-1zM4 4h1v1h-1zM11 4h1v1h-1zM13 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM2 6h1v1h-1zM13 6h1v1h-1zM2 7h1v1h-1zM13 7h1v1h-1zM2 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM13 10h1v1h-1zM2 11h1v1h-1zM13 11h1v1h-1zM3 12h1v1h-1zM12 12h1v1h-1zM4 13h1v1h-1zM11 13h1v1h-1zM5 14h6v1h-6z"],
+    [FILL, "M5 4h6v1h-6zM4 5h3v1h-3zM8 5h4v1h-4zM3 6h4v1h-4zM8 6h5v1h-5zM3 7h4v1h-4zM8 7h5v1h-5zM3 8h4v1h-4zM11 8h2v1h-2zM3 9h10v1h-10zM3 10h10v1h-10zM3 11h10v1h-10zM4 12h8v1h-8zM5 13h6v1h-6z"],
+    [ACC, "M7 5h1v1h-1zM7 6h1v1h-1zM7 7h1v1h-1zM7 8h4v1h-4z"],
+  ],
+  "my-desk": [
+    [LINE, "M3 1h8v1h-8zM3 2h1v1h-1zM10 2h1v1h-1zM3 3h1v1h-1zM10 3h1v1h-1zM3 4h1v1h-1zM10 4h1v1h-1zM3 5h1v1h-1zM10 5h1v1h-1zM3 6h8v1h-8zM6 7h2v1h-2zM5 8h4v1h-4zM1 9h14v1h-14zM1 10h14v1h-14zM2 11h1v1h-1zM5 11h6v1h-6zM13 11h1v1h-1zM2 12h1v1h-1zM5 12h1v1h-1zM10 12h1v1h-1zM13 12h1v1h-1zM2 13h1v1h-1zM5 13h1v1h-1zM10 13h1v1h-1zM13 13h1v1h-1zM2 14h1v1h-1zM5 14h6v1h-6zM13 14h1v1h-1z"],
+    [FILL, "M4 2h6v1h-6zM4 3h6v1h-6zM4 4h6v1h-6zM4 5h6v1h-6zM6 12h1v1h-1zM9 12h1v1h-1zM6 13h4v1h-4z"],
+    [ACC, "M12 5h2v1h-2zM12 6h3v1h-3zM12 7h3v1h-3zM12 8h2v1h-2zM7 12h2v1h-2z"],
+  ],
+  "beyond-the-desk": [
+    [LINE, "M4 1h1v1h-1zM4 2h1v1h-1zM4 3h1v1h-1zM4 4h1v1h-1zM4 5h1v1h-1zM4 6h1v1h-1zM4 7h1v1h-1zM4 8h1v1h-1zM4 9h1v1h-1zM4 10h1v1h-1zM4 11h1v1h-1zM3 12h10v1h-10zM1 13h1v1h-1zM14 13h1v1h-1zM2 14h12v1h-12z"],
+    [FILL, "M2 13h12v1h-12z"],
+    [ACC, "M5 1h4v1h-4zM5 2h6v1h-6zM5 3h8v1h-8zM5 4h6v1h-6zM5 5h4v1h-4z"],
+  ],
+  "buddybook": [
+    [LINE, "M3 1h10v1h-10zM3 2h2v1h-2zM12 2h1v1h-1zM3 3h2v1h-2zM12 3h1v1h-1zM3 4h2v1h-2zM12 4h1v1h-1zM3 5h2v1h-2zM12 5h1v1h-1zM3 6h2v1h-2zM12 6h1v1h-1zM3 7h2v1h-2zM12 7h1v1h-1zM3 8h2v1h-2zM12 8h1v1h-1zM3 9h2v1h-2zM6 9h5v1h-5zM12 9h1v1h-1zM3 10h2v1h-2zM12 10h1v1h-1zM3 11h2v1h-2zM6 11h4v1h-4zM12 11h1v1h-1zM3 12h2v1h-2zM12 12h1v1h-1zM3 13h6v1h-6zM11 13h2v1h-2z"],
+    [FILL, "M5 2h7v1h-7zM5 3h1v1h-1zM11 3h1v1h-1zM5 4h1v1h-1zM8 4h1v1h-1zM11 4h1v1h-1zM5 5h1v1h-1zM8 5h1v1h-1zM11 5h1v1h-1zM5 6h1v1h-1zM11 6h1v1h-1zM5 7h7v1h-7zM5 8h7v1h-7zM5 9h1v1h-1zM11 9h1v1h-1zM5 10h7v1h-7zM5 11h1v1h-1zM10 11h2v1h-2zM5 12h7v1h-7z"],
+    [ACC, "M6 3h5v1h-5zM6 4h2v1h-2zM9 4h2v1h-2zM6 5h2v1h-2zM9 5h2v1h-2zM6 6h5v1h-5zM9 13h2v1h-2zM9 14h2v1h-2zM9 15h2v1h-2z"],
+  ],
+  "keep-the-desk-lit": [
+    [LINE, "M10 2h2v1h-2zM9 3h1v1h-1zM12 3h1v1h-1zM8 4h1v1h-1zM13 4h1v1h-1zM7 5h8v1h-8zM7 6h1v1h-1zM6 7h1v1h-1zM5 8h1v1h-1zM4 9h1v1h-1zM4 10h1v1h-1zM4 11h1v1h-1zM4 12h1v1h-1zM2 13h6v1h-6zM2 14h6v1h-6z"],
+    [FILL, "M10 3h2v1h-2zM9 4h4v1h-4z"],
+    [ACC, "M9 7h1v1h-1zM11 7h1v1h-1zM13 7h1v1h-1zM9 8h1v1h-1zM11 8h1v1h-1zM13 8h1v1h-1zM11 9h1v1h-1z"],
+  ],
   home: [
     [LINE, "M7 1h2v1h-2zM6 2h4v1h-4zM5 3h2v1h-2zM9 3h2v1h-2zM4 4h2v1h-2zM10 4h2v1h-2zM3 5h2v1h-2zM11 5h2v1h-2zM2 6h2v1h-2zM12 6h2v1h-2zM1 7h14v1h-14zM3 8h1v1h-1zM12 8h1v1h-1zM3 9h1v1h-1zM12 9h1v1h-1zM3 10h1v1h-1zM12 10h1v1h-1zM3 11h1v1h-1zM12 11h1v1h-1zM3 12h1v1h-1zM12 12h1v1h-1zM3 13h10v1h-10z"],
     [FILL, "M4 8h8v1h-8zM4 9h8v1h-8zM4 10h2v1h-2zM10 10h2v1h-2zM4 11h2v1h-2zM10 11h2v1h-2zM4 12h2v1h-2zM10 12h2v1h-2z"],

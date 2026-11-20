@@ -66,7 +66,7 @@ button {
 
 .container {
   width: 100%;
-  max-width: 1080px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: var(--space-5);
 }
@@ -1271,10 +1271,16 @@ button {
 .app-navrow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--space-4);
   padding-top: 0;
   padding-bottom: 0;
+}
+.app-navleft {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  gap: var(--space-1);
 }
 .app-tabs {
   display: flex;
@@ -1282,6 +1288,11 @@ button {
   min-width: 0;
   overflow-x: auto;
   white-space: nowrap;
+}
+.app-more {
+  position: relative;
+  display: flex;
+  flex: none;
 }
 
 /* Header chips: deskbits, Buddy Level, Buddy XP (Home concept chip design). */
@@ -1307,23 +1318,62 @@ button {
   font-weight: 700;
   white-space: nowrap;
 }
-.app-stat__word {
-  font-weight: 600;
-  color: var(--color-text-muted);
+.app-stat--level,
+.app-stat--xp {
+  padding-right: 6px;
 }
-.app-stat__bar {
-  display: inline-block;
-  width: 64px;
-  height: 8px;
-  border-radius: 4px;
+.app-stat--xp {
+  padding-right: 4px;
+}
+/* Buddy Level: number cap + progress track in one bar. */
+.app-level {
+  display: inline-flex;
+  align-items: stretch;
+  height: 26px;
+  border: 2px solid var(--color-border);
+  border-radius: 13px;
   background: var(--color-bg-alt);
-  border: 1px solid var(--color-border);
   overflow: hidden;
 }
-.app-stat__bar > span {
+.app-level__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  padding: 0 7px;
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.app-level__track {
+  display: block;
+  width: 56px;
+}
+.app-level__fill {
   display: block;
   height: 100%;
-  background: var(--color-primary);
+  background: var(--color-secondary);
+}
+/* Buddy XP: the number sits inside the star. The star's colours are fixed in
+   both themes, so the digits use a fixed dark brown. */
+.app-xp {
+  position: relative;
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+}
+.app-xp__num {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #2e2018;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 .sr-only {
   position: absolute;
@@ -1333,23 +1383,12 @@ button {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
-/* One set of chips + avatar is shown at a time: right of the tabs on wide
-   screens, beside the brand on narrow ones. */
+/* Chips + avatar: right of the brand row. */
 .app-right {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-.app-right--narrow {
-  display: none;
-}
-@media (max-width: 900px) {
-  .app-right:not(.app-right--narrow) {
-    display: none;
-  }
-  .app-right--narrow {
-    display: flex;
-  }
+  min-width: 0;
 }
 .app-avatar {
   flex: none;
@@ -1380,38 +1419,34 @@ button {
   box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary);
 }
 @media (max-width: 640px) {
+  /* Phones: brand on the first line, chips on a line of their own. */
   .app-brandrow {
-    flex-wrap: nowrap;
-    padding: 12px 16px;
+    flex-wrap: wrap;
+    padding: 12px 16px 10px;
     gap: 8px;
   }
   .app-brand {
     font-size: 1.25rem;
     flex: none;
   }
-  .app-right--narrow {
-    min-width: 0;
+  .app-right {
+    flex: 1 1 100%;
   }
-  .app-stats--narrow {
-    min-width: 0;
-    gap: 4px;
+  .app-stats {
+    gap: 6px;
     overflow-x: auto;
     scrollbar-width: none;
   }
-  .app-stats--narrow::-webkit-scrollbar {
+  .app-stats::-webkit-scrollbar {
     display: none;
   }
-  .app-avatar--narrow {
+  .app-avatar {
     display: none;
   }
   .app-stat {
     min-height: 40px;
     gap: 4px;
     padding: 0 10px 0 4px;
-  }
-  .app-stat__word,
-  .app-stat__bar {
-    display: none;
   }
 }
 .app-tab {
@@ -1426,7 +1461,11 @@ button {
   font-weight: 600;
   text-decoration: none;
   color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
   border-bottom: 3px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
 }
 .app-tab__icon {
   display: inline-block;
@@ -1467,14 +1506,90 @@ button {
   display: none;
 }
 
-/* ---- Phones: bottom tab bar (Home concept, mobile board) ----
-   Top tabs hide; a fixed bar holds Home, Games, Boards, Events and More.
-   32px icon over a 12px label, 56px+ targets. Desktop never sees it. */
-.app-bottombar,
-.app-sheet,
-.app-sheet-backdrop {
+/* Tablet widths: tighter tabs so all seven fit. */
+@media (min-width: 641px) and (max-width: 1000px) {
+  .app-tabs,
+  .app-navleft {
+    gap: 0;
+  }
+  .app-tab {
+    padding: 0 8px;
+    gap: 6px;
+    font-size: 0.8125rem;
+  }
+}
+
+/* ---- More menu: a dropdown under the tabs on desktop, a sheet above the
+   bottom bar on phones. ---- */
+.app-bottombar {
   display: none;
 }
+.app-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  background: transparent;
+}
+.app-sheet {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 39;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 240px;
+  padding: 6px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+}
+.app-sheet__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--color-text-muted);
+  font-family: var(--db-font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.app-sheet__item:hover,
+.app-sheet__item--active {
+  background: var(--color-bg-alt);
+  --ifill: var(--color-surface);
+}
+.app-sheet__item:hover {
+  color: var(--color-text);
+}
+.app-sheet__item--active {
+  color: var(--color-accent-text);
+  font-weight: 700;
+}
+.app-sheet__item:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+/* Keep the icon slot even when empty (Settings has no icon in v1) so labels line up. */
+.app-sheet__icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.app-sheet__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- Phones: bottom tab bar (Home concept, mobile board) ----
+   Top tabs hide; a fixed bar holds four tabs and More. 32px icon over a 12px
+   label, 56px+ targets. Desktop never sees it. */
 @media (max-width: 640px) {
   .app-navrow {
     display: none;
@@ -1498,41 +1613,37 @@ button {
     padding: 0;
     list-style: none;
   }
-  .app-bt,
-  .app-sheet__item {
+  .app-bt {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 2px;
     width: 100%;
-    min-height: 56px;
-    padding: 4px 2px;
+    min-height: 60px;
+    padding: 6px 2px 4px;
     border: 0;
     border-radius: 10px;
     background: transparent;
     color: var(--color-text-muted);
     font-family: var(--db-font-body);
     font-size: 0.75rem; /* 12px label */
-    line-height: 1.33;
+    line-height: 1.2;
     font-weight: 600;
     text-align: center;
     text-decoration: none;
     cursor: pointer;
   }
-  .app-bt--active,
-  .app-sheet__item--active {
+  .app-bt--active {
     background: var(--color-bg-alt);
     --ifill: var(--color-surface);
     color: var(--color-accent-text);
     font-weight: 700;
   }
-  .app-bt:focus-visible,
-  .app-sheet__item:focus-visible {
+  .app-bt:focus-visible {
     outline: 3px solid var(--color-focus);
     outline-offset: -3px;
   }
-  /* Keep the icon slot even when empty (Profile has no icon in v1) so rows line up. */
   .app-bt__icon {
     display: inline-block;
     width: 32px;
@@ -1545,10 +1656,6 @@ button {
     height: 100%;
   }
   .app-sheet-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 38;
     background: rgba(58, 42, 34, 0.35);
   }
   .app-sheet {
@@ -1556,23 +1663,21 @@ button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 4px;
     position: fixed;
+    top: auto;
     left: 8px;
     right: 8px;
     bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-    z-index: 39;
+    min-width: 0;
     padding: 8px;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: 14px;
-    box-shadow: var(--shadow-md);
   }
   .app-sheet__item {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 12px;
+    min-height: 56px;
     padding: 8px 12px;
-    font-size: 0.875rem;
-    text-align: left;
+    gap: 12px;
+  }
+  .app-sheet__icon {
+    width: 32px;
+    height: 32px;
   }
   /* Room under the page for the bar; lift the sound button above it. */
   body.has-tabbar .app-shell {
