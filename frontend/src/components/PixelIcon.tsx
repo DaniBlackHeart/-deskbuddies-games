@@ -5,7 +5,8 @@
 // render beside a visible label (the SVG is decorative). Inlined, not <img>,
 // so currentColor and the --ifill / --iacc / --spO tokens work in both themes.
 // Only the icons the app uses so far are included; add the rest from the doc
-// as screens need them.
+// as screens need them. Sprites (deskbits, Buddy XP, Buddy Level, Buddy Streak)
+// keep fixed colours; their outline follows --spO.
 
 type Layer = [fill: string, d: string];
 
@@ -46,6 +47,25 @@ const ICONS = {
     ["#D9774F", "M7 5h2v1h-2zM6 6h4v1h-4zM5 7h2v1h-2zM9 7h2v1h-2zM4 8h3v1h-3zM4 9h2v1h-2zM4 10h2v1h-2zM4 11h1v1h-1zM4 12h1v1h-1zM5 13h1v1h-1zM7 14h2v1h-2z"],
     ["#F2C766", "M7 7h2v1h-2zM7 8h2v1h-2zM6 9h4v1h-4zM6 10h4v1h-4zM5 11h6v1h-6zM5 12h6v1h-6zM6 13h4v1h-4z"],
     ["#B5573A", "M9 8h3v1h-3zM10 9h2v1h-2zM10 10h2v1h-2zM11 11h1v1h-1zM11 12h1v1h-1zM10 13h1v1h-1z"],
+  ],
+  deskbits: [
+    ["var(--spO,#4A3228)", "M6 1h4v1h-4zM4 2h1v1h-1zM10 2h2v1h-2zM12 3h1v1h-1zM13 4h1v1h-1zM13 5h1v1h-1zM1 6h1v1h-1zM6 6h2v1h-2zM14 6h1v1h-1zM1 7h1v1h-1zM6 7h2v1h-2zM14 7h1v1h-1zM1 8h1v1h-1zM8 8h2v1h-2zM14 8h1v1h-1zM1 9h1v1h-1zM8 9h2v1h-2zM14 9h1v1h-1zM2 10h1v1h-1zM13 10h1v1h-1zM2 11h1v1h-1zM13 11h1v1h-1zM3 12h1v1h-1zM12 12h1v1h-1zM4 13h2v1h-2zM10 13h2v1h-2zM6 14h4v1h-4z"],
+    ["#F2C766", "M8 2h2v1h-2zM5 3h6v1h-6zM4 4h8v1h-8zM3 5h10v1h-10zM2 6h4v1h-4zM8 6h5v1h-5zM2 7h4v1h-4zM8 7h5v1h-5zM2 8h6v1h-6zM10 8h3v1h-3zM2 9h6v1h-6zM10 9h3v1h-3zM3 10h10v1h-10zM4 11h8v1h-8zM5 12h6v1h-6zM6 13h4v1h-4z"],
+    ["#FFF0C2", "M5 2h3v1h-3zM3 3h2v1h-2zM2 4h2v1h-2zM2 5h1v1h-1z"],
+    ["#D9A13B", "M11 3h1v1h-1zM12 4h1v1h-1zM13 6h1v1h-1zM13 7h1v1h-1zM13 8h1v1h-1zM13 9h1v1h-1zM3 11h1v1h-1zM12 11h1v1h-1zM4 12h1v1h-1zM11 12h1v1h-1z"],
+  ],
+  "buddy-xp": [
+    ["var(--spO,#4A3228)", "M7 1h2v1h-2zM7 2h2v1h-2zM6 3h1v1h-1zM9 3h1v1h-1zM5 4h1v1h-1zM10 4h1v1h-1zM4 5h1v1h-1zM11 5h1v1h-1zM3 6h1v1h-1zM12 6h1v1h-1zM1 7h2v1h-2zM13 7h2v1h-2zM1 8h2v1h-2zM13 8h2v1h-2zM3 9h1v1h-1zM12 9h1v1h-1zM4 10h1v1h-1zM11 10h1v1h-1zM5 11h1v1h-1zM10 11h1v1h-1zM6 12h1v1h-1zM9 12h1v1h-1zM7 13h2v1h-2zM7 14h2v1h-2z"],
+    ["#8FA98A", "M8 3h1v1h-1zM8 4h2v1h-2zM8 5h3v1h-3zM7 6h3v1h-3zM6 7h3v1h-3zM3 8h5v1h-5zM4 9h3v1h-3zM5 10h1v1h-1z"],
+    ["#D3E3CC", "M7 3h1v1h-1zM6 4h2v1h-2zM5 5h3v1h-3zM4 6h3v1h-3zM3 7h3v1h-3z"],
+    ["#6B8A66", "M10 6h2v1h-2zM9 7h4v1h-4zM8 8h5v1h-5zM7 9h5v1h-5zM6 10h5v1h-5zM6 11h4v1h-4zM7 12h2v1h-2z"],
+  ],
+  "buddy-level": [
+    ["var(--spO,#4A3228)", "M2 1h12v1h-12zM2 2h1v1h-1zM13 2h1v1h-1zM2 3h1v1h-1zM13 3h1v1h-1zM2 4h1v1h-1zM13 4h1v1h-1zM2 5h1v1h-1zM13 5h1v1h-1zM2 6h1v1h-1zM13 6h1v1h-1zM2 7h1v1h-1zM13 7h1v1h-1zM2 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM13 9h1v1h-1zM3 10h1v1h-1zM12 10h1v1h-1zM4 11h1v1h-1zM11 11h1v1h-1zM5 12h1v1h-1zM10 12h1v1h-1zM6 13h1v1h-1zM9 13h1v1h-1zM7 14h2v1h-2z"],
+    ["#C4694A", "M4 2h8v1h-8zM4 3h3v1h-3zM9 3h3v1h-3zM3 4h3v1h-3zM7 4h2v1h-2zM10 4h2v1h-2zM3 5h2v1h-2zM6 5h4v1h-4zM11 5h1v1h-1zM3 6h4v1h-4zM9 6h3v1h-3zM3 7h3v1h-3zM7 7h2v1h-2zM10 7h2v1h-2zM3 8h2v1h-2zM6 8h4v1h-4zM11 8h1v1h-1zM3 9h9v1h-9zM4 10h7v1h-7zM5 11h5v1h-5zM6 12h3v1h-3zM7 13h2v1h-2z"],
+    ["#E8977A", "M3 2h1v1h-1zM3 3h1v1h-1z"],
+    ["#9A4A30", "M12 2h1v1h-1zM12 3h1v1h-1zM12 4h1v1h-1zM12 5h1v1h-1zM12 6h1v1h-1zM12 7h1v1h-1zM12 8h1v1h-1zM12 9h1v1h-1zM11 10h1v1h-1zM10 11h1v1h-1zM9 12h1v1h-1z"],
+    ["#FBF4E8", "M7 3h2v1h-2zM6 4h1v1h-1zM9 4h1v1h-1zM5 5h1v1h-1zM10 5h1v1h-1zM7 6h2v1h-2zM6 7h1v1h-1zM9 7h1v1h-1zM5 8h1v1h-1zM10 8h1v1h-1z"],
   ],
 } satisfies Record<string, Layer[]>;
 

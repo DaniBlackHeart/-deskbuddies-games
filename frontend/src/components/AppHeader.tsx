@@ -1,6 +1,7 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { isGamesRoute } from "../lib/gameRoutes";
 import PixelIcon, { type PixelIconName } from "./PixelIcon";
+import MemberStats from "./MemberStats";
 
 // Tab order is fixed by product direction: Home, Games, Boards, Events,
 // Desk Finds, Profile. Icons come from the locked Debbie icon set v1 and sit
@@ -29,34 +30,39 @@ export default function AppHeader() {
         background: "var(--color-surface)",
       }}
     >
-      <div className="container" style={{ padding: "16px 24px 8px" }}>
+      <div className="container app-brandrow">
         <Link to="/" className="app-brand">
           <img src="/favicon.svg" alt="" width={32} height={32} className="app-brand__mark" />
           Debbie
         </Link>
+        {/* Narrow screens: chips sit beside the brand. Wide screens: right of the tabs. */}
+        <MemberStats className="app-stats--narrow" />
       </div>
 
-      <nav className="container app-tabs" aria-label="Main">
-        {TABS.map((tab) => {
-          const forceActive = tab.to === "/games" && inGames;
-          return (
-            <NavLink
-              key={tab.to}
-              to={tab.to}
-              end={tab.end}
-              className={({ isActive }) =>
-                "app-tab" + (isActive || forceActive ? " app-tab--active" : "")
-              }
-              aria-current={undefined}
-            >
-              <span className="app-tab__icon" aria-hidden="true">
-                {tab.icon && <PixelIcon name={tab.icon} size={16} />}
-              </span>
-              <span>{tab.label}</span>
-            </NavLink>
-          );
-        })}
-      </nav>
+      <div className="container app-navrow">
+        <nav className="app-tabs" aria-label="Main">
+          {TABS.map((tab) => {
+            const forceActive = tab.to === "/games" && inGames;
+            return (
+              <NavLink
+                key={tab.to}
+                to={tab.to}
+                end={tab.end}
+                className={({ isActive }) =>
+                  "app-tab" + (isActive || forceActive ? " app-tab--active" : "")
+                }
+                aria-current={undefined}
+              >
+                <span className="app-tab__icon" aria-hidden="true">
+                  {tab.icon && <PixelIcon name={tab.icon} size={16} />}
+                </span>
+                <span>{tab.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+        <MemberStats className="app-stats--wide" />
+      </div>
     </header>
   );
 }
