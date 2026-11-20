@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import ActiveGameStatus from "../components/ActiveGameStatus";
+import DailyCheckInCard from "../components/DailyCheckInCard";
 import { useAuth } from "../contexts/AuthContext";
 
-// Main page of the app. Placeholder for now: the desk, daily check-in and
-// "who's around" will be added here later.
+// Main page of the app. Placeholder for now: the daily check-in is live; the desk
+// and "who's around" will be added here later.
 export default function HomePage() {
   const { profile } = useAuth();
 
@@ -17,6 +18,8 @@ export default function HomePage() {
 
         <ActiveGameStatus />
 
+        <DailyCheckInCard />
+
         <div className="card" style={{ marginTop: "var(--space-4)" }}>
           <h2 style={{ marginTop: 0 }}>Game night</h2>
           <p className="text-muted">Trivia, UNO, Family Feud and more.</p>
@@ -27,7 +30,7 @@ export default function HomePage() {
 
         <div className="card" style={{ marginTop: "var(--space-4)" }}>
           <span className="badge badge-neutral">Coming soon</span>
-          <p className="text-muted">Your desk, daily check-in and who's around.</p>
+          <p className="text-muted">Your desk and who's around.</p>
         </div>
       </div>
     </div>
