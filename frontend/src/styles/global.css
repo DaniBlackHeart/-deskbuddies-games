@@ -89,6 +89,7 @@ button {
   cursor: pointer;
   transition: transform 0.08s ease, box-shadow 0.15s ease, background 0.15s ease;
   box-shadow: var(--shadow-sm);
+  text-decoration: none; /* link-styled buttons (<a class="btn">) shouldn't underline */
 }
 
 .btn:active {
@@ -1405,4 +1406,142 @@ button {
   .t-h3 { font-size: 1.25rem; line-height: 1.4; }
   .t-subtitle { font-size: 1.125rem; line-height: 1.556; }
   .t-num-lg { font-size: 1.75rem; line-height: 1.143; }
+}
+
+/* ---- Debbie Home layout (from the Home concept) ---- */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.db-panel {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: 18px;
+  padding: 24px;
+}
+.db-panel .badge {
+  flex: none;
+  white-space: nowrap;
+}
+.db-home {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.db-greeting {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 32px;
+  align-items: center;
+  justify-content: space-between;
+}
+.db-greeting__main {
+  flex: 1 1 360px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.db-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.db-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px 0 8px;
+  border: 2px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.db-checkin {
+  flex: 0 1 340px;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--color-sage-panel);
+  border: 2px solid var(--color-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.db-checkin__btn {
+  min-height: 52px;
+  border-radius: 12px;
+  font-size: 1.125rem;
+}
+.db-home-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+.db-home-main {
+  flex: 999 1 520px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.db-home-side {
+  flex: 1 1 300px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.db-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+  color: var(--color-accent-text);
+}
+.db-games {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: var(--space-4);
+}
+.db-game {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 14px;
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-decoration: none;
+}
+.db-game:hover {
+  background: var(--color-bg-alt);
+}
+.db-game__tile {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #4a3228;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+@media (max-width: 640px) {
+  .db-panel {
+    padding: 18px;
+  }
+  .db-checkin {
+    flex-basis: 100%;
+  }
+  .db-checkin__btn {
+    width: 100%;
+  }
 }

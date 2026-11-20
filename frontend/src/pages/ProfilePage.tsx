@@ -1,8 +1,16 @@
 import AppHeader from "../components/AppHeader";
+import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { getThemeChoice, setThemeChoice, type ThemeChoice } from "../lib/theme";
 
 export default function ProfilePage() {
   const { profile, signOut } = useAuth();
+  const [theme, setTheme] = useState<ThemeChoice>(getThemeChoice());
+
+  function pickTheme(choice: ThemeChoice) {
+    setTheme(choice);
+    setThemeChoice(choice);
+  }
 
   return (
     <div className="app-shell">
@@ -28,6 +36,31 @@ export default function ProfilePage() {
                 </span>
               )}
             </div>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginTop: "var(--space-4)" }}>
+          <h2 className="t-h3" style={{ marginTop: 0 }}>
+            Appearance
+          </h2>
+          <p className="text-muted t-body-sm">Dark mode is new. If a screen looks off, switch back to light.</p>
+          <div role="group" aria-label="Theme" style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            {(
+              [
+                ["light", "Light"],
+                ["dark", "Dark"],
+                ["system", "Match my device"],
+              ] as [ThemeChoice, string][]
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                className={"btn " + (theme === value ? "btn-primary" : "btn-secondary")}
+                aria-pressed={theme === value}
+                onClick={() => pickTheme(value)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
