@@ -13,11 +13,8 @@ export default function MemberStats({ className }: { className?: string }) {
   return (
     <ul className={"app-stats" + (className ? " " + className : "")} aria-label="Your progress">
       <li className="app-stat" title="deskbits">
-        <PixelIcon name="deskbits" size={16} />
-        <span>
-          {fmt(deskbits)}
-          <span className="app-stat__word"> deskbits</span>
-        </span>
+        <PixelIcon name="deskbits" size={32} />
+        <span>{fmt(deskbits)}</span>
         <span className="sr-only">deskbits</span>
       </li>
       <li className="app-stat" title="Buddy Level">

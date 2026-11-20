@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { isGamesRoute } from "../lib/gameRoutes";
 import PixelIcon, { type PixelIconName } from "./PixelIcon";
 import MemberStats from "./MemberStats";
+import ProfileAvatar from "./ProfileAvatar";
 
 // Tab order is fixed by product direction: Home, Games, Boards, Events,
 // Desk Finds, Profile. Icons come from the locked Debbie icon set v1 and sit
@@ -73,12 +74,15 @@ export default function AppHeader() {
           Debbie
         </Link>
         {/* Narrow screens: chips sit beside the brand. Wide screens: right of the tabs. */}
-        <MemberStats className="app-stats--narrow" />
+        <div className="app-right app-right--narrow">
+          <MemberStats className="app-stats--narrow" />
+          <ProfileAvatar className="app-avatar--narrow" />
+        </div>
       </div>
 
       <div className="container app-navrow">
         <nav className="app-tabs" aria-label="Main">
-          {TABS.map((tab) => {
+          {TABS.filter((t) => t.to !== "/profile").map((tab) => {
             const forceActive = tab.to === "/games" && inGames;
             return (
               <NavLink
@@ -98,7 +102,10 @@ export default function AppHeader() {
             );
           })}
         </nav>
-        <MemberStats className="app-stats--wide" />
+        <div className="app-right">
+          <MemberStats className="app-stats--wide" />
+          <ProfileAvatar className="app-avatar--wide" />
+        </div>
       </div>
       {/* Phones: bottom tab bar. Hidden on wider screens (see global.css). */}
       {moreOpen && <div className="app-sheet-backdrop" onClick={() => setMoreOpen(false)} aria-hidden="true" />}
