@@ -4,10 +4,13 @@ import { useAuth } from "../contexts/AuthContext";
 
 function FullScreenLoader({ label }: { label: string }) {
   return (
-    <div className="center-screen">
-      <div className="stack text-center">
-        <div className="spinner" style={{ margin: "0 auto" }} />
-        <p className="text-muted">{label}</p>
+    <div className="center-screen db-page" role="status">
+      <div className="db-auth db-auth--bare">
+        <img src="/debbie-mark.svg" alt="" width={64} height={64} className="db-auth__mark" />
+        <div className="spinner" aria-hidden="true" />
+        <p className="t-body text-muted" style={{ margin: 0 }}>
+          {label}
+        </p>
       </div>
     </div>
   );

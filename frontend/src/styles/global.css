@@ -1545,3 +1545,42 @@ button {
     width: 100%;
   }
 }
+
+/* ---- Signed-out screens (sign in, members only, membership check) ---- */
+.db-auth {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: center;
+}
+.db-panel.db-auth {
+  padding: 40px 32px;
+}
+.db-auth--bare {
+  max-width: 360px;
+}
+.db-auth__mark {
+  display: block;
+  image-rendering: pixelated;
+}
+.db-auth__title {
+  margin: 0;
+}
+.db-auth__lead {
+  margin: calc(var(--space-2) * -1) 0 0;
+  color: var(--color-accent-text);
+  font-weight: 500;
+}
+.db-auth__btn {
+  min-height: 52px;
+  border-radius: 12px;
+  font-size: 1.125rem;
+}
+@media (max-width: 640px) {
+  .db-panel.db-auth {
+    padding: 32px 20px;
+  }
+}
