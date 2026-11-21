@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
+import { notifyProgressChanged } from "./useMemberProgress";
 
 // Daily check-in state, shared by Home's greeting (streak chip, welcome-back
 // line) and the Pull Up a Chair panel. The server decides what "today" is
@@ -44,6 +45,7 @@ export function useDailyCheckIn() {
     setError(null);
     try {
       setStatus(await callCheckIn("claim"));
+      notifyProgressChanged(); // the check-in may have paid out; refresh the header chips
     } catch (err) {
       console.error("Check-in failed:", err);
       setError("Couldn't check you in. Please try again.");
