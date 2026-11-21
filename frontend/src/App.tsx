@@ -13,6 +13,7 @@ import NotAMemberPage from "./pages/NotAMemberPage";
 import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
+import MyDeskPage from "./pages/MyDeskPage";
 import ComingSoonPage from "./components/ComingSoonPage";
 
 // Everything below is lazy-loaded, grouped into one chunk per game. Each
@@ -178,7 +179,7 @@ export default function App() {
               path="/my-desk"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="My Desk" blurb="Your own desk and first companion will live here." />
+                  <MyDeskPage />
                 </ProtectedRoute>
               }
             />
