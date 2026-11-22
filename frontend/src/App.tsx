@@ -15,6 +15,7 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import MyDeskPage from "./pages/MyDeskPage";
 import CommonRoomPage from "./pages/CommonRoomPage";
+import DeskTimePage from "./pages/DeskTimePage";
 import ComingSoonPage from "./components/ComingSoonPage";
 
 // Everything below is lazy-loaded, grouped into one chunk per game. Each
@@ -164,7 +165,7 @@ export default function App() {
               path="/desk-time"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="Desk Time" blurb="Focus Blocks and your desk time will live here." />
+                  <DeskTimePage />
                 </ProtectedRoute>
               }
             />

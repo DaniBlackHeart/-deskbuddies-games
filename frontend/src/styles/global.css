@@ -2160,3 +2160,44 @@ button {
   .cr-dialog { padding: 18px 16px; }
   .cr-dialog .cr-chips { flex-wrap: wrap; overflow: visible; }
 }
+
+/* ---- Desk Time (Debbie Desk Time design): Focus Block. ---- */
+.dt-page { display: flex; flex-direction: column; gap: var(--space-5); }
+.dt-grid { display: flex; flex-wrap: wrap; gap: var(--space-5); align-items: flex-start; }
+.dt-main { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-5); }
+.dt-side { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-5); }
+.dt-card { background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 18px; padding: 24px 28px; display: flex; flex-direction: column; gap: 14px; }
+.dt-card--side { padding: 24px; gap: 10px; }
+.dt-notice { background: var(--color-sage-panel); border: 2px solid var(--color-border); border-radius: 12px; padding: 12px 14px; font-size: 0.9375rem; font-weight: 700; }
+.dt-field { display: flex; flex-direction: column; gap: 6px; }
+.dt-label { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.04em; color: var(--color-text-muted); }
+.dt-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.dt-chip, .dt-btn { font: inherit; cursor: pointer; color: var(--color-text); }
+.dt-chip { min-height: 44px; padding: 0 14px; border-radius: 10px; font-size: 0.875rem; font-weight: 700; border: 2px solid var(--color-border); background: var(--color-surface); }
+.dt-chip--on { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
+.dt-input { min-height: 48px; box-sizing: border-box; width: 100%; padding: 0 14px; border: 2px solid var(--color-border); border-radius: 10px; background: var(--color-bg); color: var(--color-text); font: inherit; font-size: 1rem; }
+.dt-btn { min-height: 48px; padding: 0 22px; border: 2px solid var(--color-border); border-radius: 12px; background: var(--color-bg); font-size: 1rem; font-weight: 700; }
+.dt-btn--primary { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); font-size: 1.0625rem; }
+.dt-btn--primary:hover:not(:disabled) { background: var(--color-primary-hover); }
+.dt-btn:disabled { cursor: not-allowed; opacity: 0.55; }
+.dt-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.dt-actions .dt-btn { flex: 1; }
+.dt-clockbox { display: flex; flex-direction: column; gap: 6px; align-items: center; background: var(--color-bg-alt); border: 2px solid var(--color-border); border-radius: 14px; padding: 18px 12px; }
+.dt-clock { font-family: var(--db-font-body); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; font-size: 4.5rem; line-height: 1; }
+.dt-bar { width: 100%; max-width: 420px; height: 12px; border-radius: 999px; background: var(--color-border); margin-top: 6px; overflow: hidden; }
+.dt-bar__fill { height: 100%; border-radius: 999px; background: var(--color-primary); }
+.dt-goal { margin-top: 6px; text-align: center; overflow-wrap: anywhere; }
+.dt-result { display: flex; flex-direction: column; gap: 14px; }
+.dt-done { background: var(--color-sage-panel); border: 2px solid var(--color-border); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.dt-hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.dt-hist li { padding: 8px 0; border-bottom: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+.dt-hist li:last-child { border-bottom: 0; }
+.dt-desk { display: flex; gap: 16px; align-items: center; background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 18px; padding: 12px 20px; }
+.dt-desk__img { image-rendering: pixelated; display: block; height: auto; flex: none; }
+.dt-page button:focus-visible, .dt-page input:focus-visible, .dt-clockbox:focus-visible, .dt-result:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .dt-card { padding: 18px 16px; }
+  .dt-clock { font-size: 3.5rem; }
+  .dt-desk { padding: 12px 14px; }
+  .dt-chip { flex: 1 1 auto; }
+}
