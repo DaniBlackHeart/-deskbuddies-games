@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import PixelIcon from "../components/PixelIcon";
+import { BOOK_ART } from "../lib/bookArt";
 import { STAMP_ART } from "../lib/stampArt";
 import { useBuddybook, type BuddyEntry, type BuddybookData, type KeepsakeEntry, type Stamp } from "../lib/useBuddybook";
 
@@ -15,13 +16,14 @@ import { useBuddybook, type BuddyEntry, type BuddybookData, type KeepsakeEntry, 
 // tab (there is no Side Quest wheel yet), Firsts whose features do not exist yet,
 // "new" badges, and entry detail popups.
 
-const SPREADS = 5; // 0 closed, 1 contents, 2 firsts, 3 buddy collection, 4 buddy collection + keepsakes
-const STATE_LABEL = ["Closed book", "Cover and contents", "Firsts", "Buddy Collection", "Buddy Collection and Keepsakes"];
-const TABS: { label: string; spread: number; tone: string }[] = [
-  { label: "Contents", spread: 1, tone: "contents" },
-  { label: "Firsts", spread: 2, tone: "firsts" },
-  { label: "Buddy Collection", spread: 3, tone: "collection" },
-  { label: "Keepsakes", spread: 4, tone: "keepsakes" },
+const SPREADS = 6; // 0 closed, 1 contents, 2 firsts, 3 side quests, 4 buddy collection, 5 buddy collection + keepsakes
+const STATE_LABEL = ["Closed book", "Cover and contents", "Firsts", "Side Quests", "Buddy Collection", "Buddy Collection and Keepsakes"];
+const TABS: { label: string; spread: number; tone: string; art: string }[] = [
+  { label: "Contents", spread: 1, tone: "contents", art: "contents" },
+  { label: "Firsts", spread: 2, tone: "firsts", art: "firsts" },
+  { label: "Side Quests", spread: 3, tone: "sidequests", art: "sidequests" },
+  { label: "Buddy Collection", spread: 4, tone: "collection", art: "collection" },
+  { label: "Keepsakes", spread: 5, tone: "keepsakes", art: "keepsakes" },
 ];
 const TIER_LABEL = { bronze: "Bronze", silver: "Silver", gold: "Gold" } as const;
 const BUDDIES_PER_PAGE = 6;
@@ -30,6 +32,27 @@ function prettyDate(ymd: string | null) {
   if (!ymd) return "";
   const d = new Date(ymd + "T00:00:00Z");
   return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+function BookIcon({ name, size = 32 }: { name: string; size?: number }) {
+  const a = BOOK_ART[name];
+  if (!a) return null;
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox={`0 0 ${a.grid} ${a.grid}`} shapeRendering="crispEdges" style={{ display: "block", flex: "none" }}>
+      {a.layers.map(([fill, d], i) => (
+        <path key={i} d={d} fill={fill} />
+      ))}
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ display: "block", flex: "none", marginTop: 2 }}>
+      <rect x="3" y="7" width="10" height="7" rx="1" />
+      <path d="M5 7V5a3 3 0 0 1 6 0v2" />
+    </svg>
+  );
 }
 
 function StampSprite({ stampKey, locked }: { stampKey: string; locked: boolean }) {
@@ -126,7 +149,7 @@ function KeepsakeList({ d }: { d: BuddybookData }) {
 function PrivateNote() {
   return (
     <p className="bb-private">
-      <PixelIcon name="section-firsts" size={16} /> Only you can see your Buddybook. Visitors see just the Brag Shelf on your desk.
+      <LockIcon /> Only you can see your Buddybook. Visitors see just the Brag Shelf on your desk.
     </p>
   );
 }
@@ -134,8 +157,8 @@ function PrivateNote() {
 function Contents({ d, go }: { d: BuddybookData; go?: (spread: number) => void }) {
   const rows = [
     { label: "Firsts", count: d.counts.stamps, noun: "earned", spread: 2 },
-    { label: "Buddy Collection", count: d.counts.buddies, noun: "found", spread: 3 },
-    { label: "Keepsakes", count: d.counts.keepsakes, noun: "earned", spread: 4 },
+    { label: "Buddy Collection", count: d.counts.buddies, noun: "found", spread: 4 },
+    { label: "Keepsakes", count: d.counts.keepsakes, noun: "earned", spread: 5 },
   ];
   return (
     <ul className="bb-contents">
@@ -199,23 +222,49 @@ function Book({ d, spread, setSpread }: { d: BuddybookData; spread: number; setS
   const vis = (leaf: number, face: "front" | "back") => (face === "front" ? spread === leaf : spread === leaf + 1);
   const leafCls = (i: number) => "bb-leaf" + (spread > i ? " bb-leaf--turned" : "");
   const z = (i: number) => (spread > i ? i + 1 : SPREADS - i);
+  const counts: { label: string; n: number; art: string }[] = [
+    { label: "Stamps", n: d.counts.stamps, art: "firsts" },
+    { label: "Desk Buddies", n: d.counts.buddies, art: "collection" },
+    { label: "Keepsakes", n: d.counts.keepsakes, art: "keepsakes" },
+  ];
 
   return (
     <div className={"bb-book" + (spread === 0 ? " bb-book--closed" : "")} data-spread={spread}>
       <div className="bb-stage">
+        <div className="bb-board bb-board--left" aria-hidden="true" />
+        <div className="bb-board bb-board--right" aria-hidden="true" />
+
         {/* leaf 0: cover / inside cover */}
         <div className={leafCls(0)} style={{ zIndex: z(0) }}>
           <div className="bb-face bb-face--front bb-cover" inert={!vis(0, "front")}>
-            <PixelIcon name="buddybook" size={64} />
-            <h2 className="bb-cover__title">Buddybook</h2>
-            <p className="bb-cover__sub">Open the cover, then use the tabs, the page corners or the buttons to turn pages.</p>
-            <p className="bb-private bb-private--cover">Only you can see your Buddybook. Visitors see just the Brag Shelf on your desk.</p>
-            <button type="button" className="bb-btn bb-btn--primary" onClick={() => setSpread(1)}>Open the book</button>
+            <span className="bb-cover__spine" aria-hidden="true" />
+            <div className="bb-cover__mid">
+              <span className="bb-cover__tile"><PixelIcon name="buddybook" size={64} /></span>
+              <div>
+                <h2 className="bb-cover__title">Buddybook</h2>
+                <p className="bb-cover__sub">A record kept by Debbie</p>
+              </div>
+            </div>
+            <button type="button" className="bb-cover__open" onClick={() => setSpread(1)}>Open the book</button>
           </div>
           <div className="bb-face bb-face--back" inert={!vis(0, "back")}>
-            <Page side="left" visible={vis(0, "back")} label="Welcome">
-              <h2 className="bb-h">Your Buddybook</h2>
-              <p className="bb-quiet">A quiet record of the things you have done and the buddies you have found. Nothing here is a to-do list.</p>
+            <Page side="left" visible={vis(0, "back")} label="Your Buddybook">
+              <div className="bb-intro">
+                <span className="bb-intro__tile"><PixelIcon name="buddybook" size={64} /></span>
+                <div>
+                  <h2 className="bb-h">Your Buddybook</h2>
+                  <p className="bb-quiet">A quiet record of what you have done and the companions you have found.</p>
+                </div>
+              </div>
+              <ul className="bb-tally">
+                {counts.map((c) => (
+                  <li key={c.label}>
+                    <BookIcon name={c.art} />
+                    <span className="bb-tally__n">{c.n}</span>
+                    <span className="bb-quiet">{c.label}</span>
+                  </li>
+                ))}
+              </ul>
               <PrivateNote />
             </Page>
           </div>
@@ -238,7 +287,7 @@ function Book({ d, spread, setSpread }: { d: BuddybookData; spread: number; setS
           </div>
         </div>
 
-        {/* leaf 2: firsts stamps / buddies page 1 */}
+        {/* leaf 2: firsts stamps / side quests intro */}
         <div className={leafCls(2)} style={{ zIndex: z(2) }}>
           <div className="bb-face bb-face--front" inert={!vis(2, "front")}>
             <Page side="right" visible={vis(2, "front")} label="Firsts stamps">
@@ -246,31 +295,46 @@ function Book({ d, spread, setSpread }: { d: BuddybookData; spread: number; setS
             </Page>
           </div>
           <div className="bb-face bb-face--back" inert={!vis(2, "back")}>
-            <Page side="left" visible={vis(2, "back")} label="Buddy Collection, first page">
+            <Page side="left" visible={vis(2, "back")} label="Side Quests">
+              <h2 className="bb-h">Side Quests</h2>
+              <p className="bb-quiet">An ink mark for each Side Quest you finish.</p>
+            </Page>
+          </div>
+        </div>
+
+        {/* leaf 3: side quests marks / buddies page 1 */}
+        <div className={leafCls(3)} style={{ zIndex: z(3) }}>
+          <div className="bb-face bb-face--front" inert={!vis(3, "front")}>
+            <Page side="right" visible={vis(3, "front")} label="Side Quest marks">
+              <p className="bb-quiet">No Side Quests to ink yet. Marks you earn will be kept here.</p>
+            </Page>
+          </div>
+          <div className="bb-face bb-face--back" inert={!vis(3, "back")}>
+            <Page side="left" visible={vis(3, "back")} label="Buddy Collection, first page">
               <h2 className="bb-h">Buddy Collection</h2>
               {d.buddies.length === 0 ? <p className="bb-quiet">No buddies found yet.</p> : <BuddyGrid items={p1} />}
             </Page>
           </div>
         </div>
 
-        {/* leaf 3: buddies page 2 / buddies page 3 */}
-        <div className={leafCls(3)} style={{ zIndex: z(3) }}>
-          <div className="bb-face bb-face--front" inert={!vis(3, "front")}>
-            <Page side="right" visible={vis(3, "front")} label="Buddy Collection, second page">
+        {/* leaf 4: buddies page 2 / buddies page 3 */}
+        <div className={leafCls(4)} style={{ zIndex: z(4) }}>
+          <div className="bb-face bb-face--front" inert={!vis(4, "front")}>
+            <Page side="right" visible={vis(4, "front")} label="Buddy Collection, second page">
               <BuddyGrid items={p2} />
             </Page>
           </div>
-          <div className="bb-face bb-face--back" inert={!vis(3, "back")}>
-            <Page side="left" visible={vis(3, "back")} label="Buddy Collection, last page">
+          <div className="bb-face bb-face--back" inert={!vis(4, "back")}>
+            <Page side="left" visible={vis(4, "back")} label="Buddy Collection, last page">
               <BuddyGrid items={p3} />
             </Page>
           </div>
         </div>
 
-        {/* leaf 4: keepsakes / back cover */}
-        <div className={leafCls(4)} style={{ zIndex: z(4) }}>
-          <div className="bb-face bb-face--front" inert={!vis(4, "front")}>
-            <Page side="right" visible={vis(4, "front")} label="Keepsakes">
+        {/* leaf 5: keepsakes / back cover */}
+        <div className={leafCls(5)} style={{ zIndex: z(5) }}>
+          <div className="bb-face bb-face--front" inert={!vis(5, "front")}>
+            <Page side="right" visible={vis(5, "front")} label="Keepsakes">
               <h2 className="bb-h">Keepsakes</h2>
               <KeepsakeList d={d} />
               <p className="bb-quiet"><Link to="/beyond-the-desk">See them in Beyond the Desk</Link></p>
@@ -279,33 +343,34 @@ function Book({ d, spread, setSpread }: { d: BuddybookData; spread: number; setS
           </div>
           <div className="bb-face bb-face--back bb-backcover" aria-hidden="true" inert />
         </div>
-      </div>
 
-      {spread > 0 && (
-        <button type="button" className="bb-corner bb-corner--prev" tabIndex={-1} aria-hidden="true" onClick={() => setSpread(spread - 1)} />
-      )}
-      {spread > 0 && spread < SPREADS - 1 && (
-        <button type="button" className="bb-corner bb-corner--next" tabIndex={-1} aria-hidden="true" onClick={() => setSpread(spread + 1)} />
-      )}
+        {spread > 0 && (
+          <button type="button" className="bb-corner bb-corner--prev" tabIndex={-1} aria-hidden="true" onClick={() => setSpread(spread - 1)} />
+        )}
+        {spread > 0 && spread < SPREADS - 1 && (
+          <button type="button" className="bb-corner bb-corner--next" tabIndex={-1} aria-hidden="true" onClick={() => setSpread(spread + 1)} />
+        )}
 
-      {spread > 0 && (
         <nav className="bb-tabs" aria-label="Buddybook sections">
-          {TABS.map((t) => {
+          {TABS.map((t, i) => {
             const current = t.spread === spread;
             return (
               <button
                 key={t.label}
                 type="button"
                 className={"bb-tab bb-tab--" + t.tone + (current ? " bb-tab--on" : "")}
+                style={{ top: 72 + i * 60 }}
                 aria-current={current ? "page" : undefined}
+                aria-label={t.label}
                 onClick={() => setSpread(t.spread)}
               >
-                {t.label}
+                <BookIcon name={t.art} />
+                <span>{t.label}</span>
               </button>
             );
           })}
         </nav>
-      )}
+      </div>
     </div>
   );
 }
@@ -347,8 +412,9 @@ export default function BuddybookPage() {
           <div>
             <h1 className="t-h1" style={{ margin: 0 }}>Buddybook</h1>
             <p className="text-muted t-subtitle" style={{ margin: "4px 0 0" }}>
-              Your stamps, buddies and keepsakes, kept in one quiet place that is just yours.
+              Open the cover, then use the tabs, the page corners or the buttons to turn pages.
             </p>
+            <p className="bb-lock"><LockIcon /> Only you can see your Buddybook. Visitors see just the Brag Shelf on your desk.</p>
           </div>
         </div>
 

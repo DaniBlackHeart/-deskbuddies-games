@@ -31,6 +31,10 @@
   --color-bb-firsts: #a8c7d6;
   --color-bb-collection: #a9c2a4;
   --color-bb-keepsakes: #f2c766;
+  --color-bb-sidequests: #ddb9d4;
+  --color-bb-desk: #e2caa8; /* the table the book sits on */
+  --color-bb-board: #7a3a25; /* book boards */
+  --color-bb-cover: #9a4a30;
   --color-bb-ink: #3a261c;
   --color-tier-bronze: #b87b4b; /* Keepsake step medallions */
   --color-tier-silver: #aab1b9;
