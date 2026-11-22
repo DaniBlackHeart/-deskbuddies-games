@@ -4,7 +4,7 @@ import AppHeader from "../components/AppHeader";
 import PixelIcon from "../components/PixelIcon";
 import { BOOK_ART } from "../lib/bookArt";
 import { STAMP_ART } from "../lib/stampArt";
-import { useBuddybook, type BuddyEntry, type BuddybookData, type KeepsakeEntry, type Stamp } from "../lib/useBuddybook";
+import { useBuddybook, type BuddyEntry, type BuddybookData, type KeepsakeEntry, type QuestMark, type Stamp } from "../lib/useBuddybook";
 
 // Buddybook: your private, read-only record. Follows the "Debbie Buddybook" design
 // and brief: a flip book you open with the tabs, the page corners or the buttons,
@@ -12,9 +12,8 @@ import { useBuddybook, type BuddyEntry, type BuddybookData, type KeepsakeEntry, 
 // no progress bars, no to-do items, no "x of y". Only what you have earned is
 // counted. Visitors never see it; they only see the Brag Shelf on your desk.
 //
-// Everything comes from the buddybook Edge Function. Not built yet: the Side Quests
-// tab (there is no Side Quest wheel yet), Firsts whose features do not exist yet,
-// "new" badges, and entry detail popups.
+// Everything comes from the buddybook Edge Function. Not built yet: Firsts whose features do not
+// exist yet, "new" badges and entry detail popups.
 
 const SPREADS = 6; // 0 closed, 1 contents, 2 firsts, 3 side quests, 4 buddy collection, 5 buddy collection + keepsakes
 const STATE_LABEL = ["Closed book", "Cover and contents", "Firsts", "Side Quests", "Buddy Collection", "Buddy Collection and Keepsakes"];
@@ -134,6 +133,23 @@ function FirstsGrid({ d }: { d: BuddybookData }) {
   return <ul className="bb-stamps">{d.firsts.map((s) => <StampCard key={s.key} s={s} />)}</ul>;
 }
 
+function QuestMarks({ d }: { d: BuddybookData }) {
+  if (d.quests.length === 0) return <p className="bb-quiet">No Side Quests to ink yet. Marks you earn will be kept here.</p>;
+  return (
+    <ul className="bb-quests">
+      {d.quests.map((q: QuestMark) => (
+        <li key={q.key} className="bb-quest">
+          <span className="bb-quest__ink" aria-hidden="true">✦</span>
+          <span>
+            <b>Completed the side quest {q.name}</b>
+            <span className="bb-quest__meta">{q.theme} · {prettyDate(q.done_on)}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function BuddyGrid({ items }: { items: BuddyEntry[] }) {
   if (items.length === 0) return null;
   return <ul className="bb-buddies">{items.map((b) => <BuddyTile key={b.key} b={b} />)}</ul>;
@@ -157,6 +173,7 @@ function PrivateNote() {
 function Contents({ d, go }: { d: BuddybookData; go?: (spread: number) => void }) {
   const rows = [
     { label: "Firsts", count: d.counts.stamps, noun: "earned", spread: 2 },
+    { label: "Side Quests", count: d.counts.quests, noun: "earned", spread: 3 },
     { label: "Buddy Collection", count: d.counts.buddies, noun: "found", spread: 4 },
     { label: "Keepsakes", count: d.counts.keepsakes, noun: "earned", spread: 5 },
   ];
@@ -200,6 +217,10 @@ function ListView({ d }: { d: BuddybookData }) {
         <h2 className="t-h2" id="bbl-firsts">Firsts</h2>
         <FirstsGrid d={d} />
       </section>
+      <section aria-labelledby="bbl-quests">
+        <h2 className="t-h2" id="bbl-quests">Side Quests</h2>
+        <QuestMarks d={d} />
+      </section>
       <section aria-labelledby="bbl-buddies">
         <h2 className="t-h2" id="bbl-buddies">Buddy Collection</h2>
         {d.buddies.length === 0 ? <p className="bb-quiet">No buddies found yet.</p> : <BuddyGrid items={d.buddies} />}
@@ -223,7 +244,7 @@ function Book({ d, spread, setSpread }: { d: BuddybookData; spread: number; setS
   const leafCls = (i: number) => "bb-leaf" + (spread > i ? " bb-leaf--turned" : "");
   const z = (i: number) => (spread > i ? i + 1 : SPREADS - i);
   const counts: { label: string; n: number; art: string }[] = [
-    { label: "Stamps", n: d.counts.stamps, art: "firsts" },
+    { label: "Stamps", n: d.counts.stamps + d.counts.quests, art: "firsts" },
     { label: "Desk Buddies", n: d.counts.buddies, art: "collection" },
     { label: "Keepsakes", n: d.counts.keepsakes, art: "keepsakes" },
   ];
@@ -298,6 +319,7 @@ function Book({ d, spread, setSpread }: { d: BuddybookData; spread: number; setS
             <Page side="left" visible={vis(2, "back")} label="Side Quests">
               <h2 className="bb-h">Side Quests</h2>
               <p className="bb-quiet">An ink mark for each Side Quest you finish.</p>
+              <p className="bb-count">{d.counts.quests} earned</p>
             </Page>
           </div>
         </div>
@@ -306,7 +328,7 @@ function Book({ d, spread, setSpread }: { d: BuddybookData; spread: number; setS
         <div className={leafCls(3)} style={{ zIndex: z(3) }}>
           <div className="bb-face bb-face--front" inert={!vis(3, "front")}>
             <Page side="right" visible={vis(3, "front")} label="Side Quest marks">
-              <p className="bb-quiet">No Side Quests to ink yet. Marks you earn will be kept here.</p>
+              <QuestMarks d={d} />
             </Page>
           </div>
           <div className="bb-face bb-face--back" inert={!vis(3, "back")}>

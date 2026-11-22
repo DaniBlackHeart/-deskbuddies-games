@@ -2458,3 +2458,29 @@ button.bb-contents__row:hover { border-color: var(--color-primary); }
 .bb-page .bb-sil__lock { fill: #7a5c4e; }
 .bb-page .bb-quiet a { color: #a94f33; }
 .bb-page .bb-keep__cat, .bb-page .bb-keep__tier { color: #7a5c4e; }
+
+/* ---------- Side Quests (sq-*) ---------- */
+.bd-colstack { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+.sq-wheelcard { flex-direction: row; align-items: center; gap: 20px; flex-wrap: wrap; }
+.sq-wheel { width: 200px; height: 210px; flex: none; display: block; }
+.sq-wheelcard__text { flex: 1 1 200px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; min-width: 0; }
+.sq-quest { background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 18px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.sq-quest__top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sq-quest__name { font-size: 1.125rem; margin-right: 4px; }
+.sq-quest__what, .sq-quest__easier { margin: 0; line-height: 1.5; }
+.sq-quest__easier { color: var(--color-text-muted); font-size: 0.9375rem; }
+.sq-actions { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.sq-archive__h { margin: 0; font-family: var(--db-font-display, var(--font-heading)); font-size: 1.125rem; }
+.sq-num { font-family: var(--db-font-number, inherit); }
+.sq-arch { border: 2px solid var(--color-border-soft); border-radius: 12px; background: var(--color-bg); }
+.sq-arch > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 14px; min-height: 24px; }
+.sq-arch > summary::-webkit-details-marker { display: none; }
+.sq-arch__name { font-weight: 800; }
+.sq-arch__theme { font-size: 0.8125rem; color: var(--color-text-muted); }
+.sq-arch > .sq-quest { margin: 0 10px 10px; }
+.sq-page button:focus-visible, .sq-arch > summary:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+
+.bb-quests { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.bb-quest { display: flex; gap: 10px; align-items: flex-start; }
+.bb-quest__ink { color: #a94f33; line-height: 1.4; }
+.bb-quest__meta { display: block; font-size: 0.8125rem; color: #7a5c4e; }

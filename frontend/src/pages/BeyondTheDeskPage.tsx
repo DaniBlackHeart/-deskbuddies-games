@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import AppHeader from "../components/AppHeader";
 import PixelIcon, { type PixelIconName } from "../components/PixelIcon";
+import SideQuestsSection from "../components/SideQuestsSection";
 import { useBeyondTheDesk, type Goal, type KeepCard, type Reward } from "../lib/useBeyondTheDesk";
 
 // Beyond the Desk: small things to try away from the screen. Follows the
@@ -262,7 +263,8 @@ export default function BeyondTheDeskPage() {
             </section>
 
             <div className="bd-cols">
-              <section aria-labelledby="bd-detours-h" className="bd-stack bd-col">
+              <div className="bd-col bd-colstack">
+              <section aria-labelledby="bd-detours-h" className="bd-stack">
                 <div className="bd-sechead">
                   <PixelIcon name="section-detours" size={48} />
                   <div>
@@ -311,7 +313,7 @@ export default function BeyondTheDeskPage() {
               </section>
 
               {data.weekly.visible && (
-                <section aria-labelledby="bd-weekly-h" className="bd-stack bd-col">
+                <section aria-labelledby="bd-weekly-h" className="bd-stack">
                   <div className="bd-sechead">
                     <PixelIcon name="section-weekly" size={48} />
                     <div>
@@ -363,6 +365,8 @@ export default function BeyondTheDeskPage() {
                   )}
                 </section>
               )}
+              </div>
+              <SideQuestsSection />
             </div>
 
             {data.keepsakes.length > 0 && (

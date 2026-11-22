@@ -1,6 +1,6 @@
 // buddybook
 // Debbie's Buddybook: the member's private, read-only record.
-//   { action: "status" } -> Firsts stamps, owned buddies (and broad hints for the rest),
+//   { action: "status" } -> Firsts stamps, Side Quest marks, owned buddies (and broad hints for the rest),
 //                           Keepsake steps earned.
 //
 // Only the caller's own book is ever returned. The browser never says what has been
@@ -123,13 +123,27 @@ async function buildStatus(admin: Admin, userId: string) {
     }
   }
 
+  // ---- Side Quest marks: one per quest you have done (generic: the quest name only) ----
+  const doneQ = await must<{ quest_key: string; done_on: string }[]>(
+    admin.from("side_quest_done").select("quest_key,done_on").eq("user_id", userId).order("done_on", { ascending: false }),
+  );
+  const questDefs = await must<{ key: string; name: string; theme: string }[]>(
+    admin.from("side_quests").select("key,name,theme"),
+  );
+  const questName = new Map((questDefs ?? []).map((q) => [q.key, q]));
+  const quests = (doneQ ?? [])
+    .map((d) => ({ key: d.quest_key, name: questName.get(d.quest_key)?.name ?? "", theme: questName.get(d.quest_key)?.theme ?? "", done_on: d.done_on }))
+    .filter((q) => q.name);
+
   return {
     counts: {
+      quests: quests.length,
       stamps: firsts.filter((f) => f.earned).length,
       buddies: buddies.filter((b) => b.owned).length,
       keepsakes: stepCount,
     },
     firsts,
+    quests,
     buddies,
     keepsakes,
   };

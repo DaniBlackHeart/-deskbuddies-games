@@ -8,11 +8,13 @@ import { notifyProgressChanged } from "./useMemberProgress";
 
 export type Stamp = { key: string; name: string; earned: boolean; earned_on: string | null; line: string | null };
 export type BuddyEntry = { key: string; owned: boolean; name: string | null; line: string | null; hint: string | null };
+export type QuestMark = { key: string; name: string; theme: string; done_on: string };
 export type KeepsakeEntry = { key: string; name: string; category: string; tier: "bronze" | "silver" | "gold" };
 
 export type BuddybookData = {
-  counts: { stamps: number; buddies: number; keepsakes: number };
+  counts: { stamps: number; quests: number; buddies: number; keepsakes: number };
   firsts: Stamp[];
+  quests: QuestMark[];
   buddies: BuddyEntry[];
   keepsakes: KeepsakeEntry[];
 };
