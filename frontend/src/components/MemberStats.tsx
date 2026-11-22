@@ -18,17 +18,28 @@ function compact(n: number): string {
   return `${Math.floor(n / 1_000_000)}m`;
 }
 
-export default function MemberStats({ className }: { className?: string }) {
+// The header shows only the deskbits chip (Debbie nav boards, 22 Nov 2026):
+// Buddy Level and Buddy XP move to the Buddy Profile. They are kept here behind
+// `showProgress` so that page can reuse them.
+export default function MemberStats({
+  className,
+  showProgress = false,
+}: {
+  className?: string;
+  showProgress?: boolean;
+}) {
   const { level, xp, deskbits, levelProgress } = useMemberProgress();
   const pct = Math.round(Math.min(1, Math.max(0, levelProgress)) * 100);
 
   return (
     <ul className={"app-stats" + (className ? " " + className : "")} aria-label="Your progress">
-      <li className="app-stat" title="deskbits">
-        <PixelIcon name="deskbits" size={32} />
+      <li className={"app-stat" + (showProgress ? "" : " app-stat--solo")} title="deskbits">
+        <PixelIcon name="deskbits" size={showProgress ? 32 : 16} />
         <span>{deskbits.toLocaleString()}</span>
         <span className="sr-only">deskbits</span>
       </li>
+      {showProgress && (
+        <>
       <li className="app-stat app-stat--level" title="Buddy Level">
         <PixelIcon name="buddy-level" size={32} />
         <span className="app-level" aria-hidden="true">
@@ -48,6 +59,8 @@ export default function MemberStats({ className }: { className?: string }) {
         </span>
         <span className="sr-only">Buddy XP {xp.toLocaleString()}</span>
       </li>
+        </>
+      )}
     </ul>
   );
 }

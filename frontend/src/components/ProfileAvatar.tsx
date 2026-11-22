@@ -21,7 +21,7 @@ export default function ProfileAvatar({ className }: { className?: string }) {
       title="Profile"
     >
       {url && !failed ? (
-        <img src={url} alt="" width={40} height={40} referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+        <img src={url} alt="" width={44} height={44} referrerPolicy="no-referrer" onError={() => setFailed(true)} />
       ) : (
         <span aria-hidden="true">{(name[0] ?? "?").toUpperCase()}</span>
       )}

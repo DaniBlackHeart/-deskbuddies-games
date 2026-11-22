@@ -84,6 +84,9 @@ function matches(pathname: string, to: string) {
 }
 
 export default function AppHeader() {
+  // No notifications backend yet, so there is nothing to count. The badge shows
+  // only when this is above zero (a number, never colour alone).
+  const unread = 0;
   const { pathname } = useLocation();
   const isPhone = useIsPhone();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -180,7 +183,6 @@ export default function AppHeader() {
     >
       <div className="container app-headrow">
         <Link to="/" className="app-brand">
-          <img src="/favicon.svg" alt="" width={32} height={32} className="app-brand__mark" />
           Debbie
         </Link>
 
@@ -211,6 +213,21 @@ export default function AppHeader() {
 
         <div className="app-right">
           <MemberStats />
+          <NavLink
+            to="/notifications"
+            className="app-bell"
+            aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M4 13h10l-1.5-2V8a3.5 3.5 0 0 0-7 0v3z" />
+              <path d="M7.5 15.5h3" />
+            </svg>
+            {unread > 0 && (
+              <span className="app-bell__badge" aria-hidden="true">
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
+          </NavLink>
           <ProfileAvatar />
         </div>
       </div>

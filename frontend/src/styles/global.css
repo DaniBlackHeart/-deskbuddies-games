@@ -1260,6 +1260,12 @@ button {
   display: block;
   image-rendering: pixelated;
 }
+/* Brand: plain "Debbie" in the display face, as in the nav boards. */
+.app-header .app-brand {
+  font-size: 1.875rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
 .app-headrow {
   display: flex;
   align-items: center;
@@ -1277,13 +1283,25 @@ button {
 .app-iconnav__group {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   margin: 0;
-  padding: 0 10px;
+  padding: 0 6px;
   list-style: none;
 }
 .app-iconnav__group + .app-iconnav__group {
-  border-left: 2px solid var(--color-border-soft);
+  position: relative;
+  margin-left: 6px;
+  padding-left: 12px;
+}
+.app-iconnav__group + .app-iconnav__group::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 28px;
+  transform: translateY(-50%);
+  background: var(--color-border);
 }
 .app-icontab {
   position: relative;
@@ -1292,7 +1310,7 @@ button {
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: 10px;
   color: var(--color-text-muted);
   text-decoration: none;
 }
@@ -1364,6 +1382,53 @@ button {
   font-size: 0.875rem;
   font-weight: 700;
   white-space: nowrap;
+}
+/* Deskbits-only header chip: 44px tall, 16px coin, as in the nav boards. */
+.app-stat--solo {
+  min-height: 44px;
+  gap: 8px;
+  padding: 0 14px;
+  background: var(--color-surface);
+  font-size: 0.9375rem;
+}
+.app-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+}
+.app-bell:hover {
+  border-color: var(--color-primary);
+}
+.app-bell:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.app-bell__badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 2px solid var(--color-bg);
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
 }
 .app-stat--level,
 .app-stat--xp {
@@ -1442,8 +1507,8 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   overflow: hidden;
   border: 2px solid var(--color-border);
   border-radius: 50%;
@@ -1466,35 +1531,23 @@ button {
   box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary);
 }
 @media (max-width: 640px) {
-  /* Phones: brand and avatar on one line; chips scroll sideways under them. */
+  /* Phones: brand on the left; deskbits, bell and avatar on the right. */
   .app-headrow {
-    flex-wrap: wrap;
-    padding: 12px 16px 10px;
+    flex-wrap: nowrap;
+    padding: 10px 16px;
     gap: 8px;
   }
   .app-iconnav {
     display: none;
   }
   .app-brand {
-    font-size: 1.25rem;
+    font-size: 1.625rem;
     flex: none;
   }
   .app-right {
-    flex: 1 1 100%;
-    justify-content: space-between;
-  }
-  .app-stats {
-    gap: 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .app-stats::-webkit-scrollbar {
-    display: none;
-  }
-  .app-stat {
-    min-height: 40px;
-    gap: 4px;
-    padding: 0 10px 0 4px;
+    flex: 0 1 auto;
+    margin-left: auto;
+    gap: 8px;
   }
 }
 
