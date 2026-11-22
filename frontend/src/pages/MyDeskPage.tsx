@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { useMyDesk } from "../lib/useMyDesk";
 import {
@@ -25,6 +26,7 @@ export default function MyDeskPage() {
   const [notice, setNotice] = useState("");
   const [blocked, setBlocked] = useState("");
   const [saving, setSaving] = useState(false);
+  const [params, setParams] = useSearchParams();
 
   const decorating = draft !== null;
   const cur: Layout = draft ?? saved;
@@ -92,6 +94,15 @@ export default function MyDeskPage() {
       companions: has ? draft.companions.filter((c) => c !== id) : [...draft.companions, id],
     });
   };
+
+  // Home's "Decorate" button arrives here with ?decorate=1 and opens Decorate straight away.
+  useEffect(() => {
+    if (!loading && !loadError && params.get("decorate") === "1") {
+      setDraft({ ...saved, companions: [...saved.companions] });
+      setSpot("companions");
+      setParams({}, { replace: true });
+    }
+  }, [loading, loadError, params, saved, setParams]);
 
   const names = cur.companions.map(buddyName);
   const companionLine =

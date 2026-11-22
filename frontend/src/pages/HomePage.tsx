@@ -62,10 +62,10 @@ function HomeDeskCard() {
       ? `${names.join(" and ")} are keeping your seat.`
       : names.length === 1
         ? `${names[0]} is keeping your seat.`
-        : "Your companion spot is waiting for your first buddy.";
+        : "Your companion spot is waiting for your first buddy. Your first one is earned, not handed out.";
   return (
-    <section className="db-panel db-home__desk" aria-labelledby="home-desk">
-      <div className="row-between" style={{ alignItems: "flex-start", gap: "var(--space-3)" }}>
+    <section className="db-panel db-home__desk md-home" aria-labelledby="home-desk">
+      <div className="row-between" style={{ alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
         <div>
           <h2 id="home-desk" className="t-h2" style={{ margin: 0 }}>
             My Desk
@@ -74,21 +74,33 @@ function HomeDeskCard() {
             Your own little corner of DeskBuddies.
           </p>
         </div>
-        <Link to="/my-desk" className="db-link">
-          Open my desk
-        </Link>
+        <div className="md-actions">
+          <Link to="/my-desk?decorate=1" className="btn btn-secondary">
+            Decorate
+          </Link>
+          <Link to="/my-desk" className="btn btn-primary">
+            Open My Desk
+          </Link>
+        </div>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)", alignItems: "center", marginTop: "var(--space-3)" }}>
+      <div className="md-scene">
         <img
           src={scene}
-          alt={loading ? "" : names.length ? `Your desk with ${names.join(" and ")}` : "Your desk with an empty companion spot"}
+          alt={loading ? "" : names.length ? `Your desk with ${names.join(" and ")} on the companion mat` : "Your desk with an empty spot for a companion"}
           width={160}
           height={112}
-          style={{ width: 240, maxWidth: "100%", height: "auto", imageRendering: "pixelated", border: "2px solid var(--color-border)", borderRadius: 12 }}
+          className="md-scene__img"
         />
-        <p className="t-body-sm text-muted" style={{ margin: 0, flex: "1 1 200px" }}>
+      </div>
+      <div className="md-stage__bar">
+        <p className="t-body-sm" style={{ margin: 0, flex: "1 1 320px", minWidth: 0 }}>
           {line}
         </p>
+        <div role="group" aria-label="Change View" className="md-views__row">
+          <button type="button" aria-pressed="true" className="md-seg md-seg--on">Desktop</button>
+          <button type="button" aria-disabled="true" aria-label="Workspace, locked" className="md-seg md-seg--locked">🔒 Workspace</button>
+          <button type="button" aria-disabled="true" aria-label="Room, locked" className="md-seg md-seg--locked">🔒 Room</button>
+        </div>
       </div>
     </section>
   );

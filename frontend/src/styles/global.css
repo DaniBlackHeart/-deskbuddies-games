@@ -2043,3 +2043,4 @@ button {
   .md-stage:has(.md-decorating) > p { display: none; }
   .md-tile, .md-chips { scroll-margin-top: 300px; scroll-margin-bottom: 90px; }
 }
+.md-home { display: flex; flex-direction: column; gap: var(--space-4); }
