@@ -33,6 +33,7 @@
   --color-bb-keepsakes: #f2c766;
   --color-bb-sidequests: #ddb9d4;
   --color-bb-desk: #e2caa8; /* the table the book sits on */
+  --color-cal-mat: #e9dcc0; /* mat behind the Buddy Calendar birthday card art */
   --color-bb-board: #7a3a25; /* book boards */
   --color-bb-cover: #9a4a30;
   --color-wheel-positivity: #f4c9b8; /* Side Quest wheel slices: the other five reuse the Buddybook tab colours */
@@ -105,6 +106,7 @@
    data-theme on <html> (see lib/theme.ts). Pixel art keeps its own colours and
    sits on a panel, it is not recoloured. */
 [data-theme="dark"] {
+  --color-cal-mat: #8a7060;
   color-scheme: dark;
   --color-bg: #1f1713;
   --color-bg-alt: #352920;
