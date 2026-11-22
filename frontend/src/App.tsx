@@ -23,6 +23,7 @@ import NoteForDebbiePage from "./pages/NoteForDebbiePage";
 import SettingsPage from "./pages/SettingsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import DeskLogPage from "./pages/DeskLogPage";
+import MyAvatarPage from "./pages/MyAvatarPage";
 import BuddybookPage from "./pages/BuddybookPage";
 import DeskFindsPage from "./pages/DeskFindsPage";
 import ComingSoonPage from "./components/ComingSoonPage";
@@ -238,7 +239,7 @@ export default function App() {
               path="/my-avatar"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="My Avatar" blurb="Choose how you look across Debbie. Avatar editing is coming soon." />
+                  <MyAvatarPage />
                 </ProtectedRoute>
               }
             />
