@@ -99,12 +99,12 @@ export default function NotificationsPage() {
             <div className="ntf-eyebrow">JUST FOR YOU</div>
             <h1 className="t-h1" style={{ margin: 0 }}>Notifications</h1>
           </div>
-          {items && items.length > 0 && (
+          {items && (
             <button type="button" className="ntf-btn" aria-disabled={unread === 0} onClick={() => { if (unread > 0) void doMarkAll(); }}>Mark all as read</button>
           )}
         </div>
 
-        {items && items.length > 0 && (
+        {items && (
           <div className="ntf-filters" role="group" aria-label="Filter notifications">
             {FILTERS.map((f) => (
               <button key={f.key} type="button" aria-pressed={filter === f.key} className={"ntf-chip" + (filter === f.key ? " ntf-chip--on" : "")} onClick={() => { setFilter(f.key); setShowAll(false); }}>{f.label}</button>
