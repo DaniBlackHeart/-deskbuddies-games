@@ -27,6 +27,9 @@
   --color-primary-hover: #a94f33;
   --color-sage-panel: #e4ecdd; /* check-in panel */
   --color-focus: #e08a68; /* keyboard focus ring */
+  --color-tier-bronze: #b87b4b; /* Keepsake step medallions */
+  --color-tier-silver: #aab1b9;
+  --color-tier-gold: #e8bd4f;
   --color-accent-text: #a94f33; /* Debbie v1: accent TEXT and links, 5.1:1 on cream */
   --color-primary-soft: #f7ded2;
   --color-secondary: #7c9473;

@@ -16,6 +16,7 @@ import ProfilePage from "./pages/ProfilePage";
 import MyDeskPage from "./pages/MyDeskPage";
 import CommonRoomPage from "./pages/CommonRoomPage";
 import DeskTimePage from "./pages/DeskTimePage";
+import BeyondTheDeskPage from "./pages/BeyondTheDeskPage";
 import ComingSoonPage from "./components/ComingSoonPage";
 
 // Everything below is lazy-loaded, grouped into one chunk per game. Each
@@ -173,7 +174,7 @@ export default function App() {
               path="/beyond-the-desk"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="Beyond the Desk" blurb="Daily Detours, Weekly Wins and the 52 Side Quests will live here." />
+                  <BeyondTheDeskPage />
                 </ProtectedRoute>
               }
             />

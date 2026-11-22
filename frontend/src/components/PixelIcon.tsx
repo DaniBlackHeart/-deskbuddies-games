@@ -277,6 +277,38 @@ const ICONS = {
     ["#C4694A", "M13 0h2v1h-2zM14 2h1v1h-1z"],
     ["#FBF4E8", "M4 7h2v1h-2zM8 7h3v1h-3zM4 8h1v1h-1zM6 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM4 9h2v1h-2zM8 9h1v1h-1zM10 9h1v1h-1zM4 10h1v1h-1zM6 10h1v1h-1zM8 10h1v1h-1zM10 10h1v1h-1zM4 11h2v1h-2zM8 11h3v1h-3z"],
   ],
+  "section-detours": [
+    ["#FBF4E8", "M3 3h9v1h-9zM3 4h10v1h-10zM3 5h9v1h-9zM9 12h2v1h-2z"],
+    ["#D9774F", "M4 9h9v1h-9zM3 10h11v1h-11zM4 11h9v1h-9z"],
+    ["#C99A62", "M7 1h2v1h-2zM7 6h2v1h-2zM7 7h2v1h-2zM7 13h2v1h-2zM7 14h2v1h-2z"],
+    ["var(--spO,#4A3228)", "M7 0h2v1h-2zM6 1h1v1h-1zM9 1h1v1h-1zM2 2h10v1h-10zM2 3h1v1h-1zM12 3h1v1h-1zM2 4h1v1h-1zM13 4h1v1h-1zM2 5h1v1h-1zM12 5h1v1h-1zM2 6h5v1h-5zM9 6h4v1h-4zM6 7h1v1h-1zM9 7h1v1h-1zM4 8h10v1h-10zM3 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM14 10h1v1h-1zM3 11h1v1h-1zM13 11h1v1h-1zM4 12h5v1h-5zM11 12h1v1h-1zM6 13h1v1h-1zM9 13h1v1h-1zM6 14h1v1h-1zM9 14h1v1h-1zM4 15h8v1h-8z"],
+  ],
+  "section-weekly": [
+    ["#FBF4E8", "M3 3h2v1h-2zM11 3h2v1h-2zM3 4h10v1h-10zM3 5h10v1h-10zM3 6h1v1h-1zM6 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM6 7h7v1h-7zM3 8h10v1h-10zM3 9h1v1h-1zM6 9h1v1h-1zM12 9h1v1h-1zM3 10h1v1h-1zM6 10h7v1h-7zM3 11h10v1h-10zM3 12h1v1h-1zM6 12h1v1h-1zM12 12h1v1h-1zM3 13h1v1h-1zM6 13h7v1h-7zM3 14h10v1h-10z"],
+    ["#8FA98A", "M4 6h2v1h-2zM4 7h2v1h-2zM4 9h2v1h-2zM4 10h2v1h-2zM4 12h2v1h-2zM4 13h2v1h-2z"],
+    ["#F2C766", "M6 1h4v1h-4zM6 2h4v1h-4z"],
+    ["var(--spO,#4A3228)", "M5 0h6v1h-6zM5 1h1v1h-1zM10 1h1v1h-1zM2 2h4v1h-4zM10 2h4v1h-4zM2 3h1v1h-1zM5 3h6v1h-6zM13 3h1v1h-1zM2 4h1v1h-1zM13 4h1v1h-1zM2 5h1v1h-1zM13 5h1v1h-1zM2 6h1v1h-1zM7 6h5v1h-5zM13 6h1v1h-1zM2 7h1v1h-1zM13 7h1v1h-1zM2 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM7 9h5v1h-5zM13 9h1v1h-1zM2 10h1v1h-1zM13 10h1v1h-1zM2 11h1v1h-1zM13 11h1v1h-1zM2 12h1v1h-1zM7 12h5v1h-5zM13 12h1v1h-1zM2 13h1v1h-1zM13 13h1v1h-1zM2 14h1v1h-1zM13 14h1v1h-1zM2 15h12v1h-12z"],
+  ],
+  "section-keepsakes": [
+    ["#F2C766", "M6 6h4v1h-4zM4 7h8v1h-8zM4 8h1v1h-1zM7 8h2v1h-2zM11 8h1v1h-1zM4 9h1v1h-1zM11 9h1v1h-1zM3 10h3v1h-3zM10 10h3v1h-3zM4 11h3v1h-3zM9 11h3v1h-3zM4 12h8v1h-8zM4 13h8v1h-8zM6 14h4v1h-4z"],
+    ["#D9774F", "M5 8h2v1h-2zM9 8h2v1h-2zM5 9h6v1h-6zM6 10h4v1h-4zM7 11h2v1h-2z"],
+    ["var(--spO,#4A3228)", "M3 0h1v1h-1zM12 0h1v1h-1zM4 1h1v1h-1zM11 1h1v1h-1zM5 2h1v1h-1zM10 2h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM6 5h4v1h-4zM4 6h2v1h-2zM10 6h2v1h-2zM3 7h1v1h-1zM12 7h1v1h-1zM3 8h1v1h-1zM12 8h1v1h-1zM3 9h1v1h-1zM12 9h1v1h-1zM2 10h1v1h-1zM13 10h1v1h-1zM3 11h1v1h-1zM12 11h1v1h-1zM3 12h1v1h-1zM12 12h1v1h-1zM3 13h1v1h-1zM12 13h1v1h-1zM4 14h2v1h-2zM10 14h2v1h-2zM6 15h4v1h-4z"],
+  ],
+  "goal-show-up": [
+    ["currentColor", "M3 1h3v1h-3zM3 2h1v1h-1zM5 2h1v1h-1zM3 3h1v1h-1zM5 3h1v1h-1zM3 4h1v1h-1zM5 4h1v1h-1zM3 5h1v1h-1zM5 5h1v1h-1zM3 6h1v1h-1zM5 6h1v1h-1zM3 7h1v1h-1zM5 7h1v1h-1zM3 8h10v1h-10zM3 9h1v1h-1zM12 9h1v1h-1zM3 10h1v1h-1zM12 10h1v1h-1zM3 11h10v1h-10zM3 12h2v1h-2zM11 12h2v1h-2zM3 13h10v1h-10zM3 14h2v1h-2zM11 14h2v1h-2zM3 15h2v1h-2zM11 15h2v1h-2z"],
+    ["var(--ifill,#F3E6D2)", "M4 2h1v1h-1zM4 3h1v1h-1zM4 4h1v1h-1zM4 5h1v1h-1zM4 6h1v1h-1zM4 7h1v1h-1z"],
+    ["var(--iacc,#B5573A)", "M4 9h8v1h-8zM4 10h8v1h-8z"],
+  ],
+  "goal-settle-in": [
+    ["currentColor", "M6 2h4v1h-4zM5 3h1v1h-1zM10 3h1v1h-1zM4 4h1v1h-1zM11 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM3 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM12 7h1v1h-1zM1 8h4v1h-4zM11 8h4v1h-4zM1 9h1v1h-1zM4 9h1v1h-1zM11 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM4 10h1v1h-1zM11 10h1v1h-1zM14 10h1v1h-1zM1 11h1v1h-1zM4 11h1v1h-1zM11 11h1v1h-1zM14 11h1v1h-1zM1 12h1v1h-1zM4 12h1v1h-1zM11 12h1v1h-1zM14 12h1v1h-1zM1 13h1v1h-1zM4 13h1v1h-1zM11 13h1v1h-1zM14 13h1v1h-1zM1 14h4v1h-4zM11 14h4v1h-4z"],
+    ["var(--ifill,#F3E6D2)", "M6 3h4v1h-4zM5 4h1v1h-1zM10 4h1v1h-1zM4 5h1v1h-1zM11 5h1v1h-1zM4 6h1v1h-1zM11 6h1v1h-1z"],
+    ["var(--iacc,#B5573A)", "M2 9h2v1h-2zM12 9h2v1h-2zM2 10h2v1h-2zM12 10h2v1h-2zM2 11h2v1h-2zM12 11h2v1h-2zM2 12h2v1h-2zM12 12h2v1h-2zM2 13h2v1h-2zM12 13h2v1h-2z"],
+  ],
+  "goal-little-detours": [
+    ["currentColor", "M10 2h3v1h-3zM9 3h1v1h-1zM13 3h1v1h-1zM9 4h1v1h-1zM13 4h1v1h-1zM9 5h1v1h-1zM13 5h1v1h-1zM10 6h3v1h-3zM2 7h3v1h-3zM1 8h1v1h-1zM5 8h1v1h-1zM10 8h3v1h-3zM1 9h1v1h-1zM5 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM1 10h1v1h-1zM5 10h1v1h-1zM10 10h3v1h-3zM2 11h3v1h-3zM2 13h3v1h-3zM2 14h1v1h-1zM4 14h1v1h-1zM2 15h3v1h-3z"],
+    ["var(--ifill,#F3E6D2)", "M10 3h3v1h-3zM10 4h3v1h-3zM10 5h3v1h-3zM2 8h3v1h-3zM2 9h3v1h-3zM11 9h1v1h-1zM2 10h3v1h-3zM3 14h1v1h-1z"],
+    ["var(--iacc,#B5573A)", "M9 0h1v1h-1zM11 0h1v1h-1zM13 0h1v1h-1zM1 5h1v1h-1zM3 5h1v1h-1zM5 5h1v1h-1z"],
+  ],
 } satisfies Record<string, Layer[]>;
 
 export type PixelIconName = keyof typeof ICONS;
