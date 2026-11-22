@@ -18,6 +18,7 @@
           var c = localStorage.getItem("debbie-theme") || "light";
           var dark = c === "dark" || (c === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
           document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+          if (localStorage.getItem("debbie-motion") === "reduce") document.documentElement.setAttribute("data-motion", "reduce");
         } catch (e) {}
       })();
     </script>

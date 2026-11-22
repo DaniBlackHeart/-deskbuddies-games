@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useSideQuests, type Quest, type Reward } from "../lib/useSideQuests";
+import { prefersReducedMotion } from "../lib/motion";
 
 // Side Quests on Beyond the Desk: the weekly wheel and the archive. Follows the
 // "Debbie Beyond the Desk" design and claude/Debbie_Side_Quest_Wheel_Draft_v1.md.
@@ -32,7 +33,7 @@ function slicePath(i: number) {
 const themeIndex = (theme: string) => Math.max(0, THEMES.indexOf(theme as (typeof THEMES)[number]));
 /** Rotation that puts the middle of the theme's slice under the pointer at the top. */
 const restFor = (theme: string) => -((themeIndex(theme) + 0.5) * STEP);
-const reduced = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reduced = prefersReducedMotion;
 
 function Wheel({ rot, animate }: { rot: number; animate: boolean }) {
   return (

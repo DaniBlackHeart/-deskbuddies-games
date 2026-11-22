@@ -20,6 +20,7 @@ import BeyondTheDeskPage from "./pages/BeyondTheDeskPage";
 import BuddyCalendarPage from "./pages/BuddyCalendarPage";
 import KeepTheDeskLitPage from "./pages/KeepTheDeskLitPage";
 import NoteForDebbiePage from "./pages/NoteForDebbiePage";
+import SettingsPage from "./pages/SettingsPage";
 import BuddybookPage from "./pages/BuddybookPage";
 import DeskFindsPage from "./pages/DeskFindsPage";
 import ComingSoonPage from "./components/ComingSoonPage";
@@ -219,7 +220,7 @@ export default function App() {
               path="/settings"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="Settings" blurb="Theme, motion and notification choices will live here." />
+                  <SettingsPage />
                 </ProtectedRoute>
               }
             />
