@@ -200,6 +200,14 @@ export default function App() {
               }
             />
             <Route
+              path="/note-for-debbie"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="A Note for Debbie" blurb="Suggestions and feedback will go here." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/profile"
               element={
                 <ProtectedRoute>

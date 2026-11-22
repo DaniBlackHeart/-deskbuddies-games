@@ -1260,39 +1260,86 @@ button {
   display: block;
   image-rendering: pixelated;
 }
-.app-brandrow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
-  padding: 16px 24px 8px;
-}
-.app-navrow {
+.app-headrow {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: var(--space-4);
-  padding-top: 0;
-  padding-bottom: 0;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
-.app-navleft {
+.app-iconnav {
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
   min-width: 0;
-  gap: var(--space-1);
 }
-.app-tabs {
+.app-iconnav__group {
   display: flex;
-  gap: var(--space-1);
-  min-width: 0;
-  overflow-x: auto;
-  white-space: nowrap;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0 10px;
+  list-style: none;
 }
-.app-more {
+.app-iconnav__group + .app-iconnav__group {
+  border-left: 2px solid var(--color-border-soft);
+}
+.app-icontab {
   position: relative;
-  display: flex;
-  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+.app-icontab svg {
+  display: block;
+}
+.app-icontab:hover,
+.app-icontab--active {
+  background: var(--color-bg-alt);
+  --ifill: var(--color-surface);
+}
+.app-icontab:hover {
+  color: var(--color-text);
+}
+.app-icontab--active {
+  color: var(--color-accent-text);
+  box-shadow: inset 0 -3px 0 var(--color-primary);
+}
+.app-icontab:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 1px;
+}
+/* Name tooltip: on hover and on keyboard focus, never hover only. */
+.app-icontab::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-family: var(--db-font-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+.app-icontab:hover::after,
+.app-icontab:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Header chips: deskbits, Buddy Level, Buddy XP (Home concept chip design). */
@@ -1419,11 +1466,14 @@ button {
   box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary);
 }
 @media (max-width: 640px) {
-  /* Phones: brand on the first line, chips on a line of their own. */
-  .app-brandrow {
+  /* Phones: brand and avatar on one line; chips scroll sideways under them. */
+  .app-headrow {
     flex-wrap: wrap;
     padding: 12px 16px 10px;
     gap: 8px;
+  }
+  .app-iconnav {
+    display: none;
   }
   .app-brand {
     font-size: 1.25rem;
@@ -1431,6 +1481,7 @@ button {
   }
   .app-right {
     flex: 1 1 100%;
+    justify-content: space-between;
   }
   .app-stats {
     gap: 6px;
@@ -1440,160 +1491,41 @@ button {
   .app-stats::-webkit-scrollbar {
     display: none;
   }
-  .app-avatar {
-    display: none;
-  }
   .app-stat {
     min-height: 40px;
     gap: 4px;
     padding: 0 10px 0 4px;
   }
 }
-.app-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 48px;
-  padding: 0 14px;
-  font-family: var(--db-font-body);
-  font-size: 0.875rem; /* 14px nav label */
-  line-height: 1.25;
-  font-weight: 600;
-  text-decoration: none;
-  color: var(--color-text-muted);
-  background: transparent;
-  border: 0;
-  border-bottom: 3px solid transparent;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.app-tab__icon {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  flex: none;
-}
-/* Profile has no icon in v1: no empty gap beside its label on desktop. */
-.app-tab__icon:empty {
-  display: none;
-}
-.app-tab__icon svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-.app-tab:hover,
-.app-tab--active {
-  background: var(--color-bg-alt);
-  --ifill: var(--color-surface); /* soft fill flips to the surface colour on hover/active */
-}
-.app-tab:hover {
-  color: var(--color-text);
-}
-.app-tab--active {
-  color: var(--color-accent-text);
-  border-bottom-color: var(--color-primary);
-}
-.app-tab:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-}
 
-.app-tabs {
-  scrollbar-width: none;
-}
-.app-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-/* Tablet widths: tighter tabs so all seven fit. */
-@media (min-width: 641px) and (max-width: 1000px) {
-  .app-tabs,
-  .app-navleft {
-    gap: 0;
+/* Narrower desktops: the icon bar drops to its own row under brand + chips. */
+@media (min-width: 641px) and (max-width: 1240px) {
+  .app-headrow {
+    flex-wrap: wrap;
   }
-  .app-tab {
-    padding: 0 8px;
-    gap: 6px;
-    font-size: 0.8125rem;
+  .app-brand {
+    order: 1;
+  }
+  .app-right {
+    order: 2;
+    margin-left: auto;
+  }
+  .app-iconnav {
+    order: 3;
+    flex: 1 1 100%;
+    border-top: 1px solid var(--color-border-soft);
+    padding-top: 6px;
   }
 }
 
-/* ---- More menu: a dropdown under the tabs on desktop, a sheet above the
-   bottom bar on phones. ---- */
-.app-bottombar {
-  display: none;
-}
-.app-sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 38;
-  background: transparent;
-}
+/* ---- Phones: five icon-only tabs in a fixed bottom bar, plus the More
+   sheet (a dialog) above it. Desktop never sees either. ---- */
+.app-bottombar,
+.app-sheet-backdrop,
 .app-sheet {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 39;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 240px;
-  padding: 6px;
-  background: var(--color-surface);
-  border: 2px solid var(--color-border);
-  border-radius: 14px;
-  box-shadow: var(--shadow-md);
+  display: none;
 }
-.app-sheet__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 0 12px;
-  border-radius: 10px;
-  color: var(--color-text-muted);
-  font-family: var(--db-font-body);
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-.app-sheet__item:hover,
-.app-sheet__item--active {
-  background: var(--color-bg-alt);
-  --ifill: var(--color-surface);
-}
-.app-sheet__item:hover {
-  color: var(--color-text);
-}
-.app-sheet__item--active {
-  color: var(--color-accent-text);
-  font-weight: 700;
-}
-.app-sheet__item:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: -3px;
-}
-/* Keep the icon slot even when empty (Settings has no icon in v1) so labels line up. */
-.app-sheet__icon {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  flex: none;
-}
-.app-sheet__icon svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-/* ---- Phones: bottom tab bar (Home concept, mobile board) ----
-   Top tabs hide; a fixed bar holds four tabs and More. 32px icon over a 12px
-   label, 56px+ targets. Desktop never sees it. */
 @media (max-width: 640px) {
-  .app-navrow {
-    display: none;
-  }
   .app-bottombar {
     display: block;
     position: fixed;
@@ -1615,69 +1547,131 @@ button {
   }
   .app-bt {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    gap: 2px;
+    justify-content: center;
     width: 100%;
-    min-height: 60px;
-    padding: 6px 2px 4px;
+    min-height: 56px;
+    padding: 0;
     border: 0;
-    border-radius: 10px;
+    border-radius: 12px;
     background: transparent;
     color: var(--color-text-muted);
-    font-family: var(--db-font-body);
-    font-size: 0.75rem; /* 12px label */
-    line-height: 1.2;
-    font-weight: 600;
-    text-align: center;
     text-decoration: none;
     cursor: pointer;
+  }
+  .app-bt svg {
+    display: block;
   }
   .app-bt--active {
     background: var(--color-bg-alt);
     --ifill: var(--color-surface);
     color: var(--color-accent-text);
-    font-weight: 700;
+    box-shadow: inset 0 -3px 0 var(--color-primary);
   }
   .app-bt:focus-visible {
     outline: 3px solid var(--color-focus);
     outline-offset: -3px;
   }
-  .app-bt__icon {
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    flex: none;
-  }
-  .app-bt__icon svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
   .app-sheet-backdrop {
-    background: rgba(58, 42, 34, 0.35);
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 38;
+    background: rgba(30, 18, 10, 0.5);
   }
   .app-sheet {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     position: fixed;
-    top: auto;
-    left: 8px;
-    right: 8px;
-    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-    min-width: 0;
-    padding: 8px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 39;
+    max-height: 92%;
+    overflow-y: auto;
+    padding: 10px 12px calc(86px + env(safe-area-inset-bottom, 0px));
+    background: var(--color-surface);
+    border-top: 2px solid var(--color-border);
+    border-radius: 18px 18px 0 0;
+    animation: app-sheet-in 0.18s ease-out;
+  }
+  .app-sheet__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 6px 8px;
+  }
+  .app-sheet__title {
+    margin: 0;
+    font-family: var(--db-font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  .app-sheet__close {
+    min-width: 44px;
+    min-height: 44px;
+    border: 2px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
   }
   .app-sheet__item {
-    min-height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 64px;
     padding: 8px 12px;
-    gap: 12px;
+    border-radius: 12px;
+    color: var(--color-text);
+    text-decoration: none;
+  }
+  .app-sheet__item:hover,
+  .app-sheet__item--active {
+    background: var(--color-bg-alt);
+    --ifill: var(--color-surface);
+  }
+  .app-sheet__item--active .app-sheet__label {
+    color: var(--color-accent-text);
   }
   .app-sheet__icon {
-    width: 32px;
-    height: 32px;
+    display: inline-flex;
+    flex: none;
+    padding: 6px;
+    border-radius: 10px;
+    background: var(--color-bg-alt);
+  }
+  .app-sheet__icon svg {
+    display: block;
+  }
+  .app-sheet__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .app-sheet__label {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .app-sheet__hint {
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    color: var(--color-text-muted);
+  }
+  .app-sheet__rule {
+    height: 2px;
+    margin: 6px 12px;
+    background: var(--color-border-soft);
+  }
+  .app-sheet__close:focus-visible,
+  .app-sheet__item:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: -3px;
   }
   /* Room under the page for the bar; lift the sound button above it. */
   body.has-tabbar .app-shell {
@@ -1685,6 +1679,21 @@ button {
   }
   body.has-tabbar {
     --sound-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+}
+@keyframes app-sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-sheet {
+    animation: none;
   }
 }
 

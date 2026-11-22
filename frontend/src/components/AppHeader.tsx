@@ -5,32 +5,66 @@ import PixelIcon, { type PixelIconName } from "./PixelIcon";
 import MemberStats from "./MemberStats";
 import ProfileAvatar from "./ProfileAvatar";
 
-// Navigation follows the Home concept and the 21 Nov 2026 navigation decision
-// (placeholder IA, waiting on Rika's approval). Icons are the locked Icon Set
-// v1; labels are the Naming Guide names. Roadmap items (Buddy Boards, Buddy
-// Clubs) stay out of the bar until they ship, and A Note for Debbie is left out
-// until its home is decided.
-type NavItem = { to: string; label: string; icon?: PixelIconName; end?: boolean };
+// Icon-only navigation, from the 21-22 Nov 2026 Navigation Decision and the
+// Debbie nav boards (placeholder IA, still waiting on Rika's approval).
+//
+// - Desktop: one icon-only bar, no More menu. Names show on hover AND on
+//   keyboard focus; every link also has an accessible name and aria-current.
+// - Phones: five icon-only tabs; More opens a dialog sheet with full labels
+//   and a one-line hint for each item.
+// Roadmap items (Buddy Boards, Buddy Clubs) are left out until they ship.
+type NavItem = {
+  to: string;
+  label: string;
+  icon: PixelIconName;
+  hint: string; // shown in the phone More sheet (provisional copy)
+  end?: boolean;
+};
 
-const HOME: NavItem = { to: "/", label: "Home", icon: "home", end: true };
-const COMMON_ROOM: NavItem = { to: "/common-room", label: "The Common Room", icon: "common-room" };
-const DESK_TIME: NavItem = { to: "/desk-time", label: "Desk Time", icon: "desk-time" };
-const REALITY_BREAK: NavItem = { to: "/games", label: "Reality Break", icon: "reality-break" };
-const BEYOND: NavItem = { to: "/beyond-the-desk", label: "Beyond the Desk", icon: "beyond-the-desk" };
-const DESK_FINDS: NavItem = { to: "/deskfinds", label: "Desk Finds", icon: "desk-finds" };
-const MY_DESK: NavItem = { to: "/my-desk", label: "My Desk", icon: "my-desk" };
-const BUDDYBOOK: NavItem = { to: "/buddybook", label: "Buddybook", icon: "buddybook" };
-const CALENDAR: NavItem = { to: "/events", label: "Buddy Calendar", icon: "buddy-calendar" };
-const KEEP_LIT: NavItem = { to: "/keep-the-desk-lit", label: "Keep the Desk Lit", icon: "keep-the-desk-lit" };
-// Profile has no icon in v1; Settings (theme, sign out) is the Profile page.
-const SETTINGS: NavItem = { to: "/profile", label: "Settings" };
+const HOME: NavItem = { to: "/", label: "Home", icon: "home", hint: "", end: true };
+const COMMON_ROOM: NavItem = { to: "/common-room", label: "The Common Room", icon: "common-room", hint: "" };
+const DESK_TIME: NavItem = { to: "/desk-time", label: "Desk Time", icon: "desk-time", hint: "" };
+const REALITY_BREAK: NavItem = { to: "/games", label: "Reality Break", icon: "reality-break", hint: "" };
+const BEYOND: NavItem = {
+  to: "/beyond-the-desk",
+  label: "Beyond the Desk",
+  icon: "beyond-the-desk",
+  hint: "Daily Detours, Weekly Wins, Side Quests",
+};
+const MY_DESK: NavItem = { to: "/my-desk", label: "My Desk", icon: "my-desk", hint: "Your desk and your buddies" };
+const DESK_FINDS: NavItem = { to: "/deskfinds", label: "Desk Finds", icon: "desk-finds", hint: "Spend your deskbits" };
+const BUDDYBOOK: NavItem = { to: "/buddybook", label: "Buddybook", icon: "buddybook", hint: "Your stamps and milestones" };
+const CALENDAR: NavItem = { to: "/events", label: "Buddy Calendar", icon: "buddy-calendar", hint: "Events and dates" };
+const KEEP_LIT: NavItem = {
+  to: "/keep-the-desk-lit",
+  label: "Keep the Desk Lit",
+  icon: "keep-the-desk-lit",
+  hint: "Help keep Debbie running. It does not buy deskbits or XP.",
+};
+const NOTE: NavItem = {
+  to: "/note-for-debbie",
+  label: "A Note for Debbie",
+  icon: "note-for-debbie",
+  hint: "Suggestions, feedback, or something broken?",
+};
+// Settings (theme, sign out) is still the Profile page until Settings exists.
+const SETTINGS: NavItem = {
+  to: "/profile",
+  label: "Settings",
+  icon: "settings",
+  hint: "Theme, motion and notifications",
+};
 
-// Desktop top bar, then a More menu.
-const TOP_TABS = [HOME, COMMON_ROOM, DESK_TIME, REALITY_BREAK, BEYOND, DESK_FINDS];
-const DESKTOP_MORE = [MY_DESK, BUDDYBOOK, CALENDAR, KEEP_LIT, SETTINGS];
-// Phone bottom bar (four tabs + More), then a More sheet.
+// Desktop groups: Play | You | Account (thin dividers between).
+const DESKTOP_GROUPS: NavItem[][] = [
+  [HOME, COMMON_ROOM, DESK_TIME, REALITY_BREAK],
+  [BEYOND, MY_DESK, DESK_FINDS, BUDDYBOOK, CALENDAR, KEEP_LIT],
+  [NOTE, SETTINGS],
+];
+// Phone bar, then the More sheet (a divider sits before the last three).
 const BAR_TABS = [HOME, COMMON_ROOM, DESK_TIME, REALITY_BREAK];
-const PHONE_MORE = [BEYOND, MY_DESK, DESK_FINDS, BUDDYBOOK, CALENDAR, KEEP_LIT, SETTINGS];
+const SHEET_MAIN = [BEYOND, MY_DESK, DESK_FINDS, BUDDYBOOK, CALENDAR];
+const SHEET_ACCOUNT = [KEEP_LIT, NOTE, SETTINGS];
 
 const PHONE_QUERY = "(max-width: 640px)";
 
@@ -53,8 +87,7 @@ export default function AppHeader() {
   const { pathname } = useLocation();
   const isPhone = useIsPhone();
   const [moreOpen, setMoreOpen] = useState(false);
-  const deskMoreRef = useRef<HTMLButtonElement>(null);
-  const phoneMoreRef = useRef<HTMLButtonElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   // Reserve room under the page for the fixed bottom bar (phones only; the
@@ -64,25 +97,47 @@ export default function AppHeader() {
     return () => document.body.classList.remove("has-tabbar");
   }, []);
 
-  // Close the menu after navigating, and when the layout switches.
+  // Close the sheet after navigating, and when the layout switches.
   useEffect(() => {
     setMoreOpen(false);
   }, [pathname, isPhone]);
 
-  // Escape closes and returns focus to the More button; focus moves into the
-  // menu when it opens.
+  // The sheet is a modal dialog: focus moves in, Tab stays inside, Escape
+  // closes and returns focus to the More tab, and the page behind stops
+  // scrolling while it is open.
   useEffect(() => {
     if (!moreOpen) return;
-    sheetRef.current?.querySelector<HTMLElement>("a")?.focus();
+    const sheet = sheetRef.current;
+    const focusables = () =>
+      Array.from(sheet?.querySelectorAll<HTMLElement>("a[href], button:not([disabled])") ?? []);
+    focusables()[0]?.focus();
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setMoreOpen(false);
-        (isPhone ? phoneMoreRef : deskMoreRef).current?.focus();
+        moreRef.current?.focus();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const els = focusables();
+      if (els.length === 0) return;
+      const first = els[0];
+      const last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
       }
     }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [moreOpen, isPhone]);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [moreOpen]);
 
   // Game lobby/play and MOD pages live outside /games, but they belong to
   // Reality Break, so keep it highlighted there.
@@ -90,119 +145,124 @@ export default function AppHeader() {
   const isActive = (item: NavItem) =>
     item.to === "/" ? pathname === "/" : item.to === "/games" ? inGames || matches(pathname, "/games") : matches(pathname, item.to);
 
-  const moreItems = isPhone ? PHONE_MORE : DESKTOP_MORE;
-  const moreActive = moreItems.some(isActive);
-  const iconSize = isPhone ? 32 : 16;
+  // On phones, a page reached from More highlights the More tab.
+  const moreActive = [...SHEET_MAIN, ...SHEET_ACCOUNT].some(isActive);
 
-  const sheet = moreOpen && (
-    <>
-      <div className="app-sheet-backdrop" onClick={() => setMoreOpen(false)} aria-hidden="true" />
-      <div className="app-sheet" id="more-sheet" ref={sheetRef} role="group" aria-label="More">
-        {moreItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={"app-sheet__item" + (isActive(item) ? " app-sheet__item--active" : "")}
-          >
-            <span className="app-sheet__icon" aria-hidden="true">
-              {item.icon && <PixelIcon name={item.icon} size={iconSize} />}
-            </span>
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
-      </div>
-    </>
+  function closeSheet() {
+    setMoreOpen(false);
+    moreRef.current?.focus();
+  }
+
+  const sheetRow = (item: NavItem) => (
+    <NavLink
+      key={item.to}
+      to={item.to}
+      aria-current={isActive(item) ? "page" : undefined}
+      className={"app-sheet__item" + (isActive(item) ? " app-sheet__item--active" : "")}
+    >
+      <span className="app-sheet__icon" aria-hidden="true">
+        <PixelIcon name={item.icon} size={32} />
+      </span>
+      <span className="app-sheet__text">
+        <span className="app-sheet__label">{item.label}</span>
+        <span className="app-sheet__hint">{item.hint}</span>
+      </span>
+    </NavLink>
   );
 
   return (
     <header
+      className="app-header"
       style={{
         borderBottom: "1px solid var(--color-border-soft)",
         background: "var(--color-surface)",
       }}
     >
-      <div className="container app-brandrow">
+      <div className="container app-headrow">
         <Link to="/" className="app-brand">
           <img src="/favicon.svg" alt="" width={32} height={32} className="app-brand__mark" />
           Debbie
         </Link>
-        {/* Chips and the profile avatar sit at the right of the brand row (as in
-            the Home concept); the tab row below has the room for seven tabs. */}
+
+        {/* Desktop and tablet: icon-only bar. Hidden on phones, which use the bottom bar. */}
+        <nav className="app-iconnav" aria-label="Main">
+          {DESKTOP_GROUPS.map((group, gi) => (
+            <ul className="app-iconnav__group" key={gi}>
+              {group.map((item) => {
+                const active = isActive(item);
+                return (
+                  <li key={item.to}>
+                    <NavLink
+                      to={item.to}
+                      end={item.end}
+                      aria-label={item.label}
+                      aria-current={active ? "page" : undefined}
+                      data-tip={item.label}
+                      className={"app-icontab" + (active ? " app-icontab--active" : "")}
+                    >
+                      <PixelIcon name={item.icon} size={32} />
+                    </NavLink>
+                  </li>
+                );
+              })}
+            </ul>
+          ))}
+        </nav>
+
         <div className="app-right">
           <MemberStats />
           <ProfileAvatar />
         </div>
       </div>
 
-      <div className="container app-navrow">
-        <div className="app-navleft">
-          <nav className="app-tabs" aria-label="Main">
-            {TOP_TABS.map((tab) => (
-              <NavLink
-                key={tab.to}
-                to={tab.to}
-                end={tab.end}
-                className={"app-tab" + (isActive(tab) ? " app-tab--active" : "")}
-                aria-current={undefined}
-              >
-                <span className="app-tab__icon" aria-hidden="true">
-                  {tab.icon && <PixelIcon name={tab.icon} size={16} />}
-                </span>
-                <span>{tab.label}</span>
-              </NavLink>
-            ))}
-          </nav>
-          <div className="app-more">
-            <button
-              type="button"
-              ref={deskMoreRef}
-              className={"app-tab" + (moreActive || (moreOpen && !isPhone) ? " app-tab--active" : "")}
-              aria-expanded={!isPhone && moreOpen}
-              aria-controls="more-sheet"
-              onClick={() => setMoreOpen((o) => !o)}
-            >
-              <span className="app-tab__icon" aria-hidden="true">
-                <PixelIcon name="more" size={16} />
-              </span>
-              <span>More</span>
-            </button>
-            {!isPhone && sheet}
+      {/* Phones: five icon-only tabs; More opens the sheet above them. */}
+      {isPhone && moreOpen && (
+        <>
+          <div className="app-sheet-backdrop" onClick={closeSheet} aria-hidden="true" />
+          <div className="app-sheet" id="more-sheet" ref={sheetRef} role="dialog" aria-modal="true" aria-label="More">
+            <div className="app-sheet__head">
+              <h2 className="app-sheet__title">More</h2>
+              <button type="button" className="app-sheet__close" onClick={closeSheet} aria-label="Close More">
+                ×
+              </button>
+            </div>
+            {SHEET_MAIN.map(sheetRow)}
+            <div className="app-sheet__rule" aria-hidden="true" />
+            {SHEET_ACCOUNT.map(sheetRow)}
           </div>
-        </div>
-      </div>
-
-      {/* Phones: the menu is a sheet above a fixed bottom bar (see global.css). */}
-      {isPhone && sheet}
+        </>
+      )}
       <nav className="app-bottombar" aria-label="Main">
         <ul className="app-bottombar__list">
-          {BAR_TABS.map((tab) => (
-            <li key={tab.to}>
-              <NavLink
-                to={tab.to}
-                end={tab.end}
-                className={"app-bt" + (isActive(tab) ? " app-bt--active" : "")}
-                aria-current={undefined}
-              >
-                <span className="app-bt__icon" aria-hidden="true">
-                  {tab.icon && <PixelIcon name={tab.icon} size={32} />}
-                </span>
-                <span>{tab.label}</span>
-              </NavLink>
-            </li>
-          ))}
+          {BAR_TABS.map((tab) => {
+            const active = isActive(tab);
+            const lit = active && !moreOpen; // the open sheet takes the highlight
+            return (
+              <li key={tab.to}>
+                <NavLink
+                  to={tab.to}
+                  end={tab.end}
+                  aria-label={tab.label}
+                  aria-current={active ? "page" : undefined}
+                  className={"app-bt" + (lit ? " app-bt--active" : "")}
+                >
+                  <PixelIcon name={tab.icon} size={32} />
+                </NavLink>
+              </li>
+            );
+          })}
           <li>
             <button
               type="button"
-              ref={phoneMoreRef}
-              className={"app-bt" + (moreActive || (moreOpen && isPhone) ? " app-bt--active" : "")}
-              aria-expanded={isPhone && moreOpen}
+              ref={moreRef}
+              aria-label="More"
+              aria-haspopup="dialog"
+              aria-expanded={moreOpen}
               aria-controls="more-sheet"
+              className={"app-bt" + (moreActive || moreOpen ? " app-bt--active" : "")}
               onClick={() => setMoreOpen((o) => !o)}
             >
-              <span className="app-bt__icon" aria-hidden="true">
-                <PixelIcon name="more" size={32} />
-              </span>
-              <span>More</span>
+              <PixelIcon name="more" size={32} />
             </button>
           </li>
         </ul>

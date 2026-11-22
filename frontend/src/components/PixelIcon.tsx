@@ -102,6 +102,16 @@ const ICONS = {
     ["#9A4A30", "M12 2h1v1h-1zM12 3h1v1h-1zM12 4h1v1h-1zM12 5h1v1h-1zM12 6h1v1h-1zM12 7h1v1h-1zM12 8h1v1h-1zM12 9h1v1h-1zM11 10h1v1h-1zM10 11h1v1h-1zM9 12h1v1h-1z"],
     ["#FBF4E8", "M7 3h2v1h-2zM6 4h1v1h-1zM9 4h1v1h-1zM5 5h1v1h-1zM10 5h1v1h-1zM7 6h2v1h-2zM6 7h1v1h-1zM9 7h1v1h-1zM5 8h1v1h-1zM10 8h1v1h-1z"],
   ],
+  // ---- account (added with the icon-only nav; from the Debbie nav boards) ----
+  "note-for-debbie": [
+    [LINE, "M1 3h14v1h-14zM1 4h2v1h-2zM13 4h2v1h-2zM1 5h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM14 5h1v1h-1zM1 6h1v1h-1zM4 6h1v1h-1zM11 6h1v1h-1zM14 6h1v1h-1zM1 7h1v1h-1zM5 7h1v1h-1zM10 7h1v1h-1zM14 7h1v1h-1zM1 8h1v1h-1zM14 8h1v1h-1zM1 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM14 10h1v1h-1zM1 11h1v1h-1zM14 11h1v1h-1zM1 12h1v1h-1zM14 12h1v1h-1zM1 13h14v1h-14z"],
+    [FILL, "M3 4h10v1h-10zM2 5h1v1h-1zM4 5h8v1h-8zM13 5h1v1h-1zM2 6h2v1h-2zM5 6h6v1h-6zM12 6h2v1h-2zM2 7h3v1h-3zM6 7h4v1h-4zM11 7h3v1h-3zM2 8h4v1h-4zM10 8h4v1h-4zM2 9h4v1h-4zM10 9h4v1h-4zM2 10h5v1h-5zM9 10h5v1h-5zM2 11h12v1h-12zM2 12h12v1h-12z"],
+    [ACC, "M6 8h4v1h-4zM6 9h4v1h-4zM7 10h2v1h-2z"],
+  ],
+  settings: [
+    [LINE, "M9 1h4v1h-4zM9 2h1v1h-1zM12 2h1v1h-1zM1 3h9v1h-9zM12 3h3v1h-3zM9 4h4v1h-4zM3 6h4v1h-4zM3 7h1v1h-1zM6 7h1v1h-1zM1 8h3v1h-3zM6 8h9v1h-9zM3 9h4v1h-4zM7 11h4v1h-4zM7 12h1v1h-1zM10 12h1v1h-1zM1 13h7v1h-7zM10 13h5v1h-5zM7 14h4v1h-4z"],
+    [ACC, "M10 2h2v1h-2zM10 3h2v1h-2zM4 7h2v1h-2zM4 8h2v1h-2zM8 12h2v1h-2zM8 13h2v1h-2z"],
+  ],
 } satisfies Record<string, Layer[]>;
 
 export type PixelIconName = keyof typeof ICONS;
