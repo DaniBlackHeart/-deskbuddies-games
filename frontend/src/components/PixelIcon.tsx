@@ -108,6 +108,12 @@ const ICONS = {
     [FILL, "M3 4h10v1h-10zM2 5h1v1h-1zM4 5h8v1h-8zM13 5h1v1h-1zM2 6h2v1h-2zM5 6h6v1h-6zM12 6h2v1h-2zM2 7h3v1h-3zM6 7h4v1h-4zM11 7h3v1h-3zM2 8h4v1h-4zM10 8h4v1h-4zM2 9h4v1h-4zM10 9h4v1h-4zM2 10h5v1h-5zM9 10h5v1h-5zM2 11h12v1h-12zM2 12h12v1h-12z"],
     [ACC, "M6 8h4v1h-4zM6 9h4v1h-4zM7 10h2v1h-2z"],
   ],
+  // ---- Desk Log (from the Debbie Desk Log board) ----
+  "desk-log": [
+    [LINE, "M3 1h10v1h-10zM3 2h1v1h-1zM12 2h1v1h-1zM3 3h1v1h-1zM12 3h1v1h-1zM3 4h1v1h-1zM8 4h3v1h-3zM12 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM3 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM8 7h3v1h-3zM12 7h1v1h-1zM3 8h1v1h-1zM12 8h1v1h-1zM3 9h1v1h-1zM12 9h1v1h-1zM3 10h1v1h-1zM8 10h3v1h-3zM12 10h1v1h-1zM3 11h1v1h-1zM12 11h1v1h-1zM3 12h1v1h-1zM12 12h1v1h-1zM3 13h10v1h-10zM3 14h1v1h-1zM5 14h1v1h-1zM7 14h1v1h-1zM9 14h1v1h-1zM11 14h1v1h-1z"],
+    [FILL, "M4 2h8v1h-8zM4 3h8v1h-8zM4 4h1v1h-1zM7 4h1v1h-1zM11 4h1v1h-1zM4 5h8v1h-8zM4 6h8v1h-8zM4 7h1v1h-1zM7 7h1v1h-1zM11 7h1v1h-1zM4 8h8v1h-8zM4 9h8v1h-8zM4 10h1v1h-1zM7 10h1v1h-1zM11 10h1v1h-1zM4 11h8v1h-8zM4 12h8v1h-8z"],
+    [ACC, "M5 4h2v1h-2zM5 7h2v1h-2zM5 10h2v1h-2z"],
+  ],
   settings: [
     [LINE, "M9 1h4v1h-4zM9 2h1v1h-1zM12 2h1v1h-1zM1 3h9v1h-9zM12 3h3v1h-3zM9 4h4v1h-4zM3 6h4v1h-4zM3 7h1v1h-1zM6 7h1v1h-1zM1 8h3v1h-3zM6 8h9v1h-9zM3 9h4v1h-4zM7 11h4v1h-4zM7 12h1v1h-1zM10 12h1v1h-1zM1 13h7v1h-7zM10 13h5v1h-5zM7 14h4v1h-4z"],
     [ACC, "M10 2h2v1h-2zM10 3h2v1h-2zM4 7h2v1h-2zM4 8h2v1h-2zM8 12h2v1h-2zM8 13h2v1h-2z"],

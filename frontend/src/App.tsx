@@ -22,6 +22,7 @@ import KeepTheDeskLitPage from "./pages/KeepTheDeskLitPage";
 import NoteForDebbiePage from "./pages/NoteForDebbiePage";
 import SettingsPage from "./pages/SettingsPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import DeskLogPage from "./pages/DeskLogPage";
 import BuddybookPage from "./pages/BuddybookPage";
 import DeskFindsPage from "./pages/DeskFindsPage";
 import ComingSoonPage from "./components/ComingSoonPage";
@@ -253,7 +254,7 @@ export default function App() {
               path="/desk-log"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="Desk Log" blurb="Your check-ins, focus blocks and achievements will be kept here. The Desk Log is coming soon." />
+                  <DeskLogPage />
                 </ProtectedRoute>
               }
             />
