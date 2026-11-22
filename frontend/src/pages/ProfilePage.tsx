@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
-import MemberStats from "../components/MemberStats";
 import PixelIcon from "../components/PixelIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { useBuddybook } from "../lib/useBuddybook";
@@ -60,9 +59,20 @@ export default function ProfilePage() {
           </div>
 
           <div className="pf-level">
-            <strong>Buddy Level {progress.level}</strong>
-            <MemberStats showProgress showDeskbits={false} showXp={!others} />
-            {!others && <span className="text-muted pf-small">{progress.xp.toLocaleString()} XP earned so far. The level curve is not decided yet, so the bar stays empty.</span>}
+            <div className="pf-level__head">
+              <PixelIcon name="buddy-level" size={16} />
+              <strong>Buddy Level {progress.level}</strong>
+            </div>
+            <div className="pf-bar" role="img" aria-label={`Buddy Level ${progress.level}, ${Math.round(progress.levelProgress * 100)}% of the way to the next level`}>
+              <span className="pf-bar__fill" style={{ width: `${Math.round(Math.min(1, Math.max(0, progress.levelProgress)) * 100)}%` }} />
+            </div>
+            {!others && (
+              <span className="pf-xpline text-muted pf-small">
+                <PixelIcon name="buddy-xp" size={16} />
+                {progress.xp.toLocaleString()} XP earned so far
+              </span>
+            )}
+            {!others && <span className="pf-small text-muted">The level curve is not decided yet, so the bar stays empty.</span>}
           </div>
 
           <div className="pf-actions">
@@ -72,7 +82,7 @@ export default function ProfilePage() {
             </div>
             {!others && (
               <div className="pf-row">
-                <Link className="pf-chip" to="/buddybook">Buddybook</Link>
+                <Link className="pf-chip" to="/buddybook"><PixelIcon name="buddybook" size={16} />Buddybook</Link>
                 <Link className="pf-chip" to="/my-avatar">My Avatar</Link>
               </div>
             )}
@@ -87,21 +97,30 @@ export default function ProfilePage() {
 
         <div className={"pf-stats" + (others ? " pf-stats--one" : "")}>
           <div className="pf-card pf-stat">
+            <span className="pf-stat__ic"><PixelIcon name="buddy-streak" size={32} /></span>
+            <span className="pf-stat__text">
             <span className="pf-stat__label">Buddy Streak</span>
             <strong className="pf-stat__val">{streak ? (streak.current_streak > 0 ? `${streak.current_streak} day${streak.current_streak === 1 ? "" : "s"}` : "Starts when you check in") : dash}</strong>
             {!others && streak && <span className="text-muted pf-small">Best: {streak.longest_streak} day{streak.longest_streak === 1 ? "" : "s"}</span>}
+            </span>
           </div>
           {!others && (
             <>
               <Link className="pf-card pf-stat pf-stat--link" to="/buddybook">
-                <span className="pf-stat__label">Stamps</span>
-                <strong className="pf-stat__val">{book ? book.counts.stamps : dash}</strong>
-                <span className="text-muted pf-small">See it in your Buddybook</span>
+                <span className="pf-stat__ic"><PixelIcon name="section-firsts" size={32} /></span>
+                <span className="pf-stat__text">
+                  <span className="pf-stat__label">Stamps</span>
+                  <strong className="pf-stat__val">{book ? book.counts.stamps : dash}</strong>
+                  <span className="text-muted pf-small">See it in your Buddybook</span>
+                </span>
               </Link>
               <Link className="pf-card pf-stat pf-stat--link" to="/beyond-the-desk">
-                <span className="pf-stat__label">Keepsakes</span>
-                <strong className="pf-stat__val">{book ? book.counts.keepsakes : dash}</strong>
-                <span className="text-muted pf-small">Permanent, never lost</span>
+                <span className="pf-stat__ic"><PixelIcon name="section-keepsakes" size={32} /></span>
+                <span className="pf-stat__text">
+                  <span className="pf-stat__label">Keepsakes</span>
+                  <strong className="pf-stat__val">{book ? book.counts.keepsakes : dash}</strong>
+                  <span className="text-muted pf-small">Permanent, never lost</span>
+                </span>
               </Link>
             </>
           )}

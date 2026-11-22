@@ -2726,3 +2726,13 @@ button.bb-contents__row:hover { border-color: var(--color-primary); }
 @media (max-width: 700px) { .pf-stats, .pf-two { grid-template-columns: minmax(0, 1fr); } }
 .pf-plate { display: inline-block; padding: 2px 12px; border: 2px solid var(--color-border); border-radius: 999px; color: var(--color-text); font-weight: 700; text-decoration: none; background: var(--color-surface-raised); }
 .pf-link { color: var(--color-text); font-weight: 700; text-decoration: underline; }
+.pf-level__head { display: flex; align-items: center; gap: 8px; }
+.pf-bar { height: 14px; border-radius: 999px; background: var(--color-surface-raised); border: 2px solid var(--color-border); overflow: hidden; box-sizing: border-box; }
+.pf-bar__fill { display: block; height: 100%; background: var(--color-primary); }
+.pf-xpline { display: flex; align-items: center; gap: 8px; }
+.pf-stat { flex-direction: row; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; }
+.pf-stat__ic { flex: none; display: inline-flex; }
+.pf-stat__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pf-stat__label { font-size: 0.8125rem; font-weight: 600; }
+.pf-stat__val { font-size: 1.125rem; line-height: 1.2; }
+.pf-chip { gap: 8px; }
