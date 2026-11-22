@@ -4,6 +4,7 @@ import { isGamesRoute } from "../lib/gameRoutes";
 import PixelIcon, { type PixelIconName } from "./PixelIcon";
 import MemberStats from "./MemberStats";
 import ProfileAvatar from "./ProfileAvatar";
+import { useUnreadCount } from "../lib/useNotifications";
 
 // Icon-only navigation, from the 21-22 Nov 2026 Navigation Decision and the
 // Debbie nav boards (placeholder IA, still waiting on Rika's approval).
@@ -85,9 +86,9 @@ function matches(pathname: string, to: string) {
 }
 
 export default function AppHeader() {
-  // No notifications backend yet, so there is nothing to count. The badge shows
-  // only when this is above zero (a number, never colour alone).
-  const unread = 0;
+  // The unread count comes from the server. The badge shows only when it is above
+  // zero (a number, never colour alone). Unknown counts show no badge.
+  const unread = useUnreadCount();
   const { pathname } = useLocation();
   const isPhone = useIsPhone();
   const [moreOpen, setMoreOpen] = useState(false);

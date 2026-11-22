@@ -21,6 +21,7 @@ import BuddyCalendarPage from "./pages/BuddyCalendarPage";
 import KeepTheDeskLitPage from "./pages/KeepTheDeskLitPage";
 import NoteForDebbiePage from "./pages/NoteForDebbiePage";
 import SettingsPage from "./pages/SettingsPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import BuddybookPage from "./pages/BuddybookPage";
 import DeskFindsPage from "./pages/DeskFindsPage";
 import ComingSoonPage from "./components/ComingSoonPage";
@@ -212,7 +213,7 @@ export default function App() {
               path="/notifications"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="Notifications" blurb="Updates for you will show up here." />
+                  <NotificationsPage />
                 </ProtectedRoute>
               }
             />

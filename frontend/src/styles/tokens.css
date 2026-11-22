@@ -12,6 +12,7 @@
   --color-bg: #fbf4e8;
   --color-bg-alt: #f3e6d2;
   --color-surface: #fffdf8;
+  --color-notif-new: #e4ecdd;
   --color-surface-raised: #ffffff;
   --color-border: #e3d0b2;
   --color-border-soft: #ecdcc2;
@@ -113,6 +114,7 @@
   --color-bg: #1f1713;
   --color-bg-alt: #352920;
   --color-surface: #2b211b;
+  --color-notif-new: #2f3b2d;
   --color-surface-raised: #352920;
   --color-border: #4a3b30;
   --color-border-soft: #3a2d24;
