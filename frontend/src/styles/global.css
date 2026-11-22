@@ -2595,3 +2595,37 @@ button.bb-contents__row:hover { border-color: var(--color-primary); }
 .kdl-btn--primary { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
 .kdl-page a:focus-visible, .kdl-page button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
 @media (max-width: 640px) { .kdl-card { padding: 16px; } .kdl-h2 { font-size: 1.5rem; } }
+
+/* ---- A Note for Debbie (Debbie A Note for Debbie design): a short, kind feedback form. ---- */
+.nfd-page { max-width: 820px; display: flex; flex-direction: column; gap: var(--space-4); }
+.nfd-head { display: flex; flex-direction: column; gap: 4px; }
+.nfd-eyebrow { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.04em; color: var(--color-text-muted); }
+.nfd-card { background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 18px; padding: 22px 24px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box; min-width: 0; }
+.nfd-h2 { margin: 0; font-family: var(--db-font-display, inherit); font-weight: 600; font-size: 1.625rem; }
+.nfd-group { display: flex; flex-direction: column; gap: 8px; }
+.nfd-label { font-size: 0.9375rem; font-weight: 700; }
+.nfd-opt { font-weight: 500; color: var(--color-text-muted); }
+.nfd-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.nfd-between { justify-content: space-between; }
+.nfd-chip { font: inherit; cursor: pointer; min-height: 44px; padding: 0 16px; border-radius: 10px; font-size: 0.9375rem; font-weight: 700; border: 2px solid var(--color-border); background: var(--color-surface); color: var(--color-text); }
+.nfd-chip--sm { min-height: 40px; padding: 0 12px; font-size: 0.875rem; }
+.nfd-chip--on { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
+.nfd-text { width: 100%; box-sizing: border-box; border: 2px solid var(--color-border); border-radius: 12px; background: var(--color-bg); color: var(--color-text); font: inherit; font-size: 1rem; line-height: 1.45; padding: 10px 12px; resize: vertical; }
+.nfd-count { font-size: 0.8125rem; color: var(--color-text-muted); }
+.nfd-msg { font-size: 0.875rem; font-weight: 700; border-left: 4px solid var(--color-primary); padding-left: 8px; }
+.nfd-msg--empty { border-left: 0; padding-left: 0; }
+.nfd-small { font-size: 0.875rem; line-height: 1.4; }
+.nfd-switch { display: flex; gap: 12px; align-items: center; width: 100%; min-height: 56px; padding: 10px 14px; border-radius: 12px; border: 2px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font: inherit; text-align: left; cursor: pointer; box-sizing: border-box; }
+.nfd-switch__text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.nfd-switch__title { font-size: 1rem; font-weight: 700; }
+.nfd-track { flex: none; position: relative; width: 48px; height: 28px; border-radius: 999px; box-sizing: border-box; border: 2px solid var(--color-text-muted); background: var(--color-bg-alt); display: inline-block; }
+.nfd-track--on { border-color: var(--color-primary); background: var(--color-primary); }
+.nfd-knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 6px; background: var(--color-text-muted); display: block; }
+.nfd-track--on .nfd-knob { left: 22px; background: var(--color-text-on-primary); }
+.nfd-state { font-size: 0.8125rem; font-weight: 700; min-width: 26px; text-align: right; }
+.nfd-privacy { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 2px solid var(--color-border); border-radius: 12px; background: var(--color-bg-alt); font-size: 0.875rem; line-height: 1.45; }
+.nfd-btn { font: inherit; cursor: pointer; color: var(--color-text); min-height: 48px; padding: 0 20px; border: 2px solid var(--color-border); border-radius: 12px; background: var(--color-surface); font-size: 1rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; text-decoration: none; }
+.nfd-btn--primary { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
+.nfd-btn[aria-disabled="true"] { opacity: 0.6; cursor: wait; }
+.nfd-page button:focus-visible, .nfd-page a:focus-visible, .nfd-page textarea:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+@media (max-width: 640px) { .nfd-card { padding: 16px; } }
