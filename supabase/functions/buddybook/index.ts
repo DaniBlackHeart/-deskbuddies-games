@@ -1,5 +1,6 @@
 // buddybook
 // Debbie's Buddybook: the member's private, read-only record.
+//   { action: "collection" } -> every buddy for the Buddy Collection page: found or not, found date.
 //   { action: "status" } -> Firsts stamps, Side Quest marks, owned buddies (and broad hints for the rest),
 //                           Keepsake steps earned.
 //
@@ -149,6 +150,27 @@ async function buildStatus(admin: Admin, userId: string) {
   };
 }
 
+// The whole Buddy Collection page: every buddy, whether this member has it, and when it was found.
+// Foundie has no public hint, so a generic "limited" line stands in while it is locked. Nothing about
+// how any buddy is earned is returned for buddies the member does not have.
+async function buildCollection(admin: Admin, userId: string) {
+  const defs = await must<{ key: string; name: string; hint: string | null; one_liner: string | null }[]>(
+    admin.from("buddy_defs").select("key,name,hint,one_liner").order("sort"),
+  );
+  const items = await must<{ item_key: string; granted_at: string }[]>(
+    admin.from("member_items").select("item_key,granted_at").eq("user_id", userId).like("item_key", "companion:%"),
+  );
+  const got = new Map((items ?? []).map((i) => [i.item_key.slice("companion:".length), i.granted_at]));
+  const buddies = (defs ?? []).map((b) => {
+    const at = got.get(b.key) ?? null;
+    const limited = b.key === "foundie";
+    return at
+      ? { key: b.key, found: true, limited, name: b.name, line: b.one_liner, hint: null, found_at: at }
+      : { key: b.key, found: false, limited, name: null, line: null, hint: b.hint ?? (limited ? "A limited companion" : "A companion to find"), found_at: null };
+  });
+  return { buddies, found: buddies.filter((b) => b.found).length };
+}
+
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
   if (preflight) return preflight;
@@ -158,8 +180,11 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    if (body?.action !== "status") return jsonResponse({ error: "action must be 'status'" }, 400);
+    if (body?.action !== "status" && body?.action !== "collection") {
+      return jsonResponse({ error: "action must be 'status' or 'collection'" }, 400);
+    }
     const admin = getAdminClient();
+    if (body.action === "collection") return jsonResponse(await buildCollection(admin, auth.user.id));
     return jsonResponse(await buildStatus(admin, auth.user.id));
   } catch (err) {
     console.error("buddybook failed:", err);

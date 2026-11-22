@@ -159,7 +159,7 @@ export default function ProfilePage() {
                 </ul>
               </>
             )}
-            {!others && <div><Link className="pf-chip" to="/buddybook">Open Buddy Collection</Link></div>}
+            {!others && <div><Link className="pf-chip" to="/buddy-collection">Open Buddy Collection</Link></div>}
           </section>
         </div>
 

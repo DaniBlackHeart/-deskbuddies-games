@@ -26,6 +26,7 @@ import DeskLogPage from "./pages/DeskLogPage";
 import MyAvatarPage from "./pages/MyAvatarPage";
 import PullUpAChairPage from "./pages/PullUpAChairPage";
 import BuddybookPage from "./pages/BuddybookPage";
+import BuddyCollectionPage from "./pages/BuddyCollectionPage";
 import DeskFindsPage from "./pages/DeskFindsPage";
 import ComingSoonPage from "./components/ComingSoonPage";
 
@@ -201,6 +202,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <BuddybookPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/buddy-collection"
+              element={
+                <ProtectedRoute>
+                  <BuddyCollectionPage />
                 </ProtectedRoute>
               }
             />

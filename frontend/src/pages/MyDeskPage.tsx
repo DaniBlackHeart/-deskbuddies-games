@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { useMyDesk } from "../lib/useMyDesk";
 import {
@@ -249,6 +249,7 @@ export default function MyDeskPage() {
                         ? `${names[0]} is seated on your desk.`
                         : "No buddy yet. Your first one is earned, not handed out."}
                   </p>
+                  <Link className="md-comp-link" to="/buddy-collection">See your Buddy Collection ›</Link>
                 </section>
               </>
             ) : (
