@@ -17,6 +17,7 @@ import MyDeskPage from "./pages/MyDeskPage";
 import CommonRoomPage from "./pages/CommonRoomPage";
 import DeskTimePage from "./pages/DeskTimePage";
 import BeyondTheDeskPage from "./pages/BeyondTheDeskPage";
+import DeskFindsPage from "./pages/DeskFindsPage";
 import ComingSoonPage from "./components/ComingSoonPage";
 
 // Everything below is lazy-loaded, grouped into one chunk per game. Each
@@ -150,7 +151,7 @@ export default function App() {
               path="/deskfinds"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="Desk Finds" blurb="The shop for desk goodies and buddies will live here." />
+                  <DeskFindsPage />
                 </ProtectedRoute>
               }
             />

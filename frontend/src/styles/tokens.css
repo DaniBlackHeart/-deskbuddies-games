@@ -30,6 +30,11 @@
   --color-tier-bronze: #b87b4b; /* Keepsake step medallions */
   --color-tier-silver: #aab1b9;
   --color-tier-gold: #e8bd4f;
+  --color-tone-accessories: rgba(242, 199, 102, 0.2); /* Desk Finds art panels */
+  --color-tone-comfort: rgba(232, 151, 122, 0.2);
+  --color-tone-furniture: rgba(143, 169, 138, 0.2);
+  --color-tone-showpieces: rgba(127, 163, 181, 0.2);
+  --color-tone-wardrobe: rgba(183, 154, 174, 0.2);
   --color-accent-text: #a94f33; /* Debbie v1: accent TEXT and links, 5.1:1 on cream */
   --color-primary-soft: #f7ded2;
   --color-secondary: #7c9473;
