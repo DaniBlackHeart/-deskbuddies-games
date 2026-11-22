@@ -5,6 +5,8 @@ import DailyCheckInCard from "../components/DailyCheckInCard";
 import PixelIcon from "../components/PixelIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { useDailyCheckIn } from "../lib/useDailyCheckIn";
+import { useMyDesk } from "../lib/useMyDesk";
+import { buddyName } from "../lib/deskCatalog";
 
 // Home answers three questions in about ten seconds: where am I (my desk),
 // what can I do today, and who else is here. Layout follows the Debbie Home
@@ -47,6 +49,47 @@ function ComingSoonPanel({ title, blurb, note, className }: { title: string; blu
       <p className="t-body-sm text-muted" style={{ margin: "var(--space-3) 0 0" }}>
         {note}
       </p>
+    </section>
+  );
+}
+
+function HomeDeskCard() {
+  const { saved, loading } = useMyDesk();
+  const names = saved.companions.map(buddyName);
+  const scene = `/desk/scene-${saved.companions[0] ?? "none"}.png`;
+  const line =
+    names.length > 1
+      ? `${names.join(" and ")} are keeping your seat.`
+      : names.length === 1
+        ? `${names[0]} is keeping your seat.`
+        : "Your companion spot is waiting for your first buddy.";
+  return (
+    <section className="db-panel db-home__desk" aria-labelledby="home-desk">
+      <div className="row-between" style={{ alignItems: "flex-start", gap: "var(--space-3)" }}>
+        <div>
+          <h2 id="home-desk" className="t-h2" style={{ margin: 0 }}>
+            My Desk
+          </h2>
+          <p className="t-body-sm text-muted" style={{ margin: "4px 0 0" }}>
+            Your own little corner of DeskBuddies.
+          </p>
+        </div>
+        <Link to="/my-desk" className="db-link">
+          Open my desk
+        </Link>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)", alignItems: "center", marginTop: "var(--space-3)" }}>
+        <img
+          src={scene}
+          alt={loading ? "" : names.length ? `Your desk with ${names.join(" and ")}` : "Your desk with an empty companion spot"}
+          width={160}
+          height={112}
+          style={{ width: 240, maxWidth: "100%", height: "auto", imageRendering: "pixelated", border: "2px solid var(--color-border)", borderRadius: 12 }}
+        />
+        <p className="t-body-sm text-muted" style={{ margin: 0, flex: "1 1 200px" }}>
+          {line}
+        </p>
+      </div>
     </section>
   );
 }
@@ -98,12 +141,7 @@ export default function HomePage() {
 
         <div className="db-home-cols">
           <div className="db-home-main">
-            <ComingSoonPanel
-              className="db-home__desk"
-              title="My Desk"
-              blurb="Your own little corner of DeskBuddies."
-              note="Your desk and first companion will live here."
-            />
+            <HomeDeskCard />
 
             <section className="db-panel db-home__rb" id="reality-break" aria-labelledby="rb">
               <div className="row-between" style={{ alignItems: "baseline", gap: "var(--space-3)" }}>
