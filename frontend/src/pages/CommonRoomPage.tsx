@@ -77,9 +77,6 @@ export default function CommonRoomPage() {
           </p>
         </div>
 
-        <p className="cr-placeholder">
-          Placeholder page. The kind names and channel names are samples, and posts are not saved yet: anything you post here disappears when you refresh. Nothing is sent to Discord.
-        </p>
 
         <div className="cr-grid">
           <div className="cr-main">

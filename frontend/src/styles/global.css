@@ -2109,7 +2109,6 @@ button {
 
 /* ---- The Common Room (Debbie Common Room design). Placeholder feed. ---- */
 .cr-page { display: flex; flex-direction: column; gap: var(--space-5); }
-.cr-placeholder { margin: 0; border: 2px dashed var(--color-primary); border-radius: 12px; padding: 12px 16px; background: var(--color-bg-alt); font-size: 0.9375rem; line-height: 1.5; font-weight: 600; }
 .cr-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-5); align-items: start; }
 .cr-main { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
 .cr-share { background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 18px; padding: 16px 22px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
