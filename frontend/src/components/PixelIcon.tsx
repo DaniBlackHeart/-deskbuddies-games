@@ -108,6 +108,17 @@ const ICONS = {
     [FILL, "M3 4h10v1h-10zM2 5h1v1h-1zM4 5h8v1h-8zM13 5h1v1h-1zM2 6h2v1h-2zM5 6h6v1h-6zM12 6h2v1h-2zM2 7h3v1h-3zM6 7h4v1h-4zM11 7h3v1h-3zM2 8h4v1h-4zM10 8h4v1h-4zM2 9h4v1h-4zM10 9h4v1h-4zM2 10h5v1h-5zM9 10h5v1h-5zM2 11h12v1h-12zM2 12h12v1h-12z"],
     [ACC, "M6 8h4v1h-4zM6 9h4v1h-4zM7 10h2v1h-2z"],
   ],
+  // ---- Pull Up a Chair page (from the Debbie Pull Up a Chair board) ----
+  "pull-up-a-chair": [
+    [LINE, "M3 1h10v1h-10zM3 2h1v1h-1zM12 2h1v1h-1zM3 3h1v1h-1zM12 3h1v1h-1zM3 4h1v1h-1zM12 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM1 6h4v1h-4zM11 6h4v1h-4zM1 7h1v1h-1zM4 7h1v1h-1zM11 7h1v1h-1zM14 7h1v1h-1zM1 8h1v1h-1zM4 8h8v1h-8zM14 8h1v1h-1zM1 9h1v1h-1zM4 9h8v1h-8zM14 9h1v1h-1zM1 10h1v1h-1zM4 10h1v1h-1zM11 10h1v1h-1zM14 10h1v1h-1zM1 11h1v1h-1zM4 11h1v1h-1zM11 11h1v1h-1zM14 11h1v1h-1zM1 12h1v1h-1zM4 12h8v1h-8zM14 12h1v1h-1zM1 13h4v1h-4zM11 13h4v1h-4zM2 14h2v1h-2zM12 14h2v1h-2zM2 15h2v1h-2zM12 15h2v1h-2z"],
+    [FILL, "M4 2h8v1h-8zM4 3h8v1h-8zM4 4h8v1h-8zM4 5h8v1h-8zM5 6h6v1h-6zM2 7h2v1h-2zM5 7h6v1h-6zM12 7h2v1h-2zM2 8h2v1h-2zM12 8h2v1h-2zM2 9h2v1h-2zM12 9h2v1h-2zM2 10h2v1h-2zM12 10h2v1h-2zM2 11h2v1h-2zM12 11h2v1h-2zM2 12h2v1h-2zM12 12h2v1h-2z"],
+    [ACC, "M5 10h6v1h-6zM5 11h6v1h-6z"],
+  ],
+  lock: [
+    [LINE, "M6 1h4v1h-4zM5 2h1v1h-1zM10 2h1v1h-1zM5 3h1v1h-1zM10 3h1v1h-1zM5 4h1v1h-1zM10 4h1v1h-1zM5 5h1v1h-1zM10 5h1v1h-1zM5 6h1v1h-1zM10 6h1v1h-1zM3 7h10v1h-10zM3 8h1v1h-1zM12 8h1v1h-1zM3 9h1v1h-1zM12 9h1v1h-1zM3 10h1v1h-1zM12 10h1v1h-1zM3 11h1v1h-1zM12 11h1v1h-1zM3 12h1v1h-1zM12 12h1v1h-1zM3 13h1v1h-1zM12 13h1v1h-1zM3 14h10v1h-10z"],
+    [FILL, "M4 8h8v1h-8zM4 9h8v1h-8zM4 10h3v1h-3zM9 10h3v1h-3zM4 11h3v1h-3zM9 11h3v1h-3zM4 12h3v1h-3zM9 12h3v1h-3zM4 13h8v1h-8z"],
+    [ACC, "M7 10h2v1h-2zM7 11h2v1h-2zM7 12h2v1h-2z"],
+  ],
   // ---- Desk Log (from the Debbie Desk Log board) ----
   "desk-log": [
     [LINE, "M3 1h10v1h-10zM3 2h1v1h-1zM12 2h1v1h-1zM3 3h1v1h-1zM12 3h1v1h-1zM3 4h1v1h-1zM8 4h3v1h-3zM12 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM3 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM8 7h3v1h-3zM12 7h1v1h-1zM3 8h1v1h-1zM12 8h1v1h-1zM3 9h1v1h-1zM12 9h1v1h-1zM3 10h1v1h-1zM8 10h3v1h-3zM12 10h1v1h-1zM3 11h1v1h-1zM12 11h1v1h-1zM3 12h1v1h-1zM12 12h1v1h-1zM3 13h10v1h-10zM3 14h1v1h-1zM5 14h1v1h-1zM7 14h1v1h-1zM9 14h1v1h-1zM11 14h1v1h-1z"],

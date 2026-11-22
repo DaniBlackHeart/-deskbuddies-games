@@ -2,6 +2,9 @@
 // Debbie's daily check-in. Two actions:
 //   { action: "status" } -> where the caller's streak stands (read-only)
 //   { action: "claim" }  -> check in for today (safe to call repeatedly)
+//   { action: "overview" } -> status plus what the Pull Up a Chair page shows (read-only): the
+//                           days checked in over the last ~10 weeks, today's reward if one was
+//                           paid, and the streak milestones. Own data only.
 //
 // The browser never says what day it is or what the streak is. The day comes
 // from the database (community_today(), Asia/Manila, set in earning_settings),
@@ -103,6 +106,47 @@ async function getStatus(admin: ReturnType<typeof getAdminClient>, userId: strin
   };
 }
 
+
+type Admin = ReturnType<typeof getAdminClient>;
+
+/** What the Pull Up a Chair page needs beyond the streak. Read-only, the caller's own rows only. */
+async function getOverview(admin: Admin, userId: string, today: string, status: Awaited<ReturnType<typeof getStatus>>) {
+  const since = new Date(Date.parse(today + "T00:00:00Z") - 70 * DAY_MS).toISOString().slice(0, 10);
+
+  const [datesRes, ledgerRes, stepsRes, earnedRes] = await Promise.all([
+    admin.from("daily_checkins").select("checkin_date").eq("user_id", userId).gte("checkin_date", since).order("checkin_date", { ascending: true }),
+    admin.from("reward_ledger").select("xp_delta,deskbits_delta,payout").eq("user_id", userId).eq("source_key", `checkin:${today}`).maybeSingle(),
+    admin.from("keepsake_steps").select("step_key,tier,threshold").eq("card_key", "keep_streak").order("threshold", { ascending: true }),
+    admin.from("keepsake_earned").select("step_key").eq("user_id", userId).like("step_key", "keep_streak_%"),
+  ]);
+  if (datesRes.error) throw datesRes.error;
+  if (ledgerRes.error) throw ledgerRes.error;
+  if (stepsRes.error) throw stepsRes.error;
+  if (earnedRes.error) throw earnedRes.error;
+
+  const steps = (stepsRes.data ?? []) as { step_key: string; tier: string; threshold: number }[];
+  const rulesRes = steps.length
+    ? await admin.from("reward_rules").select("event_type,xp,deskbits").in("event_type", steps.map((x) => x.step_key))
+    : { data: [], error: null };
+  if (rulesRes.error) throw rulesRes.error;
+  const rules = new Map(((rulesRes.data ?? []) as { event_type: string; xp: number; deskbits: number }[]).map((r) => [r.event_type, r]));
+  const earned = new Set(((earnedRes.data ?? []) as { step_key: string }[]).map((e) => e.step_key));
+
+  const ledger = ledgerRes.data as { xp_delta: number; deskbits_delta: number; payout: string } | null;
+  return {
+    dates: ((datesRes.data ?? []) as { checkin_date: string }[]).map((r) => r.checkin_date),
+    today_reward: ledger && ledger.payout === "paid" ? { xp: ledger.xp_delta, deskbits: ledger.deskbits_delta } : null,
+    milestones: steps.map((m) => ({
+      tier: m.tier,
+      days: m.threshold,
+      xp: rules.get(m.step_key)?.xp ?? 0,
+      deskbits: rules.get(m.step_key)?.deskbits ?? 0,
+      // A milestone is permanent: reached once, even if the streak later breaks.
+      reached: earned.has(m.step_key) || status.longest_streak >= m.threshold,
+    })),
+  };
+}
+
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
   if (preflight) return preflight;
@@ -114,8 +158,8 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = body?.action;
-    if (action !== "status" && action !== "claim") {
-      return jsonResponse({ error: "action must be 'status' or 'claim'" }, 400);
+    if (action !== "status" && action !== "claim" && action !== "overview") {
+      return jsonResponse({ error: "action must be 'status', 'claim' or 'overview'" }, 400);
     }
 
     const admin = getAdminClient();
@@ -141,6 +185,9 @@ Deno.serve(async (req) => {
     }
 
     const status = await getStatus(admin, user.id, today);
+    if (action === "overview") {
+      return jsonResponse({ ...status, ...(await getOverview(admin, user.id, today, status)) });
+    }
     return jsonResponse({ ...status, newly_claimed: newlyClaimed, reward });
   } catch (err) {
     console.error("daily-checkin failed:", err);

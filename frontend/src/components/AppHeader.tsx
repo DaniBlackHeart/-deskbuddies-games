@@ -148,7 +148,7 @@ export default function AppHeader() {
   // Reality Break, so keep it highlighted there.
   const inGames = isGamesRoute(pathname);
   const isActive = (item: NavItem) =>
-    item.to === "/" ? pathname === "/" : item.to === "/games" ? inGames || matches(pathname, "/games") : matches(pathname, item.to);
+    item.to === "/" ? pathname === "/" || pathname === "/pull-up-a-chair" : item.to === "/games" ? inGames || matches(pathname, "/games") : matches(pathname, item.to);
 
   // On phones, a page reached from More highlights the More tab.
   const moreActive = [...SHEET_MAIN, ...SHEET_ACCOUNT].some(isActive);

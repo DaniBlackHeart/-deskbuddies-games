@@ -24,6 +24,7 @@ import SettingsPage from "./pages/SettingsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import DeskLogPage from "./pages/DeskLogPage";
 import MyAvatarPage from "./pages/MyAvatarPage";
+import PullUpAChairPage from "./pages/PullUpAChairPage";
 import BuddybookPage from "./pages/BuddybookPage";
 import DeskFindsPage from "./pages/DeskFindsPage";
 import ComingSoonPage from "./components/ComingSoonPage";
@@ -208,6 +209,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <KeepTheDeskLitPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pull-up-a-chair"
+              element={
+                <ProtectedRoute>
+                  <PullUpAChairPage />
                 </ProtectedRoute>
               }
             />
