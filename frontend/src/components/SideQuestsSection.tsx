@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSideQuests, type Quest, type Reward } from "../lib/useSideQuests";
 import { prefersReducedMotion } from "../lib/motion";
+import PixelIcon from "./PixelIcon";
 
 // Side Quests on Beyond the Desk: the weekly wheel and the archive. Follows the
 // "Debbie Beyond the Desk" design and claude/Debbie_Side_Quest_Wheel_Draft_v1.md.
@@ -61,9 +62,21 @@ function rewardText(r: Reward) {
   return parts.join(" + ");
 }
 
-function QuestCard({ q, reward, bare, children }: { q: Quest; reward: Reward; bare?: boolean; children?: React.ReactNode }) {
+function RewardLine({ reward }: { reward: Reward }) {
+  if (!reward) return <p className="t-body-sm text-muted" style={{ margin: 0 }}>Doing it earns a stamp for your Buddybook.</p>;
   return (
-    <div className={"sq-quest" + (bare ? " sq-quest--bare" : "")}>
+    <p className="t-body-sm text-muted sq-reward" style={{ margin: 0 }}>
+      Finish it this week for{" "}
+      {reward.xp > 0 && <span className="sq-reward__item"><PixelIcon name="buddy-xp" size={16} /> <b className="sq-num">{reward.xp}</b> Buddy XP</span>}
+      {reward.deskbits > 0 && <span className="sq-reward__item"><PixelIcon name="deskbits" size={16} /> <b className="sq-num">{reward.deskbits}</b> deskbits</span>}{" "}
+      and a stamp.
+    </p>
+  );
+}
+
+function QuestCard({ q, reward, children }: { q: Quest; reward: Reward; children?: React.ReactNode }) {
+  return (
+    <div className="sq-quest">
       <div className="sq-quest__top">
         <b className="sq-quest__name">{q.name}</b>
         <span className="bd-pill">{q.theme}</span>
@@ -134,7 +147,36 @@ export default function SideQuestsSection() {
             <Wheel rot={rot} animate={animate} />
             <div className="sq-wheelcard__text">
               {data.quest && !spinning ? (
-                <QuestCard q={data.quest} reward={data.done_reward} bare>
+                <div className="sq-quest sq-quest--bare">
+                  <div className="sq-quest__top">
+                    <span className="bd-pill">{data.quest.theme}</span>
+                    <span className="bd-pill">{WHO[data.quest.social]}</span>
+                  </div>
+                  <b className="sq-quest__name">{data.quest.name}</b>
+                  <p className="sq-quest__what">{data.quest.what}</p>
+                  <p className="sq-quest__easier"><b>Easier / rainy-day version:</b> {data.quest.easier}</p>
+                </div>
+              ) : (
+                <>
+                  {data.stage === "none_left" ? (
+                    <p className="t-body" style={{ margin: 0 }}>You've done them all. New quests are coming.</p>
+                  ) : (
+                    <p className="t-body" style={{ margin: 0 }}>
+                      The wheel picks one quest for you. {data.spin_reward ? `Spinning once a week earns ${rewardText(data.spin_reward)}, and a re-spin is free once.` : "Spin once a week, and a re-spin is free once."}
+                    </p>
+                  )}
+                  {data.stage === "unspun" && (
+                    <button type="button" className="bd-btn bd-btn--primary" aria-disabled={busy} onClick={() => spin("spin")}>
+                      Spin your side quest for the week
+                    </button>
+                  )}
+                  {spinning && <p className="t-body-sm text-muted" role="status" style={{ margin: 0 }}>Spinning…</p>}
+                </>
+              )}
+            </div>
+            {data.quest && !spinning && (
+              <div className="sq-wheelcard__foot">
+                <RewardLine reward={data.done_reward} />
                   {data.stage === "result" && (
                     <div className="sq-actions">
                       <button type="button" className="bd-btn bd-btn--primary" aria-disabled={busy} onClick={() => act("lock")}>I'll do this one</button>
@@ -158,25 +200,8 @@ export default function SideQuestsSection() {
                       <span className="t-body-sm text-muted">Your stamp is in your Buddybook.</span>
                     </div>
                   )}
-                </QuestCard>
-              ) : (
-                <>
-                  {data.stage === "none_left" ? (
-                    <p className="t-body" style={{ margin: 0 }}>You've done them all. New quests are coming.</p>
-                  ) : (
-                    <p className="t-body" style={{ margin: 0 }}>
-                      The wheel picks one quest for you. {data.spin_reward ? `Spinning once a week earns ${rewardText(data.spin_reward)}, and a re-spin is free once.` : "Spin once a week, and a re-spin is free once."}
-                    </p>
-                  )}
-                  {data.stage === "unspun" && (
-                    <button type="button" className="bd-btn bd-btn--primary" aria-disabled={busy} onClick={() => spin("spin")}>
-                      Spin your side quest for the week
-                    </button>
-                  )}
-                  {spinning && <p className="t-body-sm text-muted" role="status" style={{ margin: 0 }}>Spinning…</p>}
-                </>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="bd-card" aria-labelledby="sq-archive-h">

@@ -2461,13 +2461,16 @@ button.bb-contents__row:hover { border-color: var(--color-primary); }
 
 /* ---------- Side Quests (sq-*) ---------- */
 .bd-colstack { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
-.sq-wheelcard { flex-direction: row; align-items: center; gap: 20px; flex-wrap: wrap; }
+.sq-wheelcard { flex-direction: row; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
 .sq-wheel { width: 200px; height: 210px; flex: none; display: block; }
 .sq-wheelcard__text { flex: 1 1 200px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; min-width: 0; }
 .sq-quest { background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 18px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
 .sq-wheelcard__notice { flex: 1 0 100%; }
 .sq-wheelcard__notice:empty { display: none; }
 .sq-quest--bare { background: none; border: 0; padding: 0; }
+.sq-quest--bare .sq-quest__name { font-family: var(--db-font-display, var(--font-heading)); font-size: 1.5rem; line-height: 1.2; margin: 0; }
+.sq-wheelcard__foot { flex: 1 0 100%; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.sq-reward__item { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; vertical-align: middle; }
 .sq-quest__top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .sq-quest__name { font-size: 1.125rem; margin-right: 4px; }
 .sq-quest__what, .sq-quest__easier { margin: 0; line-height: 1.5; }
