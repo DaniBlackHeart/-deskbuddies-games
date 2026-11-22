@@ -33,6 +33,7 @@
   --color-bb-keepsakes: #f2c766;
   --color-bb-sidequests: #ddb9d4;
   --color-bb-desk: #e2caa8; /* the table the book sits on */
+  --color-kdl-covered: #4f7a63; /* covered bar on Keep the Desk Lit */
   --color-cal-mat: #e9dcc0; /* mat behind the Buddy Calendar birthday card art */
   --color-bb-board: #7a3a25; /* book boards */
   --color-bb-cover: #9a4a30;
@@ -107,6 +108,7 @@
    sits on a panel, it is not recoloured. */
 [data-theme="dark"] {
   --color-cal-mat: #8a7060;
+  --color-kdl-covered: #8fb89a;
   color-scheme: dark;
   --color-bg: #1f1713;
   --color-bg-alt: #352920;

@@ -2559,3 +2559,39 @@ button.bb-contents__row:hover { border-color: var(--color-primary); }
   .cal-event__body { padding: 0 14px 14px; }
   .cal-title { gap: 12px; }
 }
+
+/* ---- Keep the Desk Lit (Debbie Keep the Desk Lit design): where support goes. ---- */
+.kdl-page { display: flex; flex-direction: column; gap: var(--space-5); }
+.kdl-head { display: flex; flex-direction: column; gap: 6px; }
+.kdl-eyebrow { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.04em; color: var(--color-text-muted); }
+.kdl-cols { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.kdl-col { flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+.kdl-card { background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 16px; box-sizing: border-box; min-width: 0; }
+.kdl-sechead { display: flex; gap: 14px; align-items: center; }
+.kdl-h2 { margin: 0; font-family: var(--db-font-display, inherit); font-weight: 600; font-size: 1.75rem; line-height: 1.1; }
+.kdl-h3 { margin: 0; font-family: var(--db-font-display, inherit); font-weight: 600; font-size: 1.375rem; line-height: 1.15; }
+.kdl-h3b { margin: 0; font-family: inherit; font-size: 1.125rem; font-weight: 700; }
+.kdl-muted { font-size: 1rem; line-height: 1.5; color: var(--color-text-muted); }
+.kdl-small { font-size: 0.875rem; line-height: 1.45; }
+.kdl-text { margin: 0; font-size: 1rem; line-height: 1.5; }
+.kdl-status { margin: 0 0 4px; font-size: 1.25rem; font-weight: 700; line-height: 1.3; }
+.kdl-costs { display: flex; flex-direction: column; gap: 14px; }
+.kdl-cost { border: 2px solid var(--color-border); border-radius: 14px; padding: 16px; background: var(--color-bg); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.kdl-bar { height: 18px; box-sizing: border-box; border: 2px solid var(--color-text); border-radius: 6px; overflow: hidden; display: flex; background: repeating-linear-gradient(135deg, var(--color-border) 0 4px, var(--color-surface) 4px 8px); }
+.kdl-bar__fill { flex: none; background: var(--color-kdl-covered); }
+.kdl-word { font-size: 1rem; font-weight: 700; }
+.kdl-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.875rem; }
+.kdl-legend > span { display: inline-flex; align-items: center; gap: 8px; }
+.kdl-swatch { width: 22px; height: 14px; box-sizing: border-box; border: 2px solid var(--color-text); border-radius: 4px; background: repeating-linear-gradient(135deg, var(--color-border) 0 3px, var(--color-surface) 3px 6px); }
+.kdl-swatch--on { background: var(--color-kdl-covered); }
+.kdl-list { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 1rem; line-height: 1.5; }
+.kdl-list--sm { font-size: 0.9375rem; }
+.kdl-keeps { display: flex; flex-wrap: wrap; gap: 12px; }
+.kdl-keep { flex: 1 1 200px; min-width: 0; box-sizing: border-box; border: 2px solid var(--color-border); border-radius: 14px; padding: 14px 16px; background: var(--color-bg); }
+.kdl-keep__name { font-size: 1.0625rem; font-weight: 700; }
+.kdl-two { display: flex; flex-wrap: wrap; gap: 14px; }
+.kdl-box { flex: 1 1 280px; min-width: 0; box-sizing: border-box; border: 2px solid var(--color-border); border-radius: 14px; padding: 16px; background: var(--color-bg); display: flex; flex-direction: column; gap: 10px; }
+.kdl-btn { font: inherit; cursor: pointer; color: var(--color-text); min-height: 48px; padding: 0 18px; border: 2px solid var(--color-border); border-radius: 12px; background: var(--color-surface); font-size: 1rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; text-decoration: none; }
+.kdl-btn--primary { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
+.kdl-page a:focus-visible, .kdl-page button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+@media (max-width: 640px) { .kdl-card { padding: 16px; } .kdl-h2 { font-size: 1.5rem; } }
