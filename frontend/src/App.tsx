@@ -208,6 +208,14 @@ export default function App() {
               }
             />
             <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="Settings" blurb="Theme, motion and notification choices will live here." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/note-for-debbie"
               element={
                 <ProtectedRoute>

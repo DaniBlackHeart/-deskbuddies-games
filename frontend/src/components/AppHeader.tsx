@@ -47,9 +47,10 @@ const NOTE: NavItem = {
   icon: "note-for-debbie",
   hint: "Suggestions, feedback, or something broken?",
 };
-// Settings (theme, sign out) is still the Profile page until Settings exists.
+// Settings has its own placeholder page; theme and sign out stay on the
+// Profile page (the avatar) until Settings is built.
 const SETTINGS: NavItem = {
-  to: "/profile",
+  to: "/settings",
   label: "Settings",
   icon: "settings",
   hint: "Theme, motion and notifications",
