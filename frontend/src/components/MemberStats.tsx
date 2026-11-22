@@ -24,20 +24,28 @@ function compact(n: number): string {
 export default function MemberStats({
   className,
   showProgress = false,
+  showDeskbits = true,
+  showXp = true,
 }: {
   className?: string;
   showProgress?: boolean;
+  /** The Buddy Profile hides deskbits (they are shown in the header). */
+  showDeskbits?: boolean;
+  /** The "How others see it" preview hides the XP total. */
+  showXp?: boolean;
 }) {
   const { level, xp, deskbits, levelProgress } = useMemberProgress();
   const pct = Math.round(Math.min(1, Math.max(0, levelProgress)) * 100);
 
   return (
     <ul className={"app-stats" + (className ? " " + className : "")} aria-label="Your progress">
+      {showDeskbits && (
       <li className={"app-stat" + (showProgress ? "" : " app-stat--solo")} title="deskbits">
         <PixelIcon name="deskbits" size={showProgress ? 32 : 16} />
         <span>{deskbits.toLocaleString()}</span>
         <span className="sr-only">deskbits</span>
       </li>
+      )}
       {showProgress && (
         <>
       <li className="app-stat app-stat--level" title="Buddy Level">
@@ -52,6 +60,7 @@ export default function MemberStats({
           Buddy Level {level}, {pct}% to the next level
         </span>
       </li>
+      {showXp && (
       <li className="app-stat app-stat--xp" title="Buddy XP">
         <span className="app-xp" aria-hidden="true">
           <PixelIcon name="buddy-xp" size={32} />
@@ -59,6 +68,7 @@ export default function MemberStats({
         </span>
         <span className="sr-only">Buddy XP {xp.toLocaleString()}</span>
       </li>
+      )}
         </>
       )}
     </ul>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
+import MemberStats from "../components/MemberStats";
 import PixelIcon from "../components/PixelIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { useBuddybook } from "../lib/useBuddybook";
@@ -60,7 +61,8 @@ export default function ProfilePage() {
 
           <div className="pf-level">
             <strong>Buddy Level {progress.level}</strong>
-            {!others && <span className="text-muted pf-small">{progress.xp.toLocaleString()} XP earned so far. Levels are still being tuned.</span>}
+            <MemberStats showProgress showDeskbits={false} showXp={!others} />
+            {!others && <span className="text-muted pf-small">{progress.xp.toLocaleString()} XP earned so far. The level curve is not decided yet, so the bar stays empty.</span>}
           </div>
 
           <div className="pf-actions">
