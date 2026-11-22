@@ -2351,9 +2351,9 @@ button {
 
 /* the book */
 .bb-lock { margin: 8px 0 0; display: flex; gap: 8px; align-items: flex-start; font-size: 0.875rem; color: var(--color-text-muted); }
-.bb-book { position: relative; width: 100%; box-sizing: border-box; background: var(--color-bb-desk); border-radius: 18px; padding: 40px 24px; overflow-x: clip; }
-.bb-stage { position: relative; width: min(960px, calc(100% - 176px)); height: 620px; perspective: 2800px; perspective-origin: 50% 40%; transition: transform 0.8s cubic-bezier(0.4, 0.1, 0.2, 1); }
-.bb-book--closed .bb-stage { transform: translateX(-25%); }
+.bb-book { position: relative; display: flex; justify-content: center; width: 100%; box-sizing: border-box; background: var(--color-bb-desk); border-radius: 18px; padding: 40px 24px; overflow-x: clip; }
+.bb-stage { position: relative; flex: none; width: min(960px, calc(100% - 152px)); margin-right: 152px; height: 620px; perspective: 2800px; perspective-origin: 50% 40%; transition: transform 0.8s cubic-bezier(0.4, 0.1, 0.2, 1); }
+.bb-book--closed .bb-stage { transform: translateX(calc(-25% + 76px)); }
 .bb-board { position: absolute; top: -10px; width: 51%; height: calc(100% + 20px); background: var(--color-bb-board); box-shadow: 0 28px 40px rgba(0, 0, 0, 0.3); transition: opacity 0.4s ease; }
 .bb-board--left { left: -1%; border-radius: 10px 4px 4px 10px; }
 .bb-board--right { left: 50%; border-radius: 4px 14px 14px 4px; }
