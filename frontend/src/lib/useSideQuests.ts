@@ -16,6 +16,7 @@ export type SideQuestData = {
   can_respin: boolean;
   spin_reward: Reward;
   done_reward: Reward;
+  done_reward_sample?: Reward;
   archive: Quest[];
   stamps: number;
   result: { action: string; status: string } | null;

@@ -2470,6 +2470,7 @@ button.bb-contents__row:hover { border-color: var(--color-primary); }
 .sq-quest--bare { background: none; border: 0; padding: 0; }
 .sq-quest--bare .sq-quest__name { font-family: var(--db-font-display, var(--font-heading)); font-size: 1.5rem; line-height: 1.2; margin: 0; }
 .sq-wheelcard__foot { flex: 1 0 100%; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.sq-reward__sample { font-weight: 700; }
 .sq-reward__item { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; vertical-align: middle; }
 .sq-quest__top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .sq-quest__name { font-size: 1.125rem; margin-right: 4px; }

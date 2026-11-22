@@ -62,14 +62,16 @@ function rewardText(r: Reward) {
   return parts.join(" + ");
 }
 
-function RewardLine({ reward }: { reward: Reward }) {
+function RewardLine({ reward, sample }: { reward: Reward; sample?: Reward }) {
+  const isSample = !reward && !!sample;
+  reward = reward ?? sample ?? null;
   if (!reward) return <p className="t-body-sm text-muted" style={{ margin: 0 }}>Doing it earns a stamp for your Buddybook.</p>;
   return (
     <p className="t-body-sm text-muted sq-reward" style={{ margin: 0 }}>
       Finish it this week for{" "}
       {reward.xp > 0 && <span className="sq-reward__item"><PixelIcon name="buddy-xp" size={16} /> <b className="sq-num">{reward.xp}</b> Buddy XP</span>}
       {reward.deskbits > 0 && <span className="sq-reward__item"><PixelIcon name="deskbits" size={16} /> <b className="sq-num">{reward.deskbits}</b> deskbits</span>}{" "}
-      and a stamp.
+      and a stamp.{isSample && <span className="sq-reward__sample"> (Sample amounts, not paid yet.)</span>}
     </p>
   );
 }
@@ -176,7 +178,7 @@ export default function SideQuestsSection() {
             </div>
             {data.quest && !spinning && (
               <div className="sq-wheelcard__foot">
-                <RewardLine reward={data.done_reward} />
+                <RewardLine reward={data.done_reward} sample={data.done_reward_sample} />
                   {data.stage === "result" && (
                     <div className="sq-actions">
                       <button type="button" className="bd-btn bd-btn--primary" aria-disabled={busy} onClick={() => act("lock")}>I'll do this one</button>

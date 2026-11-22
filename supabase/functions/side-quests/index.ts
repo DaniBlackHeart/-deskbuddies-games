@@ -40,12 +40,17 @@ async function loadRules(admin: Admin) {
   const settings = await must<{ earning_enabled: boolean }>(
     admin.from("earning_settings").select("earning_enabled").eq("id", true).single(),
   );
-  const rows = await must<{ event_type: string; xp: number; deskbits: number }[]>(
-    admin.from("reward_rules").select("event_type,xp,deskbits").eq("is_active", true),
+  const rows = await must<{ event_type: string; xp: number; deskbits: number; is_active: boolean }[]>(
+    admin.from("reward_rules").select("event_type,xp,deskbits,is_active").in("event_type", ["side_quest_spin", "side_quest_done"]),
   );
   const rules = new Map<string, Rule>();
-  for (const r of rows ?? []) rules.set(r.event_type, { xp: r.xp, deskbits: r.deskbits });
-  return { earningOn: settings.earning_enabled, rules };
+  // Provisional amounts, shown to members only as a labelled sample while earning is off.
+  const samples = new Map<string, Rule>();
+  for (const r of rows ?? []) {
+    samples.set(r.event_type, { xp: r.xp, deskbits: r.deskbits });
+    if (r.is_active) rules.set(r.event_type, { xp: r.xp, deskbits: r.deskbits });
+  }
+  return { earningOn: settings.earning_enabled, rules, samples };
 }
 
 /** Ask grant_reward for every item that has an active rule and no ledger row yet. */
@@ -53,7 +58,7 @@ async function payMissing(
   admin: Admin,
   userId: string,
   items: { event_type: string; source_key: string }[],
-  env: { earningOn: boolean; rules: Map<string, Rule> },
+  env: { earningOn: boolean; rules: Map<string, Rule>; samples?: Map<string, Rule> },
 ) {
   if (!env.earningOn) return;
   const due = items.filter((i) => env.rules.has(i.event_type));
@@ -133,6 +138,8 @@ async function buildStatus(admin: Admin, userId: string, week: string) {
     can_respin: !!current && !current.locked && !current.respun && stage === "result",
     spin_reward: rewardFor("side_quest_spin"),
     done_reward: rewardFor("side_quest_done"),
+    // Only when the real reward is not live: the provisional amount, to be shown labelled as a sample.
+    done_reward_sample: rewardFor("side_quest_done") ? null : env.samples.get("side_quest_done") ?? null,
     archive,
     stamps: doneKeys.size,
   };
