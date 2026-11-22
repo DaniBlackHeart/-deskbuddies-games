@@ -2409,9 +2409,14 @@ button.bb-contents__row:hover { border-color: var(--color-primary); }
 .bb-keep__disc--gold { --tier: var(--color-tier-gold); }
 
 /* tabs, corners, controls */
-.bb-tabs { position: absolute; top: 28px; right: 0; width: 84px; display: flex; flex-direction: column; gap: 8px; }
-.bb-tab { font: inherit; font-weight: 700; font-size: 0.75rem; line-height: 1.2; text-align: left; color: var(--color-text); background: var(--color-bg-alt); border: 2px solid var(--color-border); border-left: 0; border-radius: 0 10px 10px 0; padding: 10px 6px; cursor: pointer; }
-.bb-tab--on { background: var(--color-primary-soft); border-color: var(--color-primary); }
+.bb-tabs { position: absolute; top: 28px; right: 0; width: 78px; display: flex; flex-direction: column; gap: 8px; }
+.bb-tab { font: inherit; font-weight: 700; font-size: 0.75rem; line-height: 1.2; text-align: left; color: var(--color-bb-ink); background: var(--tab, var(--color-bg-alt)); border: 0; border-radius: 0 12px 12px 0; padding: 12px 8px; cursor: pointer; box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.22); }
+.bb-tab--contents { --tab: var(--color-bb-contents); }
+.bb-tab--firsts { --tab: var(--color-bb-firsts); }
+.bb-tab--collection { --tab: var(--color-bb-collection); }
+.bb-tab--keepsakes { --tab: var(--color-bb-keepsakes); }
+.bb-tab--on { transform: translateX(6px); font-weight: 800; outline: 2px solid var(--color-bb-ink); outline-offset: -2px; }
+@media (prefers-reduced-motion: no-preference) { .bb-tab { transition: transform 0.3s ease; } }
 .bb-corner { position: absolute; bottom: 0; width: 44px; height: 44px; border: 0; padding: 0; cursor: pointer; z-index: 20; background: linear-gradient(135deg, transparent 50%, var(--color-border) 50%); }
 .bb-corner--next { right: 88px; clip-path: polygon(100% 0, 100% 100%, 0 100%); background: linear-gradient(315deg, var(--color-border) 50%, transparent 50%); border-radius: 0 0 14px 0; }
 .bb-corner--prev { left: 0; clip-path: polygon(0 0, 100% 100%, 0 100%); background: linear-gradient(45deg, var(--color-border) 50%, transparent 50%); border-radius: 0 0 0 14px; }

@@ -17,11 +17,11 @@ import { useBuddybook, type BuddyEntry, type BuddybookData, type KeepsakeEntry, 
 
 const SPREADS = 5; // 0 closed, 1 contents, 2 firsts, 3 buddy collection, 4 buddy collection + keepsakes
 const STATE_LABEL = ["Closed book", "Cover and contents", "Firsts", "Buddy Collection", "Buddy Collection and Keepsakes"];
-const TABS: { label: string; spread: number }[] = [
-  { label: "Contents", spread: 1 },
-  { label: "Firsts", spread: 2 },
-  { label: "Buddy Collection", spread: 3 },
-  { label: "Keepsakes", spread: 4 },
+const TABS: { label: string; spread: number; tone: string }[] = [
+  { label: "Contents", spread: 1, tone: "contents" },
+  { label: "Firsts", spread: 2, tone: "firsts" },
+  { label: "Buddy Collection", spread: 3, tone: "collection" },
+  { label: "Keepsakes", spread: 4, tone: "keepsakes" },
 ];
 const TIER_LABEL = { bronze: "Bronze", silver: "Silver", gold: "Gold" } as const;
 const BUDDIES_PER_PAGE = 6;
@@ -296,7 +296,7 @@ function Book({ d, spread, setSpread }: { d: BuddybookData; spread: number; setS
               <button
                 key={t.label}
                 type="button"
-                className={"bb-tab" + (current ? " bb-tab--on" : "")}
+                className={"bb-tab bb-tab--" + t.tone + (current ? " bb-tab--on" : "")}
                 aria-current={current ? "page" : undefined}
                 onClick={() => setSpread(t.spread)}
               >
