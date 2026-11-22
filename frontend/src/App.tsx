@@ -234,6 +234,30 @@ export default function App() {
               }
             />
             <Route
+              path="/my-avatar"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="My Avatar" blurb="Choose how you look across Debbie. Avatar editing is coming soon." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/nameplate"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="Nameplate" blurb="Your nameplate will show under your name. Nameplates are coming soon." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/desk-log"
+              element={
+                <ProtectedRoute>
+                  <ComingSoonPage title="Desk Log" blurb="Your check-ins, focus blocks and achievements will be kept here. The Desk Log is coming soon." />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/profile"
               element={
                 <ProtectedRoute>

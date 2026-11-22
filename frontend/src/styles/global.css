@@ -2692,3 +2692,37 @@ button.bb-contents__row:hover { border-color: var(--color-primary); }
 .ntf-h2 { margin: 0; font-family: var(--db-font-display, inherit); font-weight: 600; font-size: 1.375rem; }
 .ntf-foot { margin: 0; font-size: 0.8125rem; }
 .ntf-page button:focus-visible, .ntf-page a:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+
+/* Buddy Profile */
+.pf-page { max-width: 960px; display: flex; flex-direction: column; gap: var(--space-4); }
+.pf-card { background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 18px; padding: 20px 22px; box-sizing: border-box; min-width: 0; display: flex; flex-direction: column; gap: 12px; color: var(--color-text); }
+.pf-name { display: grid; grid-template-columns: auto 1fr; gap: 14px 18px; align-items: center; }
+.pf-avatar { width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--color-border); overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 700; background: var(--color-surface-raised); }
+.pf-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.pf-eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; color: var(--color-text-muted); }
+.pf-small { font-size: 0.875rem; }
+.pf-level { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; border-top: 2px solid var(--color-border); padding-top: 12px; }
+.pf-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; }
+.pf-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-others { grid-column: 1 / -1; margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--color-notif-new); font-size: 0.9375rem; }
+.pf-chip { font: inherit; cursor: pointer; min-height: 44px; padding: 0 16px; border-radius: 10px; font-size: 0.875rem; font-weight: 700; border: 2px solid var(--color-border); background: var(--color-surface); color: var(--color-text); display: inline-flex; align-items: center; justify-content: center; text-decoration: none; box-sizing: border-box; }
+.pf-chip--on { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
+.pf-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.pf-stats--one { grid-template-columns: minmax(0, 1fr); }
+.pf-stat { gap: 2px; }
+.pf-stat--link { text-decoration: none; }
+.pf-stat__label { font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); }
+.pf-stat__val { font-size: 1.375rem; }
+.pf-two { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--space-4); }
+.pf-between { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pf-h2 { margin: 0; font-family: var(--db-font-display, inherit); font-weight: 600; font-size: 1.375rem; display: flex; align-items: center; gap: 8px; }
+.pf-scene { background: var(--color-surface-raised); border: 2px dashed var(--color-border); border-radius: 14px; padding: 16px; display: flex; justify-content: center; }
+.pf-scene img { image-rendering: pixelated; width: 240px; max-width: 100%; height: auto; }
+.pf-buddies { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pf-buddy { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 2px solid var(--color-border); border-radius: 10px; font-size: 0.875rem; font-weight: 700; }
+.pf-buddy img { image-rendering: pixelated; flex: none; }
+.pf-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.pf-page a:focus-visible, .pf-page button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+@media (max-width: 700px) { .pf-stats, .pf-two { grid-template-columns: minmax(0, 1fr); } }
+.pf-plate { display: inline-block; padding: 2px 12px; border: 2px solid var(--color-border); border-radius: 999px; color: var(--color-text); font-weight: 700; text-decoration: none; background: var(--color-surface-raised); }
+.pf-link { color: var(--color-text); font-weight: 700; text-decoration: underline; }
