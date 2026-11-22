@@ -58,6 +58,7 @@ export default function ProfilePage() {
             <p className="text-muted pf-small" style={{ margin: 0 }}>On Debbie since {since(profile?.created_at)}</p>
           </div>
 
+          <div className="pf-lvlrow">
           <div className="pf-level">
             <div className="pf-level__head">
               <PixelIcon name="buddy-level" size={16} />
@@ -86,6 +87,8 @@ export default function ProfilePage() {
                 <Link className="pf-chip" to="/my-avatar">My Avatar</Link>
               </div>
             )}
+          </div>
+
           </div>
 
           {others && (
