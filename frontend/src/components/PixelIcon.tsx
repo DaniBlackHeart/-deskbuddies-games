@@ -309,6 +309,13 @@ const ICONS = {
     ["var(--ifill,#F3E6D2)", "M10 3h3v1h-3zM10 4h3v1h-3zM10 5h3v1h-3zM2 8h3v1h-3zM2 9h3v1h-3zM11 9h1v1h-1zM2 10h3v1h-3zM3 14h1v1h-1z"],
     ["var(--iacc,#B5573A)", "M9 0h1v1h-1zM11 0h1v1h-1zM13 0h1v1h-1zM1 5h1v1h-1zM3 5h1v1h-1zM5 5h1v1h-1z"],
   ],
+  "section-firsts": [
+    ["var(--spO,#4A3228)", "M3 3h10v1h-10zM3 4h1v1h-1zM12 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM3 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM12 7h1v1h-1zM3 8h1v1h-1zM12 8h1v1h-1zM3 9h1v1h-1zM12 9h1v1h-1zM3 10h1v1h-1zM12 10h1v1h-1zM3 11h1v1h-1zM12 11h1v1h-1zM3 12h10v1h-10z"],
+    ["#A8C7D6", "M1 1h1v1h-1zM3 1h1v1h-1zM5 1h1v1h-1zM7 1h1v1h-1zM9 1h1v1h-1zM11 1h1v1h-1zM13 1h1v1h-1zM2 2h11v1h-11zM14 2h1v1h-1zM1 3h2v1h-2zM2 4h1v1h-1zM14 4h1v1h-1zM1 5h2v1h-2zM2 6h1v1h-1zM14 6h1v1h-1zM1 7h2v1h-2zM2 8h1v1h-1zM14 8h1v1h-1zM1 9h2v1h-2zM2 10h1v1h-1zM14 10h1v1h-1zM1 11h2v1h-2zM2 12h1v1h-1zM14 12h1v1h-1zM1 13h1v1h-1zM2 14h1v1h-1zM4 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM10 14h1v1h-1zM12 14h1v1h-1zM14 14h1v1h-1z"],
+    ["#7FA3B5", "M13 2h1v1h-1zM13 3h1v1h-1zM13 4h1v1h-1zM13 5h1v1h-1zM13 6h1v1h-1zM13 7h1v1h-1zM13 8h1v1h-1zM13 9h1v1h-1zM13 10h1v1h-1zM13 11h1v1h-1zM13 12h1v1h-1zM2 13h12v1h-12z"],
+    ["#FBF4E8", "M4 4h8v1h-8zM4 5h3v1h-3zM9 5h3v1h-3zM4 6h2v1h-2zM10 6h2v1h-2zM4 7h1v1h-1zM11 7h1v1h-1zM4 8h2v1h-2zM10 8h2v1h-2zM4 9h3v1h-3zM9 9h3v1h-3zM4 10h8v1h-8zM4 11h8v1h-8z"],
+    ["#C4694A", "M7 5h2v1h-2zM6 6h4v1h-4zM5 7h6v1h-6zM6 8h4v1h-4zM7 9h2v1h-2z"],
+  ],
 } satisfies Record<string, Layer[]>;
 
 export type PixelIconName = keyof typeof ICONS;

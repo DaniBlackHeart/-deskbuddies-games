@@ -1,0 +1,154 @@
+// buddybook
+// Debbie's Buddybook: the member's private, read-only record.
+//   { action: "status" } -> Firsts stamps, owned buddies (and broad hints for the rest),
+//                           Keepsake steps earned.
+//
+// Only the caller's own book is ever returned. The browser never says what has been
+// earned: Firsts are worked out from stored history, recorded once in member_stamps
+// and never removed. A newly recorded stamp asks grant_reward() for its (provisional,
+// inactive until approved) reward; grant_reward is idempotent per source key, so
+// repeating it is safe. A payout failure never loses the stamp.
+//
+// Entries are generic ("Checked in for the first time"). Nothing the member wrote
+// (goals, notes, layouts) is returned, so nothing private can leak through the book.
+
+import { jsonResponse, handleOptions, getAdminClient, requireMember } from "../_shared/utils.ts";
+
+type Admin = ReturnType<typeof getAdminClient>;
+
+async function must<T>(p: PromiseLike<{ data: T | null; error: unknown }>): Promise<T> {
+  const { data, error } = await p;
+  if (error) throw error;
+  return data as T;
+}
+
+async function payStamps(admin: Admin, userId: string, keys: string[]) {
+  if (keys.length === 0) return;
+  const settings = await must<{ earning_enabled: boolean }>(
+    admin.from("earning_settings").select("earning_enabled").eq("id", true).single(),
+  );
+  if (!settings.earning_enabled) return;
+  const rules = await must<{ event_type: string }[]>(
+    admin.from("reward_rules").select("event_type").eq("is_active", true).in("event_type", keys),
+  );
+  const due = (rules ?? []).map((r) => r.event_type);
+  if (due.length === 0) return;
+  const paid = await must<{ source_key: string }[]>(
+    admin.from("reward_ledger").select("source_key").eq("user_id", userId).in("source_key", due.map((k) => `milestone:${k}`)),
+  );
+  const have = new Set((paid ?? []).map((p) => p.source_key));
+  for (const key of due) {
+    if (have.has(`milestone:${key}`)) continue;
+    const { error } = await admin.rpc("grant_reward", {
+      p_user_id: userId,
+      p_event_type: key,
+      p_source_key: `milestone:${key}`,
+      p_meta: {},
+    });
+    if (error) console.error("buddybook: grant_reward failed:", key, error);
+  }
+}
+
+async function buildStatus(admin: Admin, userId: string) {
+  // ---- Firsts --------------------------------------------------------------
+  const defs = await must<{ key: string; name: string; earned_line: string; sort: number }[]>(
+    admin.from("stamp_defs").select("key,name,earned_line,sort").eq("is_live", true).order("sort"),
+  );
+  const facts = await must<Record<string, string | null>>(admin.rpc("buddybook_stamp_facts", { p_user: userId }));
+  const mine = await must<{ stamp_key: string; earned_on: string }[]>(
+    admin.from("member_stamps").select("stamp_key,earned_on").eq("user_id", userId),
+  );
+  const earnedOn = new Map((mine ?? []).map((m) => [m.stamp_key, m.earned_on]));
+
+  const fresh: { user_id: string; stamp_key: string; earned_on: string }[] = [];
+  for (const d of defs ?? []) {
+    const when = facts?.[d.key];
+    if (when && !earnedOn.has(d.key)) {
+      fresh.push({ user_id: userId, stamp_key: d.key, earned_on: when });
+      earnedOn.set(d.key, when);
+    }
+  }
+  if (fresh.length > 0) {
+    const { error } = await admin
+      .from("member_stamps")
+      .upsert(fresh, { onConflict: "user_id,stamp_key", ignoreDuplicates: true });
+    if (error) throw error;
+  }
+  // Pay anything recorded and not yet paid (also repairs an earlier failed payout).
+  await payStamps(admin, userId, [...earnedOn.keys()]);
+
+  const firsts = (defs ?? []).map((d) => ({
+    key: d.key,
+    name: d.name,
+    earned: earnedOn.has(d.key),
+    earned_on: earnedOn.get(d.key) ?? null,
+    line: earnedOn.has(d.key) ? d.earned_line : null,
+  }));
+
+  // ---- Buddies -------------------------------------------------------------
+  const buddyDefs = await must<{ key: string; name: string; hint: string | null; one_liner: string | null }[]>(
+    admin.from("buddy_defs").select("key,name,hint,one_liner").order("sort"),
+  );
+  const items = await must<{ item_key: string }[]>(
+    admin.from("member_items").select("item_key").eq("user_id", userId).like("item_key", "companion:%"),
+  );
+  const owned = new Set((items ?? []).map((i) => i.item_key.slice("companion:".length)));
+  const buddies = (buddyDefs ?? [])
+    // A buddy with no public hint (Foundie) stays hidden until it is owned.
+    .filter((b) => owned.has(b.key) || b.hint)
+    .map((b) =>
+      owned.has(b.key)
+        ? { key: b.key, owned: true, name: b.name, line: b.one_liner, hint: null }
+        : { key: b.key, owned: false, name: null, line: null, hint: b.hint },
+    );
+
+  // ---- Keepsakes recap: highest step earned per card ------------------------
+  const cards = await must<{ key: string; category: string; name: string; sort: number }[]>(
+    admin.from("keepsake_cards").select("key,category,name,sort").eq("is_live", true).order("sort"),
+  );
+  const steps = await must<{ step_key: string; card_key: string; tier: string; threshold: number }[]>(
+    admin.from("keepsake_steps").select("step_key,card_key,tier,threshold").order("threshold"),
+  );
+  const got = await must<{ step_key: string }[]>(
+    admin.from("keepsake_earned").select("step_key").eq("user_id", userId),
+  );
+  const gotSet = new Set((got ?? []).map((g) => g.step_key));
+  const keepsakes: { key: string; name: string; category: string; tier: string }[] = [];
+  let stepCount = 0;
+  for (const c of cards ?? []) {
+    const reached = (steps ?? []).filter((s) => s.card_key === c.key && gotSet.has(s.step_key));
+    stepCount += reached.length;
+    if (reached.length > 0) {
+      keepsakes.push({ key: c.key, name: c.name, category: c.category, tier: reached[reached.length - 1].tier });
+    }
+  }
+
+  return {
+    counts: {
+      stamps: firsts.filter((f) => f.earned).length,
+      buddies: buddies.filter((b) => b.owned).length,
+      keepsakes: stepCount,
+    },
+    firsts,
+    buddies,
+    keepsakes,
+  };
+}
+
+Deno.serve(async (req) => {
+  const preflight = handleOptions(req);
+  if (preflight) return preflight;
+
+  const auth = await requireMember(req);
+  if ("error" in auth) return auth.error;
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    if (body?.action !== "status") return jsonResponse({ error: "action must be 'status'" }, 400);
+    const admin = getAdminClient();
+    return jsonResponse(await buildStatus(admin, auth.user.id));
+  } catch (err) {
+    console.error("buddybook failed:", err);
+    return jsonResponse({ error: "Couldn't load your Buddybook. Try again." }, 500);
+  }
+});

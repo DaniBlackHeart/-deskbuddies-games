@@ -17,6 +17,7 @@ import MyDeskPage from "./pages/MyDeskPage";
 import CommonRoomPage from "./pages/CommonRoomPage";
 import DeskTimePage from "./pages/DeskTimePage";
 import BeyondTheDeskPage from "./pages/BeyondTheDeskPage";
+import BuddybookPage from "./pages/BuddybookPage";
 import DeskFindsPage from "./pages/DeskFindsPage";
 import ComingSoonPage from "./components/ComingSoonPage";
 
@@ -191,7 +192,7 @@ export default function App() {
               path="/buddybook"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="Buddybook" blurb="Your stamps and passport will live here." />
+                  <BuddybookPage />
                 </ProtectedRoute>
               }
             />
