@@ -2106,3 +2106,58 @@ button {
   .md-tile, .md-chips { scroll-margin-top: 300px; scroll-margin-bottom: 90px; }
 }
 .md-home { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* ---- The Common Room (Debbie Common Room design). Placeholder feed. ---- */
+.cr-page { display: flex; flex-direction: column; gap: var(--space-5); }
+.cr-placeholder { margin: 0; border: 2px dashed var(--color-primary); border-radius: 12px; padding: 12px 16px; background: var(--color-bg-alt); font-size: 0.9375rem; line-height: 1.5; font-weight: 600; }
+.cr-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-5); align-items: start; }
+.cr-main { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+.cr-share { background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 18px; padding: 16px 22px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+.cr-feed { display: flex; flex-direction: column; gap: 14px; }
+.cr-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cr-chip, .cr-react, .cr-btn { font: inherit; cursor: pointer; color: var(--color-text); }
+.cr-chip { min-height: 44px; padding: 0 14px; border-radius: 999px; font-size: 0.9375rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; border: 2px solid var(--color-border); background: var(--color-surface); --ifill: var(--color-bg-alt); }
+.cr-chip--on { border-color: var(--color-primary); background: var(--color-bg-alt); --ifill: var(--color-surface); }
+.cr-chip--locked { border-style: dashed; color: var(--color-text-muted); cursor: not-allowed; }
+.cr-note { margin: 0; font-size: 0.875rem; line-height: 1.45; color: var(--color-text-muted); display: flex; gap: 8px; align-items: center; }
+.cr-notice { background: var(--color-sage-panel); border: 2px solid var(--color-border); border-radius: 12px; padding: 10px 14px; font-size: 0.9375rem; line-height: 1.45; font-weight: 600; }
+.cr-posts { display: flex; flex-direction: column; gap: 16px; }
+.cr-post { background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.cr-post__head { display: flex; align-items: center; gap: 12px; }
+.cr-post__who { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.cr-post__text { margin: 0; font-size: 1rem; line-height: 1.55; overflow-wrap: anywhere; }
+.cr-post__foot { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.cr-av { width: 40px; height: 40px; border-radius: 10px; border: 2px solid var(--color-border); color: #3a2a22; display: flex; align-items: center; justify-content: center; font-family: var(--db-font-display); font-weight: 600; font-size: 1.25rem; flex: none; }
+.cr-tag { font-size: 0.8125rem; font-weight: 700; border: 2px solid var(--color-border); border-radius: 999px; padding: 1px 10px; background: var(--color-bg); line-height: 1.4; flex: none; display: inline-flex; align-items: center; gap: 6px; --ifill: var(--color-bg-alt); }
+.cr-photo { height: 180px; border: 2px dashed var(--color-border); border-radius: 12px; background: var(--color-bg-alt); display: flex; align-items: center; justify-content: center; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); text-align: center; padding: 8px; box-sizing: border-box; }
+.cr-photo--sm { height: 100px; }
+.cr-rx { display: flex; flex-wrap: wrap; gap: 8px; }
+.cr-react { min-height: 44px; padding: 0 12px; border-radius: 999px; font-size: 0.875rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; border: 2px solid var(--color-border); background: var(--color-surface); --ifill: var(--color-bg-alt); }
+.cr-react--on { border-color: var(--color-primary); background: var(--color-bg-alt); --ifill: var(--color-surface); }
+.cr-btn { min-height: 44px; padding: 0 16px; border-radius: 10px; font-size: 0.9375rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 2px solid var(--color-border); background: var(--color-surface); }
+.cr-btn--primary { min-height: 48px; font-size: 1rem; border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
+.cr-btn--primary:hover { background: var(--color-primary-hover); }
+.cr-btn--off, .cr-btn--off:hover { border-color: var(--color-border); background: var(--color-bg-alt); color: var(--color-text-muted); cursor: not-allowed; }
+.cr-x { min-width: 44px; padding: 0; font-size: 1.125rem; flex: none; }
+.cr-empty { background: var(--color-surface); border: 2px dashed var(--color-border); border-radius: 16px; padding: 24px 20px; line-height: 1.5; color: var(--color-text-muted); text-align: center; }
+.cr-aside { background: var(--color-surface); position: sticky; top: 16px; border: 2px solid var(--color-border); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.cr-aside ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 0.9375rem; line-height: 1.5; }
+.cr-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(31, 23, 19, 0.55); display: flex; align-items: flex-start; justify-content: center; padding: 48px 16px 16px; box-sizing: border-box; overflow: auto; }
+.cr-dialog { width: 100%; max-width: 560px; background: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border); border-radius: 18px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; box-shadow: 0 8px 0 rgba(0, 0, 0, 0.18); }
+.cr-land { margin: 0; font-size: 0.875rem; line-height: 1.45; font-weight: 600; background: var(--color-bg-alt); border-radius: 10px; padding: 8px 12px; display: flex; gap: 8px; align-items: flex-start; --ifill: var(--color-surface); }
+.cr-land svg { margin-top: 2px; }
+.cr-textarea { box-sizing: border-box; width: 100%; padding: 12px 14px; border: 2px solid var(--color-border); border-radius: 10px; background: var(--color-bg); color: var(--color-text); font: inherit; font-size: 1rem; line-height: 1.5; resize: vertical; }
+.cr-page button:focus-visible, .cr-dialog button:focus-visible, .cr-textarea:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+@media (max-width: 900px) {
+  .cr-grid { grid-template-columns: minmax(0, 1fr); }
+  .cr-aside { position: static; order: 2; }
+}
+@media (max-width: 640px) {
+  .cr-share { padding: 14px 16px; }
+  .cr-share .cr-btn { width: 100%; }
+  .cr-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .cr-chip { flex: none; }
+  .cr-overlay { padding: 16px 12px; }
+  .cr-dialog { padding: 18px 16px; }
+  .cr-dialog .cr-chips { flex-wrap: wrap; overflow: visible; }
+}

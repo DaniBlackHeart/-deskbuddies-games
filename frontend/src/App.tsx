@@ -14,6 +14,7 @@ import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import MyDeskPage from "./pages/MyDeskPage";
+import CommonRoomPage from "./pages/CommonRoomPage";
 import ComingSoonPage from "./components/ComingSoonPage";
 
 // Everything below is lazy-loaded, grouped into one chunk per game. Each
@@ -155,7 +156,7 @@ export default function App() {
               path="/common-room"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="The Common Room" blurb="The community's shared space will live here." />
+                  <CommonRoomPage />
                 </ProtectedRoute>
               }
             />

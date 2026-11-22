@@ -112,6 +112,89 @@ const ICONS = {
     [LINE, "M9 1h4v1h-4zM9 2h1v1h-1zM12 2h1v1h-1zM1 3h9v1h-9zM12 3h3v1h-3zM9 4h4v1h-4zM3 6h4v1h-4zM3 7h1v1h-1zM6 7h1v1h-1zM1 8h3v1h-3zM6 8h9v1h-9zM3 9h4v1h-4zM7 11h4v1h-4zM7 12h1v1h-1zM10 12h1v1h-1zM1 13h7v1h-7zM10 13h5v1h-5zM7 14h4v1h-4z"],
     [ACC, "M10 2h2v1h-2zM10 3h2v1h-2zM4 7h2v1h-2zM4 8h2v1h-2zM8 12h2v1h-2zM8 13h2v1h-2z"],
   ],
+  // ---- Common Room (from the Common Room boards, icons v1.2 / reactions v1.3) ----
+  "new-post": [
+    [LINE, "M2 2h12v1h-12zM2 3h1v1h-1zM13 3h1v1h-1zM2 4h1v1h-1zM13 4h1v1h-1zM2 5h1v1h-1zM13 5h1v1h-1zM2 6h1v1h-1zM13 6h1v1h-1zM2 7h1v1h-1zM13 7h1v1h-1zM2 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM13 10h1v1h-1zM2 11h1v1h-1zM13 11h1v1h-1zM2 12h1v1h-1zM13 12h1v1h-1zM2 13h12v1h-12z"],
+    [FILL, "M3 3h10v1h-10zM3 4h4v1h-4zM9 4h4v1h-4zM3 5h4v1h-4zM9 5h4v1h-4zM3 6h4v1h-4zM9 6h4v1h-4zM3 7h1v1h-1zM12 7h1v1h-1zM3 8h1v1h-1zM12 8h1v1h-1zM3 9h4v1h-4zM9 9h4v1h-4zM3 10h4v1h-4zM9 10h4v1h-4zM3 11h4v1h-4zM9 11h4v1h-4zM3 12h10v1h-10z"],
+    [ACC, "M7 4h2v1h-2zM7 5h2v1h-2zM7 6h2v1h-2zM4 7h8v1h-8zM4 8h8v1h-8zM7 9h2v1h-2zM7 10h2v1h-2zM7 11h2v1h-2z"],
+  ],
+  "kind-pets": [
+    [LINE, "M6 2h1v1h-1zM10 2h1v1h-1zM5 3h1v1h-1zM7 3h1v1h-1zM9 3h1v1h-1zM11 3h1v1h-1zM6 4h1v1h-1zM10 4h1v1h-1zM3 5h1v1h-1zM13 5h1v1h-1zM2 6h1v1h-1zM4 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM3 7h1v1h-1zM13 7h1v1h-1zM7 8h3v1h-3zM5 9h2v1h-2zM10 9h2v1h-2zM5 10h1v1h-1zM11 10h1v1h-1zM5 11h1v1h-1zM11 11h1v1h-1zM5 12h1v1h-1zM11 12h1v1h-1zM5 13h1v1h-1zM11 13h1v1h-1zM6 14h1v1h-1zM10 14h1v1h-1zM7 15h3v1h-3z"],
+    [FILL, "M7 9h3v1h-3zM6 10h5v1h-5zM6 11h1v1h-1zM9 11h2v1h-2zM6 12h1v1h-1zM9 12h2v1h-2zM6 13h5v1h-5zM7 14h3v1h-3z"],
+    [ACC, "M6 3h1v1h-1zM10 3h1v1h-1zM3 6h1v1h-1zM13 6h1v1h-1zM7 11h2v1h-2zM7 12h2v1h-2z"],
+  ],
+  "kind-made": [
+    [LINE, "M7 2h2v1h-2zM4 3h3v1h-3zM9 3h3v1h-3zM3 4h1v1h-1zM12 4h1v1h-1zM2 5h1v1h-1zM13 5h1v1h-1zM1 6h1v1h-1zM14 6h1v1h-1zM1 7h1v1h-1zM14 7h1v1h-1zM1 8h1v1h-1zM10 8h2v1h-2zM14 8h1v1h-1zM1 9h1v1h-1zM9 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM2 10h1v1h-1zM8 10h1v1h-1zM13 10h1v1h-1zM3 11h1v1h-1zM8 11h1v1h-1zM4 12h3v1h-3zM9 12h1v1h-1zM7 13h2v1h-2z"],
+    [FILL, "M7 3h2v1h-2zM4 4h4v1h-4zM10 4h2v1h-2zM3 5h5v1h-5zM10 5h3v1h-3zM2 6h2v1h-2zM6 6h5v1h-5zM13 6h1v1h-1zM2 7h2v1h-2zM6 7h5v1h-5zM13 7h1v1h-1zM2 8h8v1h-8zM12 8h2v1h-2zM2 9h2v1h-2zM6 9h3v1h-3zM13 9h1v1h-1zM3 10h1v1h-1zM6 10h2v1h-2zM4 11h4v1h-4zM7 12h2v1h-2z"],
+    [ACC, "M8 4h2v1h-2zM8 5h2v1h-2zM4 6h2v1h-2zM11 6h2v1h-2zM4 7h2v1h-2zM11 7h2v1h-2zM4 9h2v1h-2zM4 10h2v1h-2z"],
+  ],
+  "kind-eats": [
+    [LINE, "M1 8h14v1h-14zM2 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM13 10h1v1h-1zM3 11h1v1h-1zM12 11h1v1h-1zM4 12h1v1h-1zM11 12h1v1h-1zM5 13h6v1h-6z"],
+    [FILL, "M3 9h10v1h-10zM3 10h10v1h-10zM4 11h8v1h-8zM5 12h6v1h-6z"],
+    [ACC, "M10 2h1v1h-1zM6 3h1v1h-1zM11 3h1v1h-1zM7 4h1v1h-1zM10 4h1v1h-1zM6 5h1v1h-1zM11 5h1v1h-1zM7 6h1v1h-1z"],
+  ],
+  "kind-thought": [
+    [LINE, "M6 2h4v1h-4zM5 3h1v1h-1zM10 3h1v1h-1zM4 4h1v1h-1zM11 4h1v1h-1zM4 5h1v1h-1zM11 5h1v1h-1zM3 6h1v1h-1zM12 6h1v1h-1zM4 7h1v1h-1zM11 7h1v1h-1zM4 8h1v1h-1zM11 8h1v1h-1zM5 9h1v1h-1zM10 9h1v1h-1zM6 10h4v1h-4zM5 11h6v1h-6zM6 12h4v1h-4zM7 13h2v1h-2z"],
+    [FILL, "M6 3h4v1h-4zM5 4h6v1h-6zM5 5h1v1h-1zM7 5h1v1h-1zM9 5h2v1h-2zM4 6h3v1h-3zM8 6h1v1h-1zM10 6h2v1h-2zM5 7h2v1h-2zM9 7h2v1h-2zM5 8h6v1h-6zM6 9h4v1h-4z"],
+    [ACC, "M6 5h1v1h-1zM8 5h1v1h-1zM7 6h1v1h-1zM9 6h1v1h-1zM7 7h2v1h-2z"],
+  ],
+  "kind-meme": [
+    [LINE, "M5 2h6v1h-6zM4 3h1v1h-1zM11 3h1v1h-1zM3 4h1v1h-1zM12 4h1v1h-1zM2 5h1v1h-1zM5 5h1v1h-1zM10 5h1v1h-1zM13 5h1v1h-1zM2 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM11 6h1v1h-1zM13 6h1v1h-1zM2 7h1v1h-1zM13 7h1v1h-1zM2 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM5 9h6v1h-6zM13 9h1v1h-1zM2 10h1v1h-1zM13 10h1v1h-1zM3 11h1v1h-1zM12 11h1v1h-1zM4 12h1v1h-1zM11 12h1v1h-1zM5 13h6v1h-6z"],
+    [FILL, "M5 3h6v1h-6zM4 4h8v1h-8zM3 5h2v1h-2zM6 5h4v1h-4zM11 5h2v1h-2zM3 6h1v1h-1zM5 6h1v1h-1zM7 6h2v1h-2zM10 6h1v1h-1zM12 6h1v1h-1zM3 7h10v1h-10zM3 8h10v1h-10zM3 9h2v1h-2zM11 9h2v1h-2zM3 10h2v1h-2zM11 10h2v1h-2zM4 11h2v1h-2zM10 11h2v1h-2zM5 12h6v1h-6z"],
+    [ACC, "M5 10h6v1h-6zM6 11h4v1h-4z"],
+  ],
+  "kind-outside": [
+    [LINE, "M7 1h3v1h-3zM5 2h2v1h-2zM10 2h1v1h-1zM5 3h1v1h-1zM11 3h1v1h-1zM4 4h1v1h-1zM11 4h1v1h-1zM3 5h1v1h-1zM12 5h2v1h-2zM2 6h1v1h-1zM13 6h1v1h-1zM2 7h1v1h-1zM13 7h1v1h-1zM2 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM7 9h2v1h-2zM13 9h1v1h-1zM3 10h4v1h-4zM9 10h4v1h-4zM4 14h8v1h-8z"],
+    [FILL, "M7 2h3v1h-3zM6 3h5v1h-5zM5 4h6v1h-6zM4 5h5v1h-5zM10 5h2v1h-2zM3 6h4v1h-4zM8 6h5v1h-5zM3 7h2v1h-2zM6 7h4v1h-4zM11 7h2v1h-2zM3 8h3v1h-3zM7 8h6v1h-6zM3 9h4v1h-4zM9 9h4v1h-4z"],
+    [ACC, "M9 5h1v1h-1zM7 6h1v1h-1zM5 7h1v1h-1zM10 7h1v1h-1zM6 8h1v1h-1zM7 10h2v1h-2zM7 11h2v1h-2zM7 12h2v1h-2zM6 13h4v1h-4z"],
+  ],
+  "kind-win": [
+    [LINE, "M4 1h8v1h-8zM2 2h3v1h-3zM11 2h3v1h-3zM2 3h1v1h-1zM4 3h1v1h-1zM11 3h1v1h-1zM13 3h1v1h-1zM2 4h1v1h-1zM4 4h1v1h-1zM11 4h1v1h-1zM13 4h1v1h-1zM3 5h2v1h-2zM11 5h2v1h-2zM5 6h1v1h-1zM10 6h1v1h-1zM6 7h1v1h-1zM9 7h1v1h-1zM6 8h1v1h-1zM9 8h1v1h-1zM6 9h4v1h-4zM7 10h2v1h-2zM5 11h6v1h-6zM5 12h1v1h-1zM10 12h1v1h-1zM5 13h6v1h-6z"],
+    [FILL, "M5 2h2v1h-2zM9 2h2v1h-2zM5 3h1v1h-1zM10 3h1v1h-1zM5 4h2v1h-2zM9 4h2v1h-2zM5 5h6v1h-6zM6 6h4v1h-4zM7 7h2v1h-2zM7 8h2v1h-2z"],
+    [ACC, "M7 2h2v1h-2zM6 3h4v1h-4zM7 4h2v1h-2zM6 12h4v1h-4z"],
+  ],
+  "kind-other": [
+    [LINE, "M2 2h12v1h-12zM2 3h1v1h-1zM13 3h1v1h-1zM2 4h1v1h-1zM13 4h1v1h-1zM2 5h1v1h-1zM4 5h6v1h-6zM13 5h1v1h-1zM2 6h1v1h-1zM13 6h1v1h-1zM2 7h1v1h-1zM4 7h6v1h-6zM13 7h1v1h-1zM2 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM4 9h4v1h-4zM13 9h1v1h-1zM2 10h1v1h-1zM13 10h1v1h-1zM2 11h1v1h-1zM2 12h1v1h-1zM2 13h9v1h-9z"],
+    [FILL, "M3 3h10v1h-10zM3 4h10v1h-10zM3 5h1v1h-1zM10 5h3v1h-3zM3 6h10v1h-10zM3 7h1v1h-1zM10 7h3v1h-3zM3 8h10v1h-10zM3 9h1v1h-1zM8 9h5v1h-5zM3 10h10v1h-10zM3 11h8v1h-8zM3 12h8v1h-8z"],
+    [ACC, "M11 11h3v1h-3zM11 12h3v1h-3zM11 13h3v1h-3z"],
+  ],
+  "eye": [
+    [LINE, "M4 4h8v1h-8zM2 5h2v1h-2zM12 5h2v1h-2zM1 6h1v1h-1zM14 6h1v1h-1zM1 7h1v1h-1zM7 7h2v1h-2zM14 7h1v1h-1zM1 8h1v1h-1zM7 8h2v1h-2zM14 8h1v1h-1zM1 9h1v1h-1zM14 9h1v1h-1zM2 10h2v1h-2zM12 10h2v1h-2zM4 11h8v1h-8z"],
+    [FILL, "M4 5h8v1h-8zM2 6h4v1h-4zM10 6h4v1h-4zM2 7h4v1h-4zM10 7h4v1h-4zM2 8h4v1h-4zM10 8h4v1h-4zM2 9h4v1h-4zM10 9h4v1h-4zM4 10h8v1h-8z"],
+    [ACC, "M6 6h4v1h-4zM6 7h1v1h-1zM9 7h1v1h-1zM6 8h1v1h-1zM9 8h1v1h-1zM6 9h4v1h-4z"],
+  ],
+  "react-cheer": [
+    [LINE, "M3 0h4v1h-4zM9 0h4v1h-4zM2 1h1v1h-1zM7 1h2v1h-2zM13 1h1v1h-1zM1 2h1v1h-1zM14 2h1v1h-1zM1 3h1v1h-1zM14 3h1v1h-1zM1 4h1v1h-1zM14 4h1v1h-1zM1 5h1v1h-1zM14 5h1v1h-1zM1 6h1v1h-1zM14 6h1v1h-1zM2 7h1v1h-1zM13 7h1v1h-1zM2 8h1v1h-1zM13 8h1v1h-1zM3 9h1v1h-1zM12 9h1v1h-1zM4 10h1v1h-1zM11 10h1v1h-1zM5 11h1v1h-1zM10 11h1v1h-1zM6 12h4v1h-4z"],
+    [ACC, "M3 1h4v1h-4zM9 1h4v1h-4zM2 2h12v1h-12zM2 3h12v1h-12zM2 4h12v1h-12zM2 5h12v1h-12zM2 6h12v1h-12zM3 7h10v1h-10zM3 8h10v1h-10zM4 9h8v1h-8zM5 10h6v1h-6zM6 11h4v1h-4z"],
+  ],
+  "react-metoo": [
+    [LINE, "M0 2h16v1h-16zM0 3h1v1h-1zM15 3h1v1h-1zM0 4h1v1h-1zM11 4h2v1h-2zM15 4h1v1h-1zM0 5h1v1h-1zM10 5h3v1h-3zM15 5h1v1h-1zM0 6h1v1h-1zM9 6h1v1h-1zM11 6h2v1h-2zM15 6h1v1h-1zM0 7h1v1h-1zM11 7h2v1h-2zM15 7h1v1h-1zM0 8h1v1h-1zM11 8h2v1h-2zM15 8h1v1h-1zM0 9h1v1h-1zM11 9h2v1h-2zM15 9h1v1h-1zM0 10h1v1h-1zM11 10h2v1h-2zM15 10h1v1h-1zM0 11h1v1h-1zM9 11h5v1h-5zM15 11h1v1h-1zM0 12h1v1h-1zM15 12h1v1h-1zM0 13h16v1h-16z"],
+    [FILL, "M1 3h14v1h-14zM1 4h3v1h-3zM6 4h5v1h-5zM13 4h2v1h-2zM1 5h3v1h-3zM6 5h4v1h-4zM13 5h2v1h-2zM1 6h3v1h-3zM6 6h3v1h-3zM10 6h1v1h-1zM13 6h2v1h-2zM1 7h1v1h-1zM8 7h3v1h-3zM13 7h2v1h-2zM1 8h1v1h-1zM8 8h3v1h-3zM13 8h2v1h-2zM1 9h3v1h-3zM6 9h5v1h-5zM13 9h2v1h-2zM1 10h3v1h-3zM6 10h5v1h-5zM13 10h2v1h-2zM1 11h3v1h-3zM6 11h3v1h-3zM14 11h1v1h-1zM1 12h14v1h-14z"],
+    [ACC, "M4 4h2v1h-2zM4 5h2v1h-2zM4 6h2v1h-2zM2 7h6v1h-6zM2 8h6v1h-6zM4 9h2v1h-2zM4 10h2v1h-2zM4 11h2v1h-2z"],
+  ],
+  "react-cozy": [
+    [LINE, "M2 6h9v1h-9zM2 7h1v1h-1zM10 7h1v1h-1zM2 8h1v1h-1zM10 8h4v1h-4zM2 9h1v1h-1zM10 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM10 10h1v1h-1zM13 10h1v1h-1zM2 11h1v1h-1zM10 11h1v1h-1zM13 11h1v1h-1zM2 12h1v1h-1zM10 12h3v1h-3zM2 13h1v1h-1zM10 13h1v1h-1zM2 14h9v1h-9z"],
+    [FILL, "M3 8h7v1h-7zM3 9h7v1h-7zM3 10h7v1h-7zM3 11h7v1h-7zM3 12h7v1h-7zM3 13h7v1h-7z"],
+    [ACC, "M8 1h1v1h-1zM5 2h1v1h-1zM9 2h1v1h-1zM6 3h1v1h-1zM8 3h1v1h-1zM5 4h1v1h-1zM9 4h1v1h-1zM6 5h1v1h-1zM3 7h7v1h-7z"],
+  ],
+  "react-proud": [
+    [LINE, "M7 1h2v1h-2zM6 2h1v1h-1zM9 2h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM5 4h1v1h-1zM10 4h1v1h-1zM0 5h6v1h-6zM10 5h6v1h-6zM1 6h1v1h-1zM14 6h1v1h-1zM2 7h1v1h-1zM13 7h1v1h-1zM3 8h1v1h-1zM12 8h1v1h-1zM3 9h1v1h-1zM12 9h1v1h-1zM2 10h1v1h-1zM13 10h1v1h-1zM1 11h1v1h-1zM7 11h2v1h-2zM14 11h1v1h-1zM1 12h1v1h-1zM6 12h1v1h-1zM9 12h1v1h-1zM14 12h1v1h-1zM1 13h1v1h-1zM5 13h1v1h-1zM10 13h1v1h-1zM14 13h1v1h-1zM1 14h4v1h-4zM11 14h4v1h-4z"],
+    [ACC, "M7 2h2v1h-2zM7 3h2v1h-2zM6 4h4v1h-4zM6 5h4v1h-4zM2 6h12v1h-12zM3 7h10v1h-10zM4 8h8v1h-8zM4 9h8v1h-8zM3 10h10v1h-10zM2 11h5v1h-5zM9 11h5v1h-5zM2 12h4v1h-4zM10 12h4v1h-4zM2 13h3v1h-3zM11 13h3v1h-3z"],
+  ],
+  "replies": [
+    [LINE, "M1 1h9v1h-9zM1 2h1v1h-1zM9 2h1v1h-1zM1 3h1v1h-1zM9 3h1v1h-1zM1 4h1v1h-1zM9 4h1v1h-1zM1 5h1v1h-1zM9 5h1v1h-1zM1 6h1v1h-1zM9 6h6v1h-6zM1 7h9v1h-9zM14 7h1v1h-1zM3 8h1v1h-1zM6 8h1v1h-1zM14 8h1v1h-1zM2 9h1v1h-1zM6 9h1v1h-1zM14 9h1v1h-1zM6 10h1v1h-1zM14 10h1v1h-1zM6 11h1v1h-1zM14 11h1v1h-1zM6 12h9v1h-9zM12 13h2v1h-2z"],
+    [FILL, "M2 2h7v1h-7zM2 3h7v1h-7zM2 4h7v1h-7zM2 5h7v1h-7zM2 6h7v1h-7z"],
+    [ACC, "M10 7h4v1h-4zM7 8h7v1h-7zM7 9h7v1h-7zM7 10h7v1h-7zM7 11h7v1h-7z"],
+  ],
+  "channel-hash": [
+    [LINE, "M5 2h1v1h-1zM10 2h1v1h-1zM5 3h1v1h-1zM10 3h1v1h-1zM5 4h1v1h-1zM10 4h1v1h-1zM5 6h1v1h-1zM10 6h1v1h-1zM5 7h1v1h-1zM10 7h1v1h-1zM5 8h1v1h-1zM10 8h1v1h-1zM5 9h1v1h-1zM10 9h1v1h-1zM5 11h1v1h-1zM10 11h1v1h-1zM5 12h1v1h-1zM10 12h1v1h-1zM5 13h1v1h-1zM10 13h1v1h-1z"],
+    [ACC, "M2 5h12v1h-12zM2 10h12v1h-12z"],
+  ],
+  "add-photo": [
+    [LINE, "M1 3h14v1h-14zM1 4h1v1h-1zM14 4h1v1h-1zM1 5h1v1h-1zM14 5h1v1h-1zM1 6h1v1h-1zM14 6h1v1h-1zM1 7h1v1h-1zM14 7h1v1h-1zM1 8h1v1h-1zM14 8h1v1h-1zM1 9h1v1h-1zM4 9h1v1h-1zM8 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM3 10h1v1h-1zM5 10h1v1h-1zM7 10h1v1h-1zM9 10h1v1h-1zM14 10h1v1h-1zM1 11h2v1h-2zM6 11h1v1h-1zM10 11h1v1h-1zM14 11h1v1h-1zM1 12h14v1h-14z"],
+    [FILL, "M2 4h12v1h-12zM2 5h8v1h-8zM12 5h2v1h-2zM2 6h7v1h-7zM13 6h1v1h-1zM2 7h7v1h-7zM13 7h1v1h-1zM2 8h8v1h-8zM12 8h2v1h-2zM2 9h2v1h-2zM5 9h3v1h-3zM9 9h5v1h-5zM2 10h1v1h-1zM4 10h1v1h-1zM6 10h1v1h-1zM8 10h1v1h-1zM10 10h4v1h-4zM3 11h3v1h-3zM7 11h3v1h-3zM11 11h3v1h-3z"],
+    [ACC, "M10 5h2v1h-2zM9 6h4v1h-4zM9 7h4v1h-4zM10 8h2v1h-2z"],
+  ],
 } satisfies Record<string, Layer[]>;
 
 export type PixelIconName = keyof typeof ICONS;
