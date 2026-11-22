@@ -7,9 +7,9 @@ import { notifyProgressChanged } from "./useMemberProgress";
 // and displays.
 
 export type Stamp = { key: string; name: string; earned: boolean; earned_on: string | null; line: string | null };
-export type BuddyEntry = { key: string; owned: boolean; name: string | null; line: string | null; hint: string | null };
+export type BuddyEntry = { key: string; owned: boolean; limited: boolean; name: string | null; line: string | null; hint: string | null; found_at: string | null };
 export type QuestMark = { key: string; name: string; theme: string; done_on: string };
-export type KeepsakeEntry = { key: string; name: string; category: string; tier: "bronze" | "silver" | "gold" };
+export type KeepsakeEntry = { key: string; name: string; category: string; tier: "bronze" | "silver" | "gold"; threshold: number; earned_at: string | null };
 
 export type BuddybookData = {
   counts: { stamps: number; quests: number; buddies: number; keepsakes: number };

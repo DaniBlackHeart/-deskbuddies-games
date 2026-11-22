@@ -90,18 +90,20 @@ async function buildStatus(admin: Admin, userId: string) {
   const buddyDefs = await must<{ key: string; name: string; hint: string | null; one_liner: string | null }[]>(
     admin.from("buddy_defs").select("key,name,hint,one_liner").order("sort"),
   );
-  const items = await must<{ item_key: string }[]>(
-    admin.from("member_items").select("item_key").eq("user_id", userId).like("item_key", "companion:%"),
+  const items = await must<{ item_key: string; granted_at: string }[]>(
+    admin.from("member_items").select("item_key,granted_at").eq("user_id", userId).like("item_key", "companion:%"),
   );
-  const owned = new Set((items ?? []).map((i) => i.item_key.slice("companion:".length)));
-  const buddies = (buddyDefs ?? [])
-    // A buddy with no public hint (Foundie) stays hidden until it is owned.
-    .filter((b) => owned.has(b.key) || b.hint)
-    .map((b) =>
-      owned.has(b.key)
-        ? { key: b.key, owned: true, name: b.name, line: b.one_liner, hint: null }
-        : { key: b.key, owned: false, name: null, line: null, hint: b.hint },
-    );
+  const ownedAt = new Map((items ?? []).map((i) => [i.item_key.slice("companion:".length), i.granted_at]));
+  // Every buddy is listed so the book can show the locked ones as their own shapes. Foundie has no
+  // public hint, so a generic "limited" line stands in while it is locked. Nothing about how a
+  // locked buddy is earned is returned beyond its broad hint.
+  const buddies = (buddyDefs ?? []).map((b) => {
+    const limited = b.key === "foundie";
+    const at = ownedAt.get(b.key) ?? null;
+    return at
+      ? { key: b.key, owned: true, limited, name: b.name, line: b.one_liner, hint: null, found_at: at }
+      : { key: b.key, owned: false, limited, name: null, line: null, hint: b.hint ?? (limited ? "A limited companion" : "A companion to find"), found_at: null };
+  });
 
   // ---- Keepsakes recap: highest step earned per card ------------------------
   const cards = await must<{ key: string; category: string; name: string; sort: number }[]>(
@@ -110,17 +112,19 @@ async function buildStatus(admin: Admin, userId: string) {
   const steps = await must<{ step_key: string; card_key: string; tier: string; threshold: number }[]>(
     admin.from("keepsake_steps").select("step_key,card_key,tier,threshold").order("threshold"),
   );
-  const got = await must<{ step_key: string }[]>(
-    admin.from("keepsake_earned").select("step_key").eq("user_id", userId),
+  const got = await must<{ step_key: string; earned_at: string }[]>(
+    admin.from("keepsake_earned").select("step_key,earned_at").eq("user_id", userId),
   );
   const gotSet = new Set((got ?? []).map((g) => g.step_key));
-  const keepsakes: { key: string; name: string; category: string; tier: string }[] = [];
+  const gotAt = new Map((got ?? []).map((g) => [g.step_key, g.earned_at]));
+  const keepsakes: { key: string; name: string; category: string; tier: string; threshold: number; earned_at: string | null }[] = [];
   let stepCount = 0;
   for (const c of cards ?? []) {
     const reached = (steps ?? []).filter((s) => s.card_key === c.key && gotSet.has(s.step_key));
     stepCount += reached.length;
     if (reached.length > 0) {
-      keepsakes.push({ key: c.key, name: c.name, category: c.category, tier: reached[reached.length - 1].tier });
+      const top = reached[reached.length - 1];
+      keepsakes.push({ key: c.key, name: c.name, category: c.category, tier: top.tier, threshold: top.threshold, earned_at: gotAt.get(top.step_key) ?? null });
     }
   }
 
