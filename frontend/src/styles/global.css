@@ -3312,3 +3312,15 @@ button[aria-disabled="true"] {
 .vp-page { max-width: 900px; display: flex; flex-direction: column; gap: var(--space-4); }
 .vp-note { padding: 12px 16px; border: 2px dashed var(--color-border); border-radius: 12px; background: var(--color-bg-alt); font-size: 0.9375rem; line-height: 1.5; }
 .vp-desk { display: flex; flex-direction: column; gap: 12px; }
+
+/* Keep the Desk Lit: row layout, accordions */
+.kdl-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .kdl-row { grid-template-columns: minmax(0, 1fr); } }
+.kdl-col { flex: none; }
+.kdl-btn--off { border-style: dashed; color: var(--color-text-muted); cursor: default; }
+.kdl-acc { display: flex; flex-direction: column; gap: 10px; }
+.kdl-acc__item { border: 2px solid var(--color-border); border-radius: 14px; background: var(--color-bg); }
+.kdl-acc__item summary { cursor: pointer; padding: 14px 16px; min-height: 24px; font-weight: 700; font-size: 1.0625rem; }
+.kdl-acc__item summary:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; border-radius: 12px; }
+.kdl-acc__body { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 10px; }
+.kdl-acc__body p { margin: 0; font-size: 1rem; line-height: 1.5; }
