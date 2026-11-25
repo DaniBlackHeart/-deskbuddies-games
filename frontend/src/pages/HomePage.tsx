@@ -3,6 +3,7 @@ import AppHeader from "../components/AppHeader";
 import ActiveGameStatus from "../components/ActiveGameStatus";
 import DailyCheckInCard from "../components/DailyCheckInCard";
 import PixelIcon from "../components/PixelIcon";
+import ComingUpPanel from "../components/ComingUpPanel";
 import HomeTodayPanel from "../components/HomeTodayPanel";
 import WhosAroundPanel from "../components/WhosAroundPanel";
 import { useAuth } from "../contexts/AuthContext";
@@ -129,6 +130,8 @@ export default function HomePage() {
           </div>
           <DailyCheckInCard status={status} busy={busy} error={error} onClaim={claim} />
         </section>
+
+        <ComingUpPanel />
 
         <ActiveGameStatus />
 

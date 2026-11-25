@@ -1980,7 +1980,7 @@ button.app-avatar:focus-visible {
   gap: 24px;
 }
 .db-home-side {
-  flex: 1 1 300px;
+  flex: 1 1 340px;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -3205,4 +3205,51 @@ button[aria-disabled="true"] {
 .wa-row__sub {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
+}
+
+/* Focus lengths: three equal chips on one row, even in the narrow Today column. */
+.ht-lengths {
+  flex-wrap: nowrap;
+}
+.ht-lengths .md-seg {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 6px;
+}
+/* Coming up: a compact strip under the greeting. */
+.db-comingup {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.cu-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cu-item {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 2px solid var(--color-border-soft);
+  border-radius: 12px;
+  background: var(--color-bg);
+}
+.cu-item__title {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.cu-item__when {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+@media (max-width: 640px) {
+  /* Phones keep the concept's order: Coming up comes last. */
+  .db-comingup {
+    order: 5;
+  }
 }
