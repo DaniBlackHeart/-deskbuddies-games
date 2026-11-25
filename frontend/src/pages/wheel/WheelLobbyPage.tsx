@@ -6,6 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { lobbyMusic, sounds } from "../../lib/sounds";
 import { WHEEL_MAX_PLAYERS, WHEEL_MAX_TEAM_SIZE, WHEEL_MAX_TEAMS, WHEEL_MIN_PLAYERS, WHEEL_MIN_TEAM_SIZE, WHEEL_MIN_TEAMS } from "../../lib/wheelConstants";
 import type { WheelGameMode, WheelParticipant, WheelSessionStatus, WheelTeam } from "../../types";
+import PixelIcon from "../../components/PixelIcon";
 
 type OpenSession = { id: string; status: WheelSessionStatus; game_mode: WheelGameMode };
 
@@ -177,7 +178,7 @@ export default function WheelLobbyPage() {
       <AppHeader />
       <div className="container container--narrow">
         <div className="card text-center">
-          <div style={{ fontSize: "2.5rem" }}>🎡</div>
+          <div className="game-lobby-icon"><PixelIcon name="game-wheel-of-fortune" size={64} /></div>
           <h1>Wheel of Fortune</h1>
 
           {session === undefined && <p className="text-muted">Checking for a live game…</p>}

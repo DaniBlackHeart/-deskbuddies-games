@@ -5,6 +5,7 @@ import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { lobbyMusic, sounds } from "../../lib/sounds";
 import type { RebusGameMode, RebusParticipant, RebusSessionStatus, RebusTeam } from "../../types";
+import PixelIcon from "../../components/PixelIcon";
 
 type OpenSession = { id: string; status: RebusSessionStatus; game_mode: RebusGameMode };
 
@@ -139,7 +140,7 @@ export default function RebusLobbyPage() {
       <AppHeader />
       <div className="container container--narrow">
         <div className="card text-center">
-          <div style={{ fontSize: "2.5rem" }}>🔤</div>
+          <div className="game-lobby-icon"><PixelIcon name="game-type-what-you-see" size={64} /></div>
           <h1>Type What You See</h1>
 
           {session === undefined && <p className="text-muted">Checking for a live game…</p>}

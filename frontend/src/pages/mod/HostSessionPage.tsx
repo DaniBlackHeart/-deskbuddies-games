@@ -5,6 +5,7 @@ import Leaderboard from "../../components/Leaderboard";
 import Timer from "../../components/Timer";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { Answer, LeaderboardEntry, TriviaSession, TriviaSessionQuestion } from "../../types";
+import PixelIcon from "../../components/PixelIcon";
 
 type PendingAnswer = Answer & { profiles: { username: string } | null; questions: { prompt: string; order_index: number } | null };
 
@@ -211,7 +212,7 @@ export default function HostSessionPage() {
       <div className="container">
         <div className="row-between">
           <div>
-            <h1>{setName || "🧠 Trivia Night — Random Mix"}</h1>
+            <h1>{setName ? setName : <><PixelIcon name="game-trivia" size={32} className="px-inline" />Trivia Night — Random Mix</>}</h1>
             <p className="text-muted" style={{ marginTop: "-8px" }}>
               Join code <strong>{session.join_code}</strong> · {participantCount} joined
             </p>

@@ -49,7 +49,7 @@ export default function DashboardPage() {
           </div>
           {profile?.is_mod && (
             <Link to="/mod" className="btn btn-secondary btn-sm">
-              🛠️ MOD Dashboard
+              MOD Dashboard
             </Link>
           )}
         </div>

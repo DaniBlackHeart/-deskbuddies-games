@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import { supabase } from "../../lib/supabaseClient";
+import PixelIcon from "../../components/PixelIcon";
 
 type OpenSession = {
   id: string;
@@ -61,7 +62,7 @@ export default function TriviaLobbyPage() {
       <AppHeader />
       <div className="container container--narrow">
         <div className="card text-center">
-          <div style={{ fontSize: "2.5rem" }}>🧠</div>
+          <div className="game-lobby-icon"><PixelIcon name="game-trivia" size={64} /></div>
           <h1>Trivia Night</h1>
 
           {session === undefined && <p className="text-muted">Checking for a live session…</p>}

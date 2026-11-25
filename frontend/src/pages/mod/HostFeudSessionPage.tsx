@@ -5,6 +5,7 @@ import TeamScoreboard from "../../components/TeamScoreboard";
 import Timer from "../../components/Timer";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { FeudAnswer, FeudFastMoneyQuestion, FeudParticipant, FeudRoundQuestion, FeudSession, Team } from "../../types";
+import PixelIcon from "../../components/PixelIcon";
 
 type RoundRow = {
   id: string;
@@ -200,7 +201,7 @@ export default function HostFeudSessionPage() {
       <AppHeader />
       <div className="container">
         <div className="row-between">
-          <h1>🎙️ Hosting Family Feud</h1>
+          <h1><PixelIcon name="game-family-feud" size={32} className="px-inline" />Hosting Family Feud</h1>
           <span className="badge badge-neutral">Code: {session.join_code}</span>
         </div>
 

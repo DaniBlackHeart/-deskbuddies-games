@@ -6,6 +6,7 @@ import WheelTeamScoreboard from "../../components/WheelTeamScoreboard";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { WHEEL_MIN_PLAYERS, WHEEL_MIN_TEAM_SIZE, WHEEL_MIN_TEAMS } from "../../lib/wheelConstants";
 import type { WheelParticipant, WheelRoundPublic, WheelSessionPublic, WheelTeam } from "../../types";
+import PixelIcon from "../../components/PixelIcon";
 
 const STATUS_LABELS: Record<string, string> = {
   lobby: "Waiting in the lobby",
@@ -205,7 +206,7 @@ export default function HostWheelSessionPage() {
       <AppHeader />
       <div className="container">
         <div className="row-between">
-          <h1>🎡 Hosting Wheel of Fortune {isTeamMode && <span className="badge badge-neutral">Team mode</span>}</h1>
+          <h1><PixelIcon name="game-wheel-of-fortune" size={32} className="px-inline" />Hosting Wheel of Fortune {isTeamMode && <span className="badge badge-neutral">Team mode</span>}</h1>
           {session.status !== "ended" && (
             <button className="btn btn-danger btn-sm" disabled={busy} onClick={handleEndSession}>
               {session.status === "lobby" ? "Cancel game" : "End game"}

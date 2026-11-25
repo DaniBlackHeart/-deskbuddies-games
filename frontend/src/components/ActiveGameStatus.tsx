@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import PixelIcon, { type PixelIconName } from "./PixelIcon";
 
 // Sits at the top of the member dashboard and answers "is anything happening
 // right now?" across the whole catalogue. There's no shared games/sessions
@@ -13,7 +14,7 @@ import { supabase } from "../lib/supabaseClient";
 
 type LiveGame = {
   key: string;
-  emoji: string;
+  icon: PixelIconName;
   title: string;
   lobbyPath: string;
   status: string;
@@ -32,7 +33,7 @@ async function checkTrivia(): Promise<LiveGame | null> {
   const row = data as unknown as { status: string; question_sets: { name: string } | null };
   return {
     key: "trivia",
-    emoji: "🧠",
+    icon: "game-trivia",
     title: "Trivia Night",
     lobbyPath: "/trivia",
     status: row.status,
@@ -52,7 +53,7 @@ async function checkFeud(): Promise<LiveGame | null> {
   const row = data as unknown as { status: string; feud_sets: { name: string } | null };
   return {
     key: "feud",
-    emoji: "🎙️",
+    icon: "game-family-feud",
     title: "Family Feud",
     lobbyPath: "/feud/lobby",
     status: row.status,
@@ -71,7 +72,7 @@ async function checkUno(): Promise<LiveGame | null> {
   if (!data) return null;
   return {
     key: "uno",
-    emoji: "🎴",
+    icon: "game-uno",
     title: "UNO",
     lobbyPath: "/uno/lobby",
     status: (data as { status: string }).status,
@@ -91,7 +92,7 @@ async function checkImpostor(): Promise<LiveGame | null> {
   const row = data as unknown as { status: string; category_name: string | null };
   return {
     key: "impostor",
-    emoji: "🕵️",
+    icon: "game-impostor-who",
     title: "Impostor WHO?",
     lobbyPath: "/impostor/lobby",
     status: row.status,
@@ -110,7 +111,7 @@ async function checkWheel(): Promise<LiveGame | null> {
   if (!data) return null;
   return {
     key: "wheel",
-    emoji: "🎡",
+    icon: "game-wheel-of-fortune",
     title: "Wheel of Fortune",
     lobbyPath: "/wheel/lobby",
     status: (data as { status: string }).status,
@@ -130,7 +131,7 @@ async function checkRebus(): Promise<LiveGame | null> {
   const row = data as unknown as { status: string; game_mode: string };
   return {
     key: "rebus",
-    emoji: "🔤",
+    icon: "game-type-what-you-see",
     title: "Type What You See",
     lobbyPath: "/rebus/lobby",
     status: row.status,
@@ -198,7 +199,7 @@ export default function ActiveGameStatus() {
   return (
     <div className="card card--tight row-between" style={{ marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
       <div className="row" style={{ gap: "12px" }}>
-        <div style={{ fontSize: "1.8rem" }}>{active.emoji}</div>
+        <PixelIcon name={active.icon} size={32} />
         <div>
           <div className="row" style={{ gap: "8px" }}>
             <strong>{active.title}</strong>

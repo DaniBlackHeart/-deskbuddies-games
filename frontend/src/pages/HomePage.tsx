@@ -18,14 +18,13 @@ import { buddyName } from "../lib/deskCatalog";
 // until its puzzle exists); Who's around shows real Focus Block presence and
 // Find a member. The six live games stay one tap away.
 
-// Placeholder tints until each game gets its own pixel icon.
 const GAMES = [
-  { to: "/trivia", emoji: "🧠", name: "Trivia Night", tint: "#F2C766" },
-  { to: "/feud/lobby", emoji: "🎙️", name: "Family Feud", tint: "#8FA98A" },
-  { to: "/uno/lobby", emoji: "🎴", name: "UNO", tint: "#E8A598" },
-  { to: "/impostor/lobby", emoji: "🕵️", name: "Impostor WHO?", tint: "#C8A9D9" },
-  { to: "/wheel/lobby", emoji: "🎡", name: "Wheel of Fortune", tint: "#F6EBD9" },
-  { to: "/rebus/lobby", emoji: "🔤", name: "Type What You See", tint: "#A8C7D6" },
+  { to: "/trivia", icon: "game-trivia" as const, name: "Trivia Night" },
+  { to: "/feud/lobby", icon: "game-family-feud" as const, name: "Family Feud" },
+  { to: "/uno/lobby", icon: "game-uno" as const, name: "UNO" },
+  { to: "/impostor/lobby", icon: "game-impostor-who" as const, name: "Impostor WHO?" },
+  { to: "/wheel/lobby", icon: "game-wheel-of-fortune" as const, name: "Wheel of Fortune" },
+  { to: "/rebus/lobby", icon: "game-type-what-you-see" as const, name: "Type What You See" },
 ];
 
 function timeOfDayGreeting(): string {
@@ -156,8 +155,8 @@ export default function HomePage() {
               <div className="db-games">
                 {GAMES.map((g) => (
                   <Link key={g.to} to={g.to} className="db-game">
-                    <span className="db-game__tile" aria-hidden="true" style={{ background: g.tint }}>
-                      {g.emoji}
+                    <span className="db-game__tile" aria-hidden="true">
+                      <PixelIcon name={g.icon} size={32} />
                     </span>
                     <span className="t-body-sm" style={{ fontWeight: 700 }}>
                       {g.name}

@@ -74,7 +74,7 @@
   --shadow-lg: 0 12px 30px rgba(61, 50, 41, 0.12), 0 4px 10px rgba(61, 50, 41, 0.06);
 
   /* Type */
-  --font-heading: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-heading: var(--db-font-display);
   --font-body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Spacing scale */

@@ -5,6 +5,7 @@ import BackToModDashboardLink from "../../components/BackToModDashboardLink";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import type { FeudSet } from "../../types";
+import PixelIcon from "../../components/PixelIcon";
 
 export default function FeudSetsPage() {
   const navigate = useNavigate();
@@ -52,7 +53,7 @@ export default function FeudSetsPage() {
       <div className="container">
         <BackToModDashboardLink />
         <div className="row-between">
-          <h1>🎙️ Family Feud Sets</h1>
+          <h1><PixelIcon name="game-family-feud" size={32} className="px-inline" />Family Feud Sets</h1>
           <button className="btn btn-primary" onClick={() => setCreating(true)}>
             + New set
           </button>

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import PixelIcon, { type PixelIconName } from "./PixelIcon";
 
 type GameCardProps = {
   // Either a destination to navigate to, or a click handler to run directly
@@ -7,7 +8,9 @@ type GameCardProps = {
   // Dashboard's UNO card that kick off an action instead of linking anywhere.
   to?: string;
   onClick?: () => void;
-  emoji: string;
+  // Pixel icon (preferred) or, for older callers, an emoji.
+  icon?: PixelIconName;
+  emoji?: string;
   title: string;
   description: string;
   disabled?: boolean;
@@ -21,6 +24,7 @@ type GameCardProps = {
 export default function GameCard({
   to,
   onClick,
+  icon,
   emoji,
   title,
   description,
@@ -31,7 +35,7 @@ export default function GameCard({
   const content = (
     <div className="card" style={{ height: "100%", opacity: disabled ? 0.6 : busy ? 0.7 : 1 }}>
       <div className="row-between">
-        <div style={{ fontSize: "2rem" }}>{emoji}</div>
+        {icon ? <PixelIcon name={icon} size={48} /> : <div style={{ fontSize: "2rem" }}>{emoji}</div>}
         {badge && <span className="badge badge-neutral">{badge}</span>}
       </div>
       <h3 style={{ marginTop: "12px" }}>{title}</h3>

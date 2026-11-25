@@ -5,6 +5,7 @@ import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { lobbyMusic, sounds } from "../../lib/sounds";
 import type { FeudParticipant, FeudSession, Team } from "../../types";
+import PixelIcon from "../../components/PixelIcon";
 
 type OpenSession = Pick<FeudSession, "id" | "status" | "team_a_name" | "team_b_name" | "feud_set_id"> & {
   feud_sets: { name: string } | null;
@@ -128,7 +129,7 @@ export default function FeudLobbyPage() {
       <AppHeader />
       <div className="container container--narrow">
         <div className="card text-center">
-          <div style={{ fontSize: "2.5rem" }}>🎙️</div>
+          <div className="game-lobby-icon"><PixelIcon name="game-family-feud" size={64} /></div>
           <h1>Family Feud</h1>
 
           {session === undefined && <p className="text-muted">Checking for a live game…</p>}

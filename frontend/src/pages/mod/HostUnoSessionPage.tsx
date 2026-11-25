@@ -5,6 +5,7 @@ import BackToModDashboardLink from "../../components/BackToModDashboardLink";
 import UnoCardView from "../../components/UnoCardView";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { UnoCard, UnoParticipant, UnoSessionPublic } from "../../types";
+import PixelIcon from "../../components/PixelIcon";
 
 // The host's own view of uno_sessions — a raw table row, NOT get-uno-state's
 // response shape. Notably: no draw_pile/discard_pile here either, same
@@ -109,7 +110,7 @@ export default function HostUnoSessionPage() {
       <div className="container">
         <BackToModDashboardLink />
         <div className="row-between">
-          <h1>🎴 Hosting UNO</h1>
+          <h1><PixelIcon name="game-uno" size={32} className="px-inline" />Hosting UNO</h1>
           {session.status !== "ended" && (
             <button className="btn btn-danger btn-sm" disabled={busy} onClick={handleEndSession}>
               {session.status === "lobby" ? "Cancel game" : "End game"}

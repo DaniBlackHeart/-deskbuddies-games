@@ -150,7 +150,7 @@ export default function ModDashboardPage() {
     <div className="app-shell">
       <AppHeader />
       <div className="container">
-        <h1>🛠️ MOD Dashboard</h1>
+        <h1>MOD Dashboard</h1>
 
         {active.length > 0 && (
           <div className="card" style={{ marginBottom: "20px" }}>
@@ -334,13 +334,13 @@ export default function ModDashboardPage() {
         >
           <GameCard
             to="/mod/sets"
-            emoji="🧠"
+            icon="game-trivia"
             title="Trivia Night"
             description="Create, edit, or import questions for Trivia Night."
           />
           <GameCard
             to="/mod/feud-sets"
-            emoji="🎙️"
+            icon="game-family-feud"
             title="Feud Sets"
             description="Author board questions and Fast Money rounds for Family Feud."
           />
@@ -351,25 +351,25 @@ export default function ModDashboardPage() {
           <GameCard
             onClick={handleStartUno}
             busy={startingUno}
-            emoji="🎴"
+            icon="game-uno"
             title="UNO"
             description={startingUno ? "Starting a new game…" : "Start a new UNO game — deals as soon as everyone's in."}
           />
           <GameCard
             to="/mod/impostor-categories"
-            emoji="🕵️"
+            icon="game-impostor-who"
             title="Impostor WHO?"
             description="Manage categories and words, then start a session from inside one."
           />
           <GameCard
             to="/mod/wheel-categories"
-            emoji="🎡"
+            icon="game-wheel-of-fortune"
             title="Wheel of Fortune"
             description="Manage categories and phrases, then start a session from inside one."
           />
           <GameCard
             to="/mod/rebus-sets"
-            emoji="🔤"
+            icon="game-type-what-you-see"
             title="Type What You See"
             description="Author rebus puzzles across all four rounds — every session automatically mixes them from all your sets."
           />

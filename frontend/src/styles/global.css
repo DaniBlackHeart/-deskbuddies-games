@@ -3385,3 +3385,8 @@ button.page-back { font: inherit; font-weight: 700; cursor: pointer; background:
 .mp-cork { min-height: 200px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 6px solid #8b5e3c; border-radius: 10px; background: #c99a6b; color: #3a261c; font-weight: 700; }
 .mp-btn { width: 100%; text-align: center; }
 @media (max-width: 820px) { .mp-cols { grid-template-columns: minmax(0, 1fr); } }
+
+/* Games: pixel icons instead of emoji, pixel headings everywhere */
+.game-lobby-icon { display: flex; justify-content: center; margin-bottom: 8px; }
+.px-inline { display: inline-block; vertical-align: middle; margin-right: 10px; }
+.db-game__tile { background: var(--color-bg-alt); }

@@ -5,6 +5,7 @@ import ImpostorClueBoard from "../../components/ImpostorClueBoard";
 import ImpostorVoteResults from "../../components/ImpostorVoteResults";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import type { ImpostorClue, ImpostorParticipant, ImpostorSessionPublic } from "../../types";
+import PixelIcon from "../../components/PixelIcon";
 
 // The host's own view of impostor_sessions — a raw table row is actually
 // safe to read directly here (revealed_impostor_user_id/revealed_secret_word
@@ -145,7 +146,7 @@ export default function HostImpostorSessionPage() {
       <AppHeader />
       <div className="container">
         <div className="row-between">
-          <h1>🕵️ Hosting Impostor WHO?</h1>
+          <h1><PixelIcon name="game-impostor-who" size={32} className="px-inline" />Hosting Impostor WHO?</h1>
           {session.status !== "ended" && (
             <button className="btn btn-danger btn-sm" disabled={busy} onClick={handleEndSession}>
               {session.status === "lobby" ? "Cancel game" : "End game"}
