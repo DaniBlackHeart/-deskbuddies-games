@@ -150,6 +150,9 @@ export default function ModDashboardPage() {
     <div className="app-shell">
       <AppHeader />
       <div className="container">
+        <Link to="/games" className="page-back">
+          <span aria-hidden="true">‹</span> Back to Reality Break
+        </Link>
         <h1>MOD Dashboard</h1>
 
         {active.length > 0 && (
