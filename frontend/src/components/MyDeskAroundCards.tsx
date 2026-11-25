@@ -14,8 +14,8 @@ import { LENGTHS } from "../lib/focusBlock";
 
 function CardHead({ icon, title, blurb }: { icon: React.ReactNode; title: string; blurb: string }) {
   return (
-    <div className="ad-head">
-      <span className="ad-icon" aria-hidden="true">{icon}</span>
+    <div className="ard-head">
+      <span className="ard-icon" aria-hidden="true">{icon}</span>
       <div>
         <h3 className="t-h3" style={{ margin: 0 }}>{title}</h3>
         <p className="t-body-sm text-muted" style={{ margin: 0 }}>{blurb}</p>
@@ -29,17 +29,17 @@ export function DeskTimeCard() {
   const [mins, setMins] = useState<number>(25);
   const count = around?.length ?? null;
   return (
-    <section className="ad-card" aria-labelledby="ad-dt">
-      <div className="ad-head">
-        <span className="ad-icon" aria-hidden="true"><PixelIcon name="desk-time" size={32} /></span>
+    <section className="ard-card" aria-labelledby="ard-dt">
+      <div className="ard-head">
+        <span className="ard-icon" aria-hidden="true"><PixelIcon name="desk-time" size={32} /></span>
         <div>
-          <h3 id="ad-dt" className="t-h3" style={{ margin: 0 }}>Desk Time</h3>
+          <h3 id="ard-dt" className="t-h3" style={{ margin: 0 }}>Desk Time</h3>
           <p className="t-body-sm text-muted" style={{ margin: 0 }}>Quiet company for getting things done</p>
         </div>
       </div>
-      <div className="ad-box">
-        <span className="ad-eyebrow">A FOCUS BLOCK, YOUR WAY</span>
-        <div role="group" aria-label="Focus length" className="ad-chips">
+      <div className="ard-box">
+        <span className="ard-eyebrow">A FOCUS BLOCK, YOUR WAY</span>
+        <div role="group" aria-label="Focus length" className="ard-chips">
           {LENGTHS.map((m) => (
             <button key={m} type="button" aria-pressed={mins === m} className={"md-seg" + (mins === m ? " md-seg--on" : "")} onClick={() => setMins(m)}>
               {m} min
@@ -53,17 +53,17 @@ export function DeskTimeCard() {
         )}
         <span className="t-caption text-muted">Works in Discord or not. Stepping away never takes back what you earned.</span>
       </div>
-      <Link to={`/desk-time?minutes=${mins}`} className="btn btn-secondary ad-open">Start a Focus Block</Link>
+      <Link to={`/desk-time?minutes=${mins}`} className="btn btn-secondary ard-open">Start a Focus Block</Link>
     </section>
   );
 }
 
 function FindTile({ itemKey }: { itemKey: string }) {
   const a = FINDS_ART[itemKey];
-  if (!a) return <span className="ad-find__tile" aria-hidden="true" />;
+  if (!a) return <span className="ard-find__tile" aria-hidden="true" />;
   const scale = Math.max(1, Math.min(Math.floor(32 / a.w), Math.floor(32 / a.h)));
   return (
-    <span className="ad-find__tile" aria-hidden="true">
+    <span className="ard-find__tile" aria-hidden="true">
       <svg width={a.w * scale} height={a.h * scale} viewBox={`0 0 ${a.w} ${a.h}`} shapeRendering="crispEdges" style={{ display: "block" }}>
         {a.layers.map(([fill, d], i) => <path key={i} d={d} fill={fill} />)}
       </svg>
@@ -76,26 +76,26 @@ export function DeskFindsCard() {
   // The three cheapest things you don't own yet. "New this week" needs a release date that doesn't exist yet.
   const few = (data?.items ?? []).filter((i) => !i.owned).sort((a, b) => a.price - b.price).slice(0, 3);
   return (
-    <section className="ad-card" aria-labelledby="ad-df">
-      <div className="ad-head">
-        <span className="ad-icon" aria-hidden="true"><PixelIcon name="desk-finds" size={32} /></span>
+    <section className="ard-card" aria-labelledby="ard-df">
+      <div className="ard-head">
+        <span className="ard-icon" aria-hidden="true"><PixelIcon name="desk-finds" size={32} /></span>
         <div>
-          <h3 id="ad-df" className="t-h3" style={{ margin: 0 }}>Desk Finds</h3>
+          <h3 id="ard-df" className="t-h3" style={{ margin: 0 }}>Desk Finds</h3>
           <p className="t-body-sm text-muted" style={{ margin: 0 }}>Spend your deskbits on your desk</p>
         </div>
       </div>
-      <div className="ad-box">
-        <span className="ad-eyebrow">A FEW FINDS</span>
+      <div className="ard-box">
+        <span className="ard-eyebrow">A FEW FINDS</span>
         {data && few.length === 0 && <p className="t-body-sm text-muted" style={{ margin: 0 }}>You have every Find so far.</p>}
         {few.map((i) => (
-          <div key={i.key} className="ad-find">
+          <div key={i.key} className="ard-find">
             <FindTile itemKey={i.key} />
             <b>{i.name}</b>
           </div>
         ))}
         {data && <span className="t-caption text-muted">You have {data.balance.toLocaleString()} deskbits to spend.</span>}
       </div>
-      <Link to="/deskfinds" className="btn btn-secondary ad-open">Browse Desk Finds</Link>
+      <Link to="/deskfinds" className="btn btn-secondary ard-open">Browse Desk Finds</Link>
     </section>
   );
 }
@@ -106,20 +106,20 @@ export function BuddyCollectionCard() {
   // Found buddies first, then a few shadows, as in the collection.
   const shown = buddies ? [...buddies].sort((a, b) => Number(b.found) - Number(a.found)).slice(0, 6) : [];
   return (
-    <section className="ad-card ad-bc" aria-labelledby="ad-bc">
-      <div className="ad-head">
-        <span className="ad-icon" aria-hidden="true"><BuddySprite id="paper" found size={32} /></span>
+    <section className="ard-card ard-bc" aria-labelledby="ard-bc">
+      <div className="ard-head">
+        <span className="ard-icon" aria-hidden="true"><BuddySprite id="paper" found size={32} /></span>
         <div>
-          <h3 id="ad-bc" className="t-h3" style={{ margin: 0 }}>Buddy Collection</h3>
+          <h3 id="ard-bc" className="t-h3" style={{ margin: 0 }}>Buddy Collection</h3>
           <p className="t-body-sm text-muted" style={{ margin: 0 }}>Every Desk Buddy you have found</p>
         </div>
       </div>
-      <div className="ad-box">
-        <span className="ad-eyebrow">YOUR DESK BUDDIES</span>
+      <div className="ard-box">
+        <span className="ard-eyebrow">YOUR DESK BUDDIES</span>
         {failed && !buddies && <p className="t-body-sm text-muted" style={{ margin: 0 }}>Couldn’t load your collection just now.</p>}
         {buddies && (
           <>
-            <div className="ad-sprites" aria-hidden="true">
+            <div className="ard-sprites" aria-hidden="true">
               {shown.map((b) => <BuddySprite key={b.key} id={b.key} found={b.found} size={40} />)}
             </div>
             <p className="t-body-sm" style={{ margin: 0 }}>
@@ -128,7 +128,7 @@ export function BuddyCollectionCard() {
           </>
         )}
       </div>
-      <Link to="/buddy-collection" className="btn btn-secondary ad-open">Open Buddy Collection</Link>
+      <Link to="/buddy-collection" className="btn btn-secondary ard-open">Open Buddy Collection</Link>
     </section>
   );
 }
@@ -137,14 +137,14 @@ export function BuddyCollectionCard() {
 // instead of showing sample notes.
 export function DeskStickiesCard() {
   return (
-    <section className="ad-card" aria-labelledby="ad-ds">
+    <section className="ard-card" aria-labelledby="ard-ds">
       <CardHead
         icon={<PixelIcon name="new-post" size={32} />}
         title="Desk Stickies"
         blurb="Notes visitors leave on your pin board"
       />
-      <div className="ad-box">
-        <span className="ad-eyebrow">COMING SOON</span>
+      <div className="ard-box">
+        <span className="ard-eyebrow">COMING SOON</span>
         <span className="t-body-sm">Notes visitors leave will land here, and only you will see this list.</span>
       </div>
     </section>
