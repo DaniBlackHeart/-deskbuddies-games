@@ -174,8 +174,9 @@ export default function AppHeader() {
       }}
     >
       <div className="container app-headrow">
-        <Link to="/" className="app-brand">
-          Debbie
+        <Link to="/" className="app-brand" aria-label="Debbie, go to Home">
+          <img src="/debbie-mark.svg" alt="" width={32} height={32} className="app-brand__mark" />
+          <span>Debbie</span>
         </Link>
 
         {/* Desktop and tablet: icon-only bar. Hidden on phones, which use the bottom bar. */}
