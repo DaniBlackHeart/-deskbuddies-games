@@ -3275,3 +3275,16 @@ button[aria-disabled="true"] {
 .page-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-bottom: 4px; font-weight: 700; color: var(--color-accent-text); text-decoration: none; }
 .page-back:hover { text-decoration: underline; }
 .page-back:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+
+/* Beyond the Desk: Your week and the Buddybook card side by side. */
+.bd-top { display: flex; flex-wrap: wrap; gap: var(--space-5); align-items: flex-start; }
+.bd-top__week { flex: 1 1 520px; }
+.bd-bbcard { flex: 0 1 400px; min-width: 280px; display: flex; flex-direction: column; gap: 14px; background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 18px; padding: 20px 24px; box-sizing: border-box; }
+.bd-bbcard__head { display: flex; align-items: center; gap: 12px; }
+.bd-bbcard__icon { display: inline-flex; flex: none; padding: 8px; border-radius: 12px; background: var(--color-bg-alt); }
+.bd-bbcard__box { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 12px; background: var(--color-bg-alt); }
+.bd-bbcard__eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; color: var(--color-text-muted); }
+.bd-bbcard__open { width: 100%; border-color: var(--color-primary); color: var(--color-accent-text); text-decoration: none; }
+.bd-bbcard__open:hover { background: var(--color-bg-alt); }
+.bd-bbcard__open:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+@media (max-width: 900px) { .bd-bbcard { flex-basis: 100%; } }

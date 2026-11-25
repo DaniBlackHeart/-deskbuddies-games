@@ -1,3 +1,4 @@
+import BuddybookCard from "../components/BuddybookCard";
 import { useEffect, useRef, useState } from "react";
 import AppHeader from "../components/AppHeader";
 import PixelIcon, { type PixelIconName } from "../components/PixelIcon";
@@ -231,36 +232,39 @@ export default function BeyondTheDeskPage() {
           </div>
         ) : data ? (
           <>
-            <section aria-labelledby="bd-week-h" className="bd-stack">
-              <div className="bd-headline">
-                <h2 className="t-h2" id="bd-week-h" style={{ margin: 0 }}>Your week</h2>
-                <span className="t-body text-muted">{rangeLabel(data.week.start, data.week.end)}, Manila time. A new week starts Monday.</span>
-              </div>
-              <ol className="bd-week">
-                {data.week.days.map((d) => {
-                  const p = parts(d.date);
-                  const today = d.date === data.today;
-                  const future = d.date > data.today;
-                  const label = `${p.dow} ${p.day} ${p.mon}${today ? ", today" : ""}: ${d.checked_in ? "checked in" : future ? "not here yet" : "no check-in"}, ${d.detours_done} of 3 detours`;
-                  return (
-                    <li key={d.date} className={"bd-day" + (today ? " bd-day--today" : "") + (future ? " bd-day--future" : "")} aria-label={label}>
-                      <span aria-hidden="true" className="bd-day__dow">{today ? "Today" : p.dow}</span>
-                      <span aria-hidden="true" className="bd-day__num">{p.day}</span>
-                      <span
-                        aria-hidden="true"
-                        className="bd-ring"
-                        style={{ background: `conic-gradient(var(--color-primary) ${(Math.min(d.detours_done, 3) / 3) * 360}deg, var(--color-border) 0)` }}
-                      >
-                        <span className="bd-ring__in">{d.checked_in ? "✓" : ""}</span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-              <p className="t-body-sm text-muted" style={{ margin: 0 }}>
-                The ring fills as you do Daily Detours, up to three a day. A tick in the middle means you checked in. Nothing here counts against you.
-              </p>
-            </section>
+            <div className="bd-top">
+              <section aria-labelledby="bd-week-h" className="bd-stack bd-top__week">
+                <div className="bd-headline">
+                  <h2 className="t-h2" id="bd-week-h" style={{ margin: 0 }}>Your week</h2>
+                  <span className="t-body text-muted">{rangeLabel(data.week.start, data.week.end)}, Manila time. A new week starts Monday.</span>
+                </div>
+                <ol className="bd-week">
+                  {data.week.days.map((d) => {
+                    const p = parts(d.date);
+                    const today = d.date === data.today;
+                    const future = d.date > data.today;
+                    const label = `${p.dow} ${p.day} ${p.mon}${today ? ", today" : ""}: ${d.checked_in ? "checked in" : future ? "not here yet" : "no check-in"}, ${d.detours_done} of 3 detours`;
+                    return (
+                      <li key={d.date} className={"bd-day" + (today ? " bd-day--today" : "") + (future ? " bd-day--future" : "")} aria-label={label}>
+                        <span aria-hidden="true" className="bd-day__dow">{today ? "Today" : p.dow}</span>
+                        <span aria-hidden="true" className="bd-day__num">{p.day}</span>
+                        <span
+                          aria-hidden="true"
+                          className="bd-ring"
+                          style={{ background: `conic-gradient(var(--color-primary) ${(Math.min(d.detours_done, 3) / 3) * 360}deg, var(--color-border) 0)` }}
+                        >
+                          <span className="bd-ring__in">{d.checked_in ? "✓" : ""}</span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+                <p className="t-body-sm text-muted" style={{ margin: 0 }}>
+                  The ring fills as you do Daily Detours, up to three a day. A tick in the middle means you checked in. Nothing here counts against you.
+                </p>
+              </section>
+              <BuddybookCard />
+            </div>
 
             <div className="bd-cols">
               <div className="bd-col bd-colstack">

@@ -545,6 +545,9 @@ export default function BuddybookPage() {
     <div className="app-shell">
       <AppHeader />
       <main className="container db-page bb-page-wrap" id="buddybook">
+        <Link to="/beyond-the-desk" className="page-back">
+          <span aria-hidden="true">‹</span> Back to Beyond the Desk
+        </Link>
         <div className="bb-title">
           <PixelIcon name="buddybook" size={48} />
           <div>
