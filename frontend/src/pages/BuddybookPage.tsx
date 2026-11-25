@@ -265,6 +265,27 @@ function Page({ side, visible, children, label }: { side: "left" | "right"; visi
   );
 }
 
+// Round arrow buttons at the foot of each page, and the page number, as in the design.
+// Previous sits on the left page, next on the right. They live on the page face (not
+// inside the scrolling page) so they stay put, and they are inert with a hidden face.
+function PageNav({ num, onPrev, onNext }: { num?: number; onPrev?: () => void; onNext?: () => void }) {
+  return (
+    <>
+      {num !== undefined && <span className="bb-pageno" aria-label={`Page ${num}`}>{num}</span>}
+      {onPrev && (
+        <button type="button" className="bb-arrow bb-arrow--prev" aria-label="Previous page" onClick={onPrev}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" focusable="false"><path d="M13 8H3M7 4L3 8l4 4" /></svg>
+        </button>
+      )}
+      {onNext && (
+        <button type="button" className="bb-arrow bb-arrow--next" aria-label="Next page" onClick={onNext}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" focusable="false"><path d="M3 8h10M9 4l4 4-4 4" /></svg>
+        </button>
+      )}
+    </>
+  );
+}
+
 function split(d: BuddybookData) {
   const regular = d.buddies.filter((b) => !b.limited);
   const limited = d.buddies.filter((b) => b.limited);
@@ -317,6 +338,8 @@ function Book({ d, spread, setSpread, seen }: { d: BuddybookData; spread: number
   const vis = (leaf: number, face: "front" | "back") => (face === "front" ? spread === leaf : spread === leaf + 1);
   const leafCls = (i: number) => "bb-leaf" + (spread > i ? " bb-leaf--turned" : "");
   const z = (i: number) => (spread > i ? i + 1 : SPREADS - i);
+  const prev = () => setSpread(Math.max(0, spread - 1));
+  const next = () => setSpread(Math.min(SPREADS - 1, spread + 1));
   const counts: { label: string; n: number; art: string }[] = [
     { label: "Stamps", n: d.counts.stamps + d.counts.quests, art: "firsts" },
     { label: "Desk Buddies", n: d.counts.buddies, art: "collection" },
@@ -374,6 +397,7 @@ function Book({ d, spread, setSpread, seen }: { d: BuddybookData; spread: number
               )}
               <PrivateNote />
             </Page>
+            <PageNav onPrev={prev} />
           </div>
         </div>
 
@@ -388,12 +412,14 @@ function Book({ d, spread, setSpread, seen }: { d: BuddybookData; spread: number
               <Contents d={d} go={setSpread} />
               <BeyondNote />
             </Page>
+            <PageNav num={1} onNext={next} />
           </div>
           <div className="bb-face bb-face--back" inert={!vis(1, "back")}>
             <Page side="left" visible={vis(1, "back")} label="Firsts">
               <PageHead art="firsts" title="Firsts" sub="Small marks for doing something for the first time." />
               <CardGrid>{firstsL.map((s) => <StampCard key={s.key} s={s} isNew={stampNew(s)} />)}</CardGrid>
             </Page>
+            <PageNav num={2} onPrev={prev} />
           </div>
         </div>
 
@@ -404,12 +430,14 @@ function Book({ d, spread, setSpread, seen }: { d: BuddybookData; spread: number
               {firstsR.length > 0 && <CardGrid>{firstsR.map((s) => <StampCard key={s.key} s={s} isNew={stampNew(s)} />)}</CardGrid>}
               <p className="bb-quiet">Blank marks fill in as you go.</p>
             </Page>
+            <PageNav num={3} onNext={next} />
           </div>
           <div className="bb-face bb-face--back" inert={!vis(2, "back")}>
             <Page side="left" visible={vis(2, "back")} label="Side Quests">
               <PageHead art="sidequests" title="Side Quests" sub="One ink mark for each side quest you finish." />
               {questsL.length === 0 ? <p className="bb-quiet">No Side Quests inked yet. Marks you earn will be kept here.</p> : <CardGrid>{questsL.map((q) => <QuestInk key={q.key} q={q} isNew={questNew(q)} />)}</CardGrid>}
             </Page>
+            <PageNav num={4} onPrev={prev} />
           </div>
         </div>
 
@@ -420,12 +448,14 @@ function Book({ d, spread, setSpread, seen }: { d: BuddybookData; spread: number
               {questsR.length > 0 && <CardGrid>{questsR.map((q) => <QuestInk key={q.key} q={q} isNew={questNew(q)} />)}</CardGrid>}
               <p className="bb-quiet">Only finished side quests show here. One you were dealt but have not finished stays open on <Link to="/beyond-the-desk">Beyond the Desk</Link>.</p>
             </Page>
+            <PageNav num={5} onNext={next} />
           </div>
           <div className="bb-face bb-face--back" inert={!vis(3, "back")}>
             <Page side="left" visible={vis(3, "back")} label="Buddy Collection">
               <PageHead art="collection" title="Buddy Collection" sub="Companions that have found your desk." />
               <CardGrid cols={3}>{b1.map((b) => <BuddyTile key={b.key} b={b} isNew={buddyNew(b)} />)}</CardGrid>
             </Page>
+            <PageNav num={6} onPrev={prev} />
           </div>
         </div>
 
@@ -436,6 +466,7 @@ function Book({ d, spread, setSpread, seen }: { d: BuddybookData; spread: number
               <p className="bb-quiet">Buddy Collection, continued</p>
               <CardGrid cols={3}>{b2.map((b) => <BuddyTile key={b.key} b={b} isNew={buddyNew(b)} />)}</CardGrid>
             </Page>
+            <PageNav num={7} onNext={next} />
           </div>
           <div className="bb-face bb-face--back" inert={!vis(4, "back")}>
             <Page side="left" visible={vis(4, "back")} label="Buddy Collection, last page">
@@ -448,6 +479,7 @@ function Book({ d, spread, setSpread, seen }: { d: BuddybookData; spread: number
                 </>
               )}
             </Page>
+            <PageNav num={8} onPrev={prev} />
           </div>
         </div>
 
@@ -464,16 +496,10 @@ function Book({ d, spread, setSpread, seen }: { d: BuddybookData; spread: number
               <p className="bb-quiet">Progress lives on Beyond the Desk. This page only keeps what you have earned.</p>
               <PrivateNote />
             </Page>
+            <PageNav num={9} />
           </div>
           <div className="bb-face bb-face--back bb-backcover" aria-hidden="true" inert />
         </div>
-
-        {spread > 0 && (
-          <button type="button" className="bb-corner bb-corner--prev" tabIndex={-1} aria-hidden="true" onClick={() => setSpread(spread - 1)} />
-        )}
-        {spread > 0 && spread < SPREADS - 1 && (
-          <button type="button" className="bb-corner bb-corner--next" tabIndex={-1} aria-hidden="true" onClick={() => setSpread(spread + 1)} />
-        )}
 
         <nav className="bb-tabs" aria-label="Buddybook sections">
           {TABS.map((t, i) => {
@@ -553,7 +579,7 @@ export default function BuddybookPage() {
           <div>
             <h1 className="t-h1" style={{ margin: 0 }}>Buddybook</h1>
             <p className="text-muted t-subtitle" style={{ margin: "4px 0 0" }}>
-              Open the cover, then use the tabs, the page corners or the buttons to turn pages.
+              Open the cover, then use the tabs, the arrows or the buttons to turn pages.
             </p>
             <p className="bb-lock"><LockIcon /> Only you can see your Buddybook. Visitors see just the Brag Shelf on your desk.</p>
           </div>
