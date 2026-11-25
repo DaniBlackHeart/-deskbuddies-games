@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import { MIN_QUERY, useWhosAround, type AroundPerson } from "../lib/useWhosAround";
 
 // Who's around (Debbie Home design). Two parts: Find a member (searches every
 // member, not only people who are around) and the people in a Focus Block right
-// now. Results show only what the server marks member-visible. There is no
-// visitor profile page yet, so a result is not a link; "View ›" arrives with it.
+// now. Results show only what the server marks member-visible. A row opens that
+// member's profile (your own row opens your Buddy Profile).
 
 function Avatar({ person }: { person: AroundPerson }) {
   const [failed, setFailed] = useState(false);
@@ -24,6 +26,8 @@ function focusLine(p: AroundPerson): string {
 }
 
 export default function WhosAroundPanel({ className }: { className?: string }) {
+  const { profile } = useAuth();
+  const hrefFor = (id: string) => (id === profile?.id ? "/profile" : `/members/${id}`);
   const { around, aroundError, query, setQuery, results, searching, searchError } = useWhosAround();
   const q = query.trim();
   const searchActive = q.length >= MIN_QUERY;
@@ -89,12 +93,15 @@ export default function WhosAroundPanel({ className }: { className?: string }) {
           {searchActive && !searchError && results && results.length > 0 && (
             <ul className="wa-list">
               {results.map((p) => (
-                <li key={p.id} className="wa-row">
-                  <Avatar person={p} />
-                  <span className="wa-row__text">
-                    <span className="wa-row__name">{p.name}</span>
-                    {focusLine(p) && <span className="wa-row__sub">{focusLine(p)}</span>}
-                  </span>
+                <li key={p.id} className="wa-row wa-row--link">
+                  <Link to={hrefFor(p.id)} className="wa-row__a" aria-label={`Open ${p.name}'s profile`}>
+                    <Avatar person={p} />
+                    <span className="wa-row__text">
+                      <span className="wa-row__name">{p.name}</span>
+                      {focusLine(p) && <span className="wa-row__sub">{focusLine(p)}</span>}
+                    </span>
+                    <span className="wa-row__go" aria-hidden="true">View ›</span>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -122,12 +129,15 @@ export default function WhosAroundPanel({ className }: { className?: string }) {
           {!aroundError && around && around.length > 0 && (
             <ul className="wa-list" aria-label="In a Focus Block now">
               {around.map((p) => (
-                <li key={p.id} className="wa-row">
-                  <Avatar person={p} />
-                  <span className="wa-row__text">
-                    <span className="wa-row__name">{p.name}</span>
-                    <span className="wa-row__sub">{focusLine(p)}</span>
-                  </span>
+                <li key={p.id} className="wa-row wa-row--link">
+                  <Link to={hrefFor(p.id)} className="wa-row__a" aria-label={`Open ${p.name}'s profile`}>
+                    <Avatar person={p} />
+                    <span className="wa-row__text">
+                      <span className="wa-row__name">{p.name}</span>
+                      <span className="wa-row__sub">{focusLine(p)}</span>
+                    </span>
+                    <span className="wa-row__go" aria-hidden="true">View ›</span>
+                  </Link>
                 </li>
               ))}
             </ul>

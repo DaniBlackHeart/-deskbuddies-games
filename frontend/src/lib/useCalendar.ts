@@ -36,7 +36,7 @@ export type CalendarData = {
   latest_month: string;
   events: CalEvent[];
   has_any_events: boolean;
-  birthdays: { configured: boolean; names: string[] };
+  birthdays: { configured: boolean; names: string[]; people: { name: string; id: string | null }[] };
   sync: { last_synced_at: string | null; failed: boolean };
   checkin_reward: { xp: number; deskbits: number } | null;
   is_mod: boolean;

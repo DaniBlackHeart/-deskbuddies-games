@@ -227,6 +227,7 @@ async function syncBirthdays(admin: Admin) {
   if (!roles || roles.length === 0) return;
   const monthOfRole = new Map(roles.map((r) => [r.role_id as string, r.month]));
   const names = new Map<number, string[]>(roles.map((r) => [r.month, []]));
+  const people = new Map<number, { d: string; n: string }[]>(roles.map((r) => [r.month, []]));
 
   // Needs the bot's "Server Members" privileged intent. If Discord refuses, this throws and
   // the last saved names stay in place.
@@ -238,7 +239,10 @@ async function syncBirthdays(admin: Admin) {
       const hit = (m.roles ?? []).find((r) => monthOfRole.has(r));
       if (!hit) continue;
       const name = displayName(m);
-      if (name) names.get(monthOfRole.get(hit) as number)?.push(name);
+      if (name) {
+        names.get(monthOfRole.get(hit) as number)?.push(name);
+        if (m.user?.id) people.get(monthOfRole.get(hit) as number)?.push({ d: m.user.id, n: name });
+      }
     }
     if (batch.length < 1000) break;
     after = batch[batch.length - 1].user?.id ?? "";
@@ -247,7 +251,12 @@ async function syncBirthdays(admin: Admin) {
   for (const [month, list] of names) {
     await admin
       .from("birthday_names")
-      .upsert({ month, names: list.sort((a, b) => a.localeCompare(b)), updated_at: new Date().toISOString() });
+      .upsert({
+        month,
+        names: list.sort((a, b) => a.localeCompare(b)),
+        people: (people.get(month) ?? []).sort((a, b) => a.n.localeCompare(b.n)),
+        updated_at: new Date().toISOString(),
+      });
   }
 }
 
@@ -397,11 +406,24 @@ async function buildStatus(admin: Admin, userId: string, discordId: string, isMo
   const roleRows = await must<{ month: number }[]>(
     admin.from("birthday_month_roles").select("month").not("role_id", "is", null),
   );
-  let birthdays: { configured: boolean; names: string[] } = { configured: false, names: [] };
+  let birthdays: { configured: boolean; names: string[]; people: { name: string; id: string | null }[] } = { configured: false, names: [], people: [] };
   if ((roleRows ?? []).length > 0 && settings.birthdays_synced_at) {
     const m = Number(month.slice(5));
-    const b = await must<{ names: string[] }[]>(admin.from("birthday_names").select("names").eq("month", m));
-    birthdays = { configured: true, names: b?.[0]?.names ?? [] };
+    const b = await must<{ names: string[]; people: { d: string; n: string }[] }[]>(
+      admin.from("birthday_names").select("names,people").eq("month", m),
+    );
+    const names = b?.[0]?.names ?? [];
+    const raw = Array.isArray(b?.[0]?.people) ? (b?.[0]?.people ?? []) : [];
+    // A name opens a profile only when that person has signed in to Debbie and is a member.
+    // The Discord id stays on the server; the browser gets the Debbie member id or null.
+    const ids = raw.map((x) => x.d).filter((d) => typeof d === "string");
+    const found = new Map<string, string>();
+    if (ids.length > 0) {
+      const { data: profs } = await admin.from("profiles").select("id,discord_id").in("discord_id", ids).eq("is_member", true);
+      for (const pr of profs ?? []) found.set(pr.discord_id as string, pr.id as string);
+    }
+    const people = raw.length > 0 ? raw.map((x) => ({ name: x.n, id: found.get(x.d) ?? null })) : names.map((n) => ({ name: n, id: null }));
+    birthdays = { configured: true, names, people };
   }
 
   let pending: unknown[] = [];

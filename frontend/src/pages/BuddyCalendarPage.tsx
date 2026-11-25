@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import AppHeader from "../components/AppHeader";
 import { Link } from "react-router-dom";
 import PixelIcon from "../components/PixelIcon";
+import { useAuth } from "../contexts/AuthContext";
 import { timeRange } from "../lib/calendarFormat";
 import { useCalendar, type CalEvent, type Category } from "../lib/useCalendar";
 
@@ -261,6 +262,7 @@ function EventCard({
 }
 
 export default function BuddyCalendarPage() {
+  const { profile } = useAuth();
   const { data, loading, error, busy, act, goMonth, reload } = useCalendar();
   const [filter, setFilter] = useState<"all" | Category>("all");
   const [day, setDay] = useState<string | null>(null); // YYYY-MM-DD (Manila); null shows upcoming events
@@ -424,17 +426,25 @@ export default function BuddyCalendarPage() {
                   <img className="cal-art cal-art--dark" src="/calendar/birthday-card-dark.svg" alt="" width={940} height={92} />
                 </div>
                 <div className="cal-celebrate">
-                  {data.birthdays.names.length ? (
+                  {data.birthdays.people.length ? (
                     <>
                       <span className="cal-celebrate__label">Celebrating:</span>
-                      {data.birthdays.names.map((n) => <span key={n} className="cal-name">{n}</span>)}
+                      {data.birthdays.people.map((b, i) =>
+                        b.id ? (
+                          <Link key={b.id} to={b.id === profile?.id ? "/profile" : `/members/${b.id}`} className="cal-name cal-name--link" aria-label={`${b.name}, open profile`}>
+                            {b.name} <span aria-hidden="true">›</span>
+                          </Link>
+                        ) : (
+                          <span key={`${b.name}-${i}`} className="cal-name">{b.name}</span>
+                        ),
+                      )}
                     </>
                   ) : (
                     <span className="cal-names">No one has shared a birthday month for this month.</span>
                   )}
                 </div>
                 <p className="cal-note" style={{ margin: 0 }}>
-                  Members who shared their birth month. This is not an event, so there is nothing to join or check in to. You can still leave a Desk Sticky on their desk to greet them.
+                  Members who shared their birth month. This is not an event, so there is nothing to join or check in to. Tap a name to visit their profile and desk. Names without an arrow are people who haven’t joined Debbie yet.
                 </p>
               </section>
             )}

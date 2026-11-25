@@ -15,6 +15,7 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import MyDeskPage from "./pages/MyDeskPage";
 import MyDeskVisitorPreviewPage from "./pages/MyDeskVisitorPreviewPage";
+import MemberProfilePage from "./pages/MemberProfilePage";
 import CommonRoomPage from "./pages/CommonRoomPage";
 import DeskTimePage from "./pages/DeskTimePage";
 import BeyondTheDeskPage from "./pages/BeyondTheDeskPage";
@@ -195,6 +196,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <MyDeskPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/members/:id"
+              element={
+                <ProtectedRoute>
+                  <MemberProfilePage />
                 </ProtectedRoute>
               }
             />
