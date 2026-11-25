@@ -3376,4 +3376,12 @@ button[aria-disabled="true"] {
 .cal-name--link:hover { background: var(--color-bg-alt); }
 .cal-name--link:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
 .mp-name { flex-direction: row; display: flex; align-items: center; gap: 16px; }
-button.page-back { font: inherit; cursor: pointer; }
+button.page-back { font: inherit; font-weight: 700; cursor: pointer; background: transparent; border: 0; padding: 0; align-self: flex-start; }
+
+.mp-page { max-width: 1100px; }
+.mp-cols { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.mp-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.mp-side .card { display: flex; flex-direction: column; gap: 12px; }
+.mp-cork { min-height: 200px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 6px solid #8b5e3c; border-radius: 10px; background: #c99a6b; color: #3a261c; font-weight: 700; }
+.mp-btn { width: 100%; text-align: center; }
+@media (max-width: 820px) { .mp-cols { grid-template-columns: minmax(0, 1fr); } }

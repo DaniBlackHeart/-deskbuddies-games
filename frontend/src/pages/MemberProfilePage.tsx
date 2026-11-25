@@ -50,7 +50,7 @@ export default function MemberProfilePage() {
     return (
       <div className="app-shell">
         <AppHeader />
-        <main className="container db-page vp-page" id="member-profile">
+        <main className="container db-page vp-page mp-page" id="member-profile">
           {back}
           {state === "loading" && <p className="text-muted t-body" role="status">Opening the profile…</p>}
           {state === "missing" && (
@@ -77,7 +77,7 @@ export default function MemberProfilePage() {
   return (
     <div className="app-shell">
       <AppHeader />
-      <main className="container db-page vp-page" id="member-profile">
+      <main className="container db-page vp-page mp-page" id="member-profile">
         {back}
         <section className="card mp-name" aria-labelledby="mp-title">
           <div className="pf-avatar" aria-hidden="true">
@@ -96,23 +96,46 @@ export default function MemberProfilePage() {
             <p className="text-muted pf-small" style={{ margin: 0 }}>On Debbie since {since}</p>
           </div>
         </section>
-        <section className="card vp-desk" aria-labelledby="mp-desk">
-          <h2 id="mp-desk" className="md-h2">{person.name}’s desk</h2>
-          <p className="text-muted t-body-sm" style={{ margin: 0 }}>
-            {names.length > 0 ? `${names.join(" and ")} ${names.length > 1 ? "are" : "is"} keeping the seat.` : "The companion spot is waiting for a first buddy."}
-          </p>
-          <div className="md-scene">
-            <img src={scene} alt={names.length ? `${person.name}'s desk with ${names.join(" and ")} on the companion mat` : `${person.name}'s desk with an empty spot for a companion`} width={160} height={112} className="md-scene__img" />
+        <div className="mp-cols">
+          <section className="card vp-desk" aria-labelledby="mp-desk">
+            <h2 id="mp-desk" className="md-h2">{person.name}’s desk</h2>
+            <p className="text-muted t-body-sm" style={{ margin: 0 }}>
+              {names.length > 0 ? `${names.join(" and ")} ${names.length > 1 ? "are" : "is"} keeping the seat.` : "The companion spot is waiting for a first buddy."}
+            </p>
+            <div className="md-scene">
+              <img src={scene} alt={names.length ? `${person.name}'s desk with ${names.join(" and ")} on the companion mat` : `${person.name}'s desk with an empty spot for a companion`} width={160} height={112} className="md-scene__img" />
+            </div>
+            <p className="text-muted t-body-sm" style={{ margin: 0 }}>Placeholder art: only the companion spot redraws, and it can show one buddy.</p>
+            <h2 id="mp-pin" className="md-h2" style={{ marginTop: 8 }}>{person.name}’s pin board</h2>
+            <div className="mp-cork" role="img" aria-label="Empty pin board">
+              <span>No stickies yet</span>
+            </div>
+            <p className="text-muted t-body-sm" style={{ margin: 0 }}>Placeholder pin board. Real art and the pile’s look are still to design.</p>
+          </section>
+
+          <div className="mp-side">
+            <section className="card" aria-labelledby="mp-stickies">
+              <h2 id="mp-stickies" className="md-h2">Desk Stickies</h2>
+              <p className="text-muted t-body-sm" style={{ margin: 0 }}>
+                Short notes from visitors who have checked in. They refresh each week, and {person.name} chooses which ones to keep.
+              </p>
+              <p className="text-muted t-body-sm" style={{ margin: 0 }}>No stickies yet.</p>
+              <span className="kdl-btn kdl-btn--off mp-btn" aria-disabled="true">Leave a Desk Sticky · Coming soon</span>
+              <p className="text-muted t-body-sm" style={{ margin: 0 }}>Desk Stickies are not open yet, so there is nothing to leave or report for now.</p>
+            </section>
+            <section className="card" aria-labelledby="mp-see">
+              <h2 id="mp-see" className="md-h2">What visitors can see</h2>
+              <div>
+                <b className="t-body-sm">Shown</b>
+                <p className="t-body" style={{ margin: "2px 0 0" }}>The desk, the companion, and Desk Stickies.</p>
+              </div>
+              <div>
+                <b className="t-body-sm">Never shown</b>
+                <p className="t-body" style={{ margin: "2px 0 0" }}>deskbits balance, journals, private goals, focus history and anything kept private. Visible to signed-in members only, never on the public internet.</p>
+              </div>
+            </section>
           </div>
-          <p className="text-muted t-body-sm" style={{ margin: 0 }}>Placeholder art: only the companion spot redraws, and it can show one buddy.</p>
-        </section>
-        <section className="card" aria-labelledby="mp-pin">
-          <h2 id="mp-pin" className="md-h2">{person.name}’s pin board</h2>
-          <p className="text-muted t-body-sm" style={{ margin: 0 }}>No stickies yet. Desk Stickies are coming later.</p>
-        </section>
-        <p className="text-muted t-body-sm" style={{ margin: 0 }}>
-          Shown to signed-in members only. You see their name, avatar and desk. Their deskbits, journals, goals and Focus history are never shared.
-        </p>
+        </div>
       </main>
     </div>
   );
