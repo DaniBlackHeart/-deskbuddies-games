@@ -1,6 +1,6 @@
 // whos-around
 // Home's "Who's around" panel (Debbie Home design, 24 Nov 2026).
-//   { action: "around" }            -> members in a Focus Block right now
+//   { action: "around" }            -> members in a Focus Block right now, then members who checked in today
 //   { action: "search", q }         -> members whose name matches q
 // Members only (requireMember). Both answers carry ONLY member-visible fields: a name, a
 // Discord avatar, and (for people in a Focus Block who allow it) "about N min left". Never a
@@ -13,9 +13,16 @@ import { jsonResponse, handleOptions, getAdminClient, requireMember } from "../_
 const MAX_Q = 40;
 const MIN_Q = 2;
 const SEARCH_LIMIT = 10;
-const AROUND_LIMIT = 6;
+const AROUND_LIMIT = 10;
 
-type Person = { id: string; name: string; avatar_url: string | null; focus_minutes_left: number | null };
+type Person = {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  focus_minutes_left: number | null;
+  /** Checked in on the site today (Pull Up a Chair) and not in a Focus Block. */
+  here_today?: boolean;
+};
 
 /** LIKE wildcards and the escape character are plain text in a name search. */
 function likePattern(q: string): string {
@@ -70,8 +77,37 @@ Deno.serve(async (req) => {
     const admin = getAdminClient();
 
     if (body?.action === "around") {
+      // 1) people in a Focus Block right now, 2) then members who checked in on the site today
+      // (the community day, Asia/Manila). Both lists skip you and anyone who turned off
+      // "Show me in Who's around". Only a name, an avatar and "N min left" / "here today" go out.
       const focusing = await focusingNow(admin);
-      const ids = [...focusing.keys()].filter((id) => id !== user.id).slice(0, AROUND_LIMIT);
+      const focusIds = [...focusing.keys()].filter((id) => id !== user.id).slice(0, AROUND_LIMIT);
+
+      let hereIds: string[] = [];
+      if (focusIds.length < AROUND_LIMIT) {
+        const { data: today, error: dayErr } = await admin.rpc("community_today");
+        if (dayErr || typeof today !== "string") throw dayErr ?? new Error("community_today returned no date");
+        const { data: rows, error: ciErr } = await admin
+          .from("daily_checkins")
+          .select("user_id,created_at")
+          .eq("checkin_date", today)
+          .neq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(60);
+        if (ciErr) throw ciErr;
+        const candidates = (rows ?? []).map((r) => r.user_id as string).filter((id) => !focusIds.includes(id));
+        if (candidates.length > 0) {
+          const { data: hidden } = await admin
+            .from("member_settings")
+            .select("user_id")
+            .in("user_id", candidates)
+            .eq("show_in_around", false);
+          const hide = new Set((hidden ?? []).map((h) => h.user_id as string));
+          hereIds = candidates.filter((id) => !hide.has(id)).slice(0, AROUND_LIMIT - focusIds.length);
+        }
+      }
+
+      const ids = [...focusIds, ...hereIds];
       if (ids.length === 0) return jsonResponse({ people: [] });
       const { data, error } = await admin
         .from("profiles")
@@ -79,12 +115,20 @@ Deno.serve(async (req) => {
         .in("id", ids)
         .eq("is_member", true);
       if (error) throw error;
-      const people: Person[] = (data ?? []).map((p) => ({
-        id: p.id as string,
-        name: p.username as string,
-        avatar_url: (p.avatar_url as string | null) ?? null,
-        focus_minutes_left: focusing.get(p.id as string) ?? null,
-      }));
+      const byId = new Map((data ?? []).map((p) => [p.id as string, p]));
+      const people: Person[] = ids
+        .filter((id) => byId.has(id))
+        .map((id) => {
+          const p = byId.get(id)!;
+          const mins = focusing.get(id);
+          return {
+            id,
+            name: p.username as string,
+            avatar_url: (p.avatar_url as string | null) ?? null,
+            focus_minutes_left: mins ?? null,
+            here_today: mins === undefined,
+          };
+        });
       return jsonResponse({ people });
     }
 

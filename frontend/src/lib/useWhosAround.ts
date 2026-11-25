@@ -10,6 +10,7 @@ export type AroundPerson = {
   name: string;
   avatar_url: string | null;
   focus_minutes_left: number | null;
+  here_today?: boolean;
 };
 
 type Reply = { people: AroundPerson[]; too_short?: boolean };

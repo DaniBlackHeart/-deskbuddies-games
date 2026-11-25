@@ -22,7 +22,8 @@ function Avatar({ person }: { person: AroundPerson }) {
 }
 
 function focusLine(p: AroundPerson): string {
-  return p.focus_minutes_left !== null ? `Focus Block, about ${p.focus_minutes_left} min left` : "";
+  if (p.focus_minutes_left !== null) return `Focus Block, about ${p.focus_minutes_left} min left`;
+  return p.here_today ? "Checked in today" : "";
 }
 
 export default function WhosAroundPanel({ className }: { className?: string }) {
@@ -116,18 +117,18 @@ export default function WhosAroundPanel({ className }: { className?: string }) {
               <b>We can't see who's around right now.</b>
               <br />
               <span className="text-muted">
-                That doesn't mean nobody's there. This list only shows people in a Focus Block in the app. Check the voice channels in Discord, or start a Focus Block and keep your own company.
+                That doesn't mean nobody's there. This list only shows people who checked in or are in a Focus Block in the app. Check the voice channels in Discord, or start a Focus Block and keep your own company.
               </span>
             </p>
           )}
           {!aroundError && around === null && <p className="t-body-sm text-muted">Looking around…</p>}
           {!aroundError && around && around.length === 0 && (
             <p className="t-body-sm text-muted">
-              Nobody is in a Focus Block right now. That doesn't mean nobody's there; check the voice channels in Discord, or start a Focus Block and keep your own company.
+              Nobody has checked in or started a Focus Block yet today. That doesn't mean nobody's there; check the voice channels in Discord, or start a Focus Block and keep your own company.
             </p>
           )}
           {!aroundError && around && around.length > 0 && (
-            <ul className="wa-list" aria-label="In a Focus Block now">
+            <ul className="wa-list" aria-label="Around today">
               {around.map((p) => (
                 <li key={p.id} className="wa-row wa-row--link">
                   <Link to={hrefFor(p.id)} className="wa-row__a" aria-label={`Open ${p.name}'s profile`}>
