@@ -27,7 +27,8 @@ function CardHead({ icon, title, blurb }: { icon: React.ReactNode; title: string
 export function DeskTimeCard() {
   const { around } = useWhosAround();
   const [mins, setMins] = useState<number>(25);
-  const count = around?.length ?? null;
+  // "around" also lists members who only checked in today; only Focus Block people count here.
+  const count = around ? around.filter((p) => p.focus_minutes_left !== null).length : null;
   return (
     <section className="ard-card" aria-labelledby="ard-dt">
       <div className="ard-head">
