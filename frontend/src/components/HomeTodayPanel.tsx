@@ -79,9 +79,6 @@ function FocusCard() {
           <button type="button" className="btn btn-primary ht-start" disabled={fb.busy} onClick={() => void fb.start(minutes, "work", "")}>
             Start Focus Block
           </button>
-          <p className="t-caption text-muted" style={{ margin: 0 }}>
-            Lengths are provisional. Want to pick what you're doing or set a goal? <Link to="/desk-time">Open Desk Time</Link>.
-          </p>
         </>
       )}
       {fb.error && (
