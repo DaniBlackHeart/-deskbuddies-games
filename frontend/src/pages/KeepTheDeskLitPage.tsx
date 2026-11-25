@@ -192,7 +192,6 @@ export default function KeepTheDeskLitPage() {
             <section className="kdl-card" aria-labelledby="kdl-stand">
               <div className="kdl-between">
                 <h2 className="kdl-h2" id="kdl-stand">Where things stand</h2>
-                <span className="kdl-tag">Sample figures</span>
               </div>
               {data.status_state ? (
                 <div>
