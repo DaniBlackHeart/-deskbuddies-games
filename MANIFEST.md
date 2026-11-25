@@ -1,5 +1,5 @@
-# Nav v4 delta (25 Nov 2026)
-New:      frontend/src/components/AccountMenu.tsx
-Changed:  frontend/src/components/AppHeader.tsx, MemberStats.tsx, frontend/src/styles/global.css
-Deleted:  frontend/src/components/ProfileAvatar.tsx  (git rm it)
-No migration, no function deploy.
+# Home update delta (25 Nov 2026)
+New:     supabase/functions/whos-around/index.ts
+New:     frontend/src/lib/useWhosAround.ts, components/WhosAroundPanel.tsx, components/HomeTodayPanel.tsx
+Changed: frontend/src/pages/HomePage.tsx, frontend/src/styles/global.css  (global.css includes the earlier nav-v4 CSS)
+No migration. Deploy function: npx supabase functions deploy whos-around

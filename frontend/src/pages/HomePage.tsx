@@ -3,6 +3,8 @@ import AppHeader from "../components/AppHeader";
 import ActiveGameStatus from "../components/ActiveGameStatus";
 import DailyCheckInCard from "../components/DailyCheckInCard";
 import PixelIcon from "../components/PixelIcon";
+import HomeTodayPanel from "../components/HomeTodayPanel";
+import WhosAroundPanel from "../components/WhosAroundPanel";
 import { useAuth } from "../contexts/AuthContext";
 import { useDailyCheckIn } from "../lib/useDailyCheckIn";
 import { useMyDesk } from "../lib/useMyDesk";
@@ -11,9 +13,9 @@ import { buddyName } from "../lib/deskCatalog";
 // Home answers three questions in about ten seconds: where am I (my desk),
 // what can I do today, and who else is here. Layout follows the Debbie Home
 // concept. Only real data is shown: the check-in and streak come from the
-// server; Level, XP, deskbits, the desk, Focus Block, Brain Break and Who's
-// around have no backend yet, so they appear as clearly labelled "Coming soon"
-// panels rather than sample numbers. The six live games stay one tap away.
+// server; Today runs a real Focus Block (Brain Break is a labelled placeholder
+// until its puzzle exists); Who's around shows real Focus Block presence and
+// Find a member. The six live games stay one tap away.
 
 // Placeholder tints until each game gets its own pixel icon.
 const GAMES = [
@@ -30,27 +32,6 @@ function timeOfDayGreeting(): string {
   if (h < 12) return "Good morning";
   if (h < 18) return "Good afternoon";
   return "Good evening";
-}
-
-function ComingSoonPanel({ title, blurb, note, className }: { title: string; blurb: string; note: string; className?: string }) {
-  return (
-    <section className={"db-panel" + (className ? " " + className : "")} aria-label={title}>
-      <div className="row-between" style={{ alignItems: "flex-start", gap: "var(--space-3)" }}>
-        <div>
-          <h2 className="t-h2" style={{ margin: 0 }}>
-            {title}
-          </h2>
-          <p className="t-body-sm text-muted" style={{ margin: "4px 0 0" }}>
-            {blurb}
-          </p>
-        </div>
-        <span className="badge badge-neutral">Coming soon</span>
-      </div>
-      <p className="t-body-sm text-muted" style={{ margin: "var(--space-3) 0 0" }}>
-        {note}
-      </p>
-    </section>
-  );
 }
 
 function HomeDeskCard() {
@@ -185,18 +166,8 @@ export default function HomePage() {
           </div>
 
           <div className="db-home-side">
-            <ComingSoonPanel
-              className="db-home__today"
-              title="Today"
-              blurb="A couple of good ways to spend it."
-              note="Focus Blocks and the daily Brain Break are on their way."
-            />
-            <ComingSoonPanel
-              className="db-home__who"
-              title="Who's around"
-              blurb="A little company while you work."
-              note="This will show people in a Focus Block once those exist."
-            />
+            <HomeTodayPanel className="db-home__today" />
+            <WhosAroundPanel className="db-home__who" />
           </div>
         </div>
       </main>
