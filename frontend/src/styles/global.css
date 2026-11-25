@@ -3324,3 +3324,38 @@ button[aria-disabled="true"] {
 .kdl-acc__item summary:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; border-radius: 12px; }
 .kdl-acc__body { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 10px; }
 .kdl-acc__body p { margin: 0; font-size: 1rem; line-height: 1.5; }
+
+/* Keep the Desk Lit: design match */
+.kdl-banner { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 20px; }
+.kdl-banner .kdl-head { flex: 1 1 260px; min-width: 0; gap: 8px; }
+.kdl-between { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.kdl-between--foot { gap: 4px 16px; }
+.kdl-tag { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border: 2px solid var(--color-border); border-radius: 999px; background: var(--color-bg-alt); font-size: 0.8125rem; font-weight: 700; color: var(--color-text); align-self: flex-start; }
+.kdl-stack { display: flex; flex-direction: column; gap: 6px; }
+.kdl-costs { flex-direction: row; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.kdl-cost { flex: 1 1 220px; border: 0; border-radius: 0; padding: 0; background: transparent; gap: 8px; }
+.kdl-cost__name { font-size: 1rem; font-weight: 700; }
+.kdl-cost__amount { font-size: 0.9375rem; font-weight: 700; line-height: 1.35; }
+.kdl-bar--sm { height: 8px; border-radius: 4px; background: var(--color-surface); }
+.kdl-parts { display: flex; flex-direction: column; gap: 10px; }
+.kdl-part { display: flex; flex-direction: column; gap: 4px; }
+.kdl-part__row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; font-size: 0.9375rem; }
+.kdl-part__row span:first-child { font-weight: 700; }
+.kdl-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px; border: 0; background: transparent; font: inherit; font-size: 0.9375rem; font-weight: 700; color: var(--color-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.kdl-role { display: flex; align-items: center; gap: 14px; padding: 16px; border: 2px solid var(--color-border); border-radius: 14px; background: var(--color-bg-alt); }
+.kdl-role__text { display: flex; flex-direction: column; gap: 2px; }
+.kdl-role__title { font-size: 1.25rem; font-weight: 700; }
+.kdl-boardhead { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.kdl-h2--sm { font-size: 1.625rem; }
+.kdl-keeps { flex-direction: column; flex-wrap: nowrap; gap: 10px; }
+.kdl-keep { flex: none; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px 10px 12px; border-radius: 16px; }
+.kdl-keep__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kdl-keep__name { font-size: 1.0625rem; font-weight: 700; line-height: 1.2; }
+.kdl-card--tight { gap: 6px; }
+.kdl-card--tight .kdl-h2 { margin-bottom: 6px; }
+.kdl-acc { gap: 0; }
+.kdl-acc__item { border: 0; border-top: 2px solid var(--color-border); border-radius: 0; background: transparent; }
+.kdl-acc__btn { width: 100%; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0; margin: 0; border: 0; background: transparent; color: var(--color-text); font: inherit; font-size: 1.0625rem; font-weight: 700; text-align: left; cursor: pointer; }
+.kdl-acc__btn:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; border-radius: 8px; }
+.kdl-acc__body { padding: 0 0 18px; gap: 10px; }
+.kdl-acc__body p { font-size: 0.9375rem; }
