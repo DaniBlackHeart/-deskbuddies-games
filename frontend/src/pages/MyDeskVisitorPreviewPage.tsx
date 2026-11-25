@@ -20,7 +20,7 @@ export default function MyDeskVisitorPreviewPage() {
   return (
     <div className="app-shell">
       <AppHeader />
-      <main className="container db-page vp-page" id="visitor-preview">
+      <main className="container db-page vp-page mp-page" id="visitor-preview">
         <Link to="/my-desk" className="page-back">
           <span aria-hidden="true">‹</span> Back to My Desk
         </Link>
@@ -29,26 +29,49 @@ export default function MyDeskVisitorPreviewPage() {
         </div>
         <div>
           <h1 className="t-h1" style={{ margin: 0 }}>{name}'s desk</h1>
-          <p className="text-muted t-subtitle" style={{ margin: "4px 0 0" }}>
-            {names.length > 0 ? `${names.join(" and ")} ${names.length > 1 ? "are" : "is"} keeping the seat.` : "The companion spot is waiting for a first buddy."}
-          </p>
         </div>
-        <section className="card vp-desk" aria-label={`${name}'s desk`}>
-          {loading ? (
-            <p className="text-muted" role="status">Loading your desk…</p>
-          ) : (
-            <div className="md-scene">
-              <img src={scene} alt={names.length ? `${name}'s desk with ${names.join(" and ")} on the companion mat` : `${name}'s desk with an empty spot for a companion`} width={160} height={112} className="md-scene__img" />
+        <div className="mp-cols">
+          <section className="card vp-desk" aria-label={`${name}'s desk`}>
+            <p className="text-muted t-body-sm" style={{ margin: 0 }}>
+              {names.length > 0 ? `${names.join(" and ")} ${names.length > 1 ? "are" : "is"} keeping the seat.` : "The companion spot is waiting for a first buddy."}
+            </p>
+            {loading ? (
+              <p className="text-muted" role="status">Loading your desk…</p>
+            ) : (
+              <div className="md-scene">
+                <img src={scene} alt={names.length ? `${name}'s desk with ${names.join(" and ")} on the companion mat` : `${name}'s desk with an empty spot for a companion`} width={160} height={112} className="md-scene__img" />
+              </div>
+            )}
+            <p className="text-muted t-body-sm" style={{ margin: 0 }}>Placeholder art: only the companion spot redraws, and it can show one buddy.</p>
+            <h2 id="vp-pin" className="md-h2" style={{ marginTop: 8 }}>{name}'s pin board</h2>
+            <div className="mp-cork" role="img" aria-label="Empty pin board">
+              <span>No stickies yet</span>
             </div>
-          )}
-          <p className="text-muted t-body-sm" style={{ margin: 0 }}>Placeholder art: only the companion spot redraws, and it can show one buddy.</p>
-        </section>
-        <section className="card" aria-labelledby="vp-pin">
-          <h2 id="vp-pin" className="md-h2">{name}'s pin board</h2>
-          <p className="text-muted t-body-sm" style={{ margin: 0 }}>
-            No stickies yet this week. Desk Stickies are coming later.
-          </p>
-        </section>
+            <p className="text-muted t-body-sm" style={{ margin: 0 }}>Placeholder pin board. Real art and the pile’s look are still to design.</p>
+          </section>
+
+          <div className="mp-side">
+            <section className="card" aria-labelledby="vp-stickies">
+              <h2 id="vp-stickies" className="md-h2">Desk Stickies</h2>
+              <p className="text-muted t-body-sm" style={{ margin: 0 }}>
+                Short notes from visitors who have checked in. They refresh each week, and you choose which ones to keep.
+              </p>
+              <p className="text-muted t-body-sm" style={{ margin: 0 }}>No stickies yet. Desk Stickies are coming later.</p>
+              <span className="kdl-btn kdl-btn--off mp-btn" aria-disabled="true">Leave a Desk Sticky · Coming soon</span>
+            </section>
+            <section className="card" aria-labelledby="vp-see">
+              <h2 id="vp-see" className="md-h2">What visitors can see</h2>
+              <div>
+                <b className="t-body-sm">Shown</b>
+                <p className="t-body" style={{ margin: "2px 0 0" }}>The desk, the companion, and Desk Stickies.</p>
+              </div>
+              <div>
+                <b className="t-body-sm">Never shown</b>
+                <p className="t-body" style={{ margin: "2px 0 0" }}>deskbits balance, journals, private goals, focus history and anything kept private. Visible to signed-in members only, never on the public internet.</p>
+              </div>
+            </section>
+          </div>
+        </div>
       </main>
     </div>
   );
