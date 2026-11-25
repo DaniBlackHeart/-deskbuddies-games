@@ -133,13 +133,25 @@ export function BuddyCollectionCard() {
   );
 }
 
+// The sticky-note icon from the My Desk design (a yellow note with a terracotta pin).
+function StickyIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 16 16" shapeRendering="crispEdges" aria-hidden="true" style={{ display: "block" }}>
+      <rect x="2" y="2" width="12" height="12" fill="#FFF3B0" />
+      <path fill="#4A3228" d="M2 1h12v1h-12zM1 2h1v12h-1zM14 2h1v12h-1zM2 14h12v1h-12z" />
+      <path fill="#B5573A" d="M7 2h2v2h-2z" />
+      <path fill="#4A3228" d="M4 7h8v1h-8zM4 9h6v1h-6zM4 11h4v1h-4z" />
+    </svg>
+  );
+}
+
 // Desk Stickies are not built yet (visitor desks come later), so this card says so
 // instead of showing sample notes.
 export function DeskStickiesCard() {
   return (
     <section className="ard-card" aria-labelledby="ard-ds">
       <CardHead
-        icon={<PixelIcon name="new-post" size={32} />}
+        icon={<StickyIcon />}
         title="Desk Stickies"
         blurb="Notes visitors leave on your pin board"
       />

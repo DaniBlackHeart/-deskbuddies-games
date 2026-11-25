@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { BuddyCollectionCard, DeskFindsCard, DeskStickiesCard, DeskTimeCard } from "../components/MyDeskAroundCards";
 import { useMyDesk } from "../lib/useMyDesk";
@@ -195,9 +195,14 @@ export default function MyDeskPage() {
               </div>
               <div className="md-actions">
                 {!decorating ? (
-                  <button type="button" className="btn btn-primary" onClick={startAt("companions")} disabled={loadError}>
-                    Decorate
-                  </button>
+                  <>
+                    <button type="button" className="btn btn-primary" onClick={startAt("companions")} disabled={loadError}>
+                      Decorate
+                    </button>
+                    <Link to="/my-desk/visitor-preview" className="btn btn-secondary">
+                      See how visitors see it
+                    </Link>
+                  </>
                 ) : (
                   <>
                     <button type="button" className="btn btn-primary" onClick={doSave} disabled={changes === 0 || saving || loadError}>
