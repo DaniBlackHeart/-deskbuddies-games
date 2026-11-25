@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import PixelIcon from "./PixelIcon";
 import { useMemberProgress } from "../lib/useMemberProgress";
 
@@ -26,6 +27,7 @@ export default function MemberStats({
   showProgress = false,
   showDeskbits = true,
   showXp = true,
+  deskbitsHref,
 }: {
   className?: string;
   showProgress?: boolean;
@@ -33,6 +35,8 @@ export default function MemberStats({
   showDeskbits?: boolean;
   /** The "How others see it" preview hides the XP total. */
   showXp?: boolean;
+  /** When set, the deskbits chip is a link (the header opens Desk Finds). */
+  deskbitsHref?: string;
 }) {
   const { level, xp, deskbits, levelProgress } = useMemberProgress();
   const pct = Math.round(Math.min(1, Math.max(0, levelProgress)) * 100);
@@ -41,9 +45,18 @@ export default function MemberStats({
     <ul className={"app-stats" + (className ? " " + className : "")} aria-label="Your progress">
       {showDeskbits && (
       <li className={"app-stat" + (showProgress ? "" : " app-stat--solo")} title="deskbits">
-        <PixelIcon name="deskbits" size={showProgress ? 32 : 16} />
-        <span>{deskbits.toLocaleString()}</span>
-        <span className="sr-only">deskbits</span>
+        {deskbitsHref ? (
+          <Link to={deskbitsHref} className="app-stat__link" aria-label={`${deskbits.toLocaleString()} deskbits, open Desk Finds`}>
+            <PixelIcon name="deskbits" size={showProgress ? 32 : 16} />
+            <span aria-hidden="true">{deskbits.toLocaleString()}</span>
+          </Link>
+        ) : (
+          <>
+            <PixelIcon name="deskbits" size={showProgress ? 32 : 16} />
+            <span>{deskbits.toLocaleString()}</span>
+            <span className="sr-only">deskbits</span>
+          </>
+        )}
       </li>
       )}
       {showProgress && (

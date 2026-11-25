@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { isGamesRoute } from "../lib/gameRoutes";
 import PixelIcon, { type PixelIconName } from "./PixelIcon";
 import MemberStats from "./MemberStats";
-import ProfileAvatar from "./ProfileAvatar";
+import AccountMenu from "./AccountMenu";
 import { useUnreadCount } from "../lib/useNotifications";
 
 // Icon-only navigation, from the 21-22 Nov 2026 Navigation Decision and the
@@ -24,49 +24,35 @@ type NavItem = {
 
 const HOME: NavItem = { to: "/", label: "Home", icon: "home", hint: "", end: true };
 const COMMON_ROOM: NavItem = { to: "/common-room", label: "The Common Room", icon: "common-room", hint: "" };
-const DESK_TIME: NavItem = { to: "/desk-time", label: "Desk Time", icon: "desk-time", hint: "" };
 const REALITY_BREAK: NavItem = { to: "/games", label: "Reality Break", icon: "reality-break", hint: "" };
 const BEYOND: NavItem = {
   to: "/beyond-the-desk",
   label: "Beyond the Desk",
   icon: "beyond-the-desk",
-  hint: "Daily Detours, Weekly Wins, Side Quests",
+  hint: "Daily Detours, Weekly Wins, Side Quests, Buddybook",
 };
 const MY_DESK: NavItem = { to: "/my-desk", label: "My Desk", icon: "my-desk", hint: "Your desk and your buddies" };
-const DESK_FINDS: NavItem = { to: "/deskfinds", label: "Desk Finds", icon: "desk-finds", hint: "Spend your deskbits" };
-const BUDDYBOOK: NavItem = { to: "/buddybook", label: "Buddybook", icon: "buddybook", hint: "Your stamps and milestones" };
-const CALENDAR: NavItem = { to: "/events", label: "Buddy Calendar", icon: "buddy-calendar", hint: "Events and dates" };
-const KEEP_LIT: NavItem = {
-  to: "/keep-the-desk-lit",
-  label: "Keep the Desk Lit",
-  icon: "keep-the-desk-lit",
-  hint: "Help keep Debbie running. It does not buy deskbits or XP.",
-};
-const NOTE: NavItem = {
-  to: "/note-for-debbie",
-  label: "A Note for Debbie",
-  icon: "note-for-debbie",
-  hint: "Suggestions, feedback, or something broken?",
-};
-// Settings has its own placeholder page; theme and sign out stay on the
-// Profile page (the avatar) until Settings is built.
-const SETTINGS: NavItem = {
-  to: "/settings",
-  label: "Settings",
-  icon: "settings",
-  hint: "Theme, motion and notifications",
-};
 
-// Desktop groups: Play | You | Account (thin dividers between).
+// Nav v4 (24 Nov 2026). Desktop: Home, The Common Room, Reality Break | Beyond
+// the Desk, My Desk. Account pages (Buddy Profile, Notifications, Settings,
+// A Note for Debbie, Keep the Desk Lit) live in the avatar menu. Subpages sit
+// under a parent and light the parent's tab (see PARENT_PREFIXES).
 const DESKTOP_GROUPS: NavItem[][] = [
-  [HOME, COMMON_ROOM, DESK_TIME, REALITY_BREAK],
-  [BEYOND, MY_DESK, DESK_FINDS, BUDDYBOOK, CALENDAR, KEEP_LIT],
-  [NOTE, SETTINGS],
+  [HOME, COMMON_ROOM, REALITY_BREAK],
+  [BEYOND, MY_DESK],
 ];
-// Phone bar, then the More sheet (a divider sits before the last three).
-const BAR_TABS = [HOME, COMMON_ROOM, DESK_TIME, REALITY_BREAK];
-const SHEET_MAIN = [BEYOND, MY_DESK, DESK_FINDS, BUDDYBOOK, CALENDAR];
-const SHEET_ACCOUNT = [KEEP_LIT, NOTE, SETTINGS];
+// Phone bar, then the More sheet (Beyond the Desk; Buddy Boards and Buddy
+// Clubs join it only when those features are live).
+const BAR_TABS = [HOME, COMMON_ROOM, MY_DESK, REALITY_BREAK];
+const SHEET_MAIN = [BEYOND];
+
+// Pages that open from a parent and keep the parent's tab highlighted.
+const PARENT_PREFIXES: Record<string, string[]> = {
+  "/": ["/pull-up-a-chair"],
+  "/common-room": ["/events"],
+  "/my-desk": ["/desk-time", "/deskfinds", "/buddy-collection", "/decorate", "/my-avatar", "/nameplate"],
+  "/beyond-the-desk": ["/buddybook"],
+};
 
 const PHONE_QUERY = "(max-width: 640px)";
 
@@ -147,11 +133,15 @@ export default function AppHeader() {
   // Game lobby/play and MOD pages live outside /games, but they belong to
   // Reality Break, so keep it highlighted there.
   const inGames = isGamesRoute(pathname);
-  const isActive = (item: NavItem) =>
-    item.to === "/" ? pathname === "/" || pathname === "/pull-up-a-chair" : item.to === "/my-desk" ? matches(pathname, "/my-desk") || pathname === "/buddy-collection" : item.to === "/games" ? inGames || matches(pathname, "/games") : matches(pathname, item.to);
+  const isActive = (item: NavItem) => {
+    if (item.to === "/games") return inGames || matches(pathname, "/games");
+    const kids = PARENT_PREFIXES[item.to] ?? [];
+    if (item.to === "/") return pathname === "/" || kids.some((k) => matches(pathname, k));
+    return matches(pathname, item.to) || kids.some((k) => matches(pathname, k));
+  };
 
   // On phones, a page reached from More highlights the More tab.
-  const moreActive = [...SHEET_MAIN, ...SHEET_ACCOUNT].some(isActive);
+  const moreActive = SHEET_MAIN.some(isActive);
 
   function closeSheet() {
     setMoreOpen(false);
@@ -214,7 +204,7 @@ export default function AppHeader() {
         </nav>
 
         <div className="app-right">
-          <MemberStats />
+          <MemberStats deskbitsHref="/deskfinds" />
           <NavLink
             to="/notifications"
             className="app-bell"
@@ -230,7 +220,7 @@ export default function AppHeader() {
               </span>
             )}
           </NavLink>
-          <ProfileAvatar />
+          <AccountMenu phone={isPhone} />
         </div>
       </div>
 
@@ -246,8 +236,6 @@ export default function AppHeader() {
               </button>
             </div>
             {SHEET_MAIN.map(sheetRow)}
-            <div className="app-sheet__rule" aria-hidden="true" />
-            {SHEET_ACCOUNT.map(sheetRow)}
           </div>
         </>
       )}
