@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { useFocusBlock, type BlockResult } from "../lib/useFocusBlock";
 import { useMyDesk } from "../lib/useMyDesk";
@@ -43,7 +44,11 @@ function rewardLine(r: BlockResult["reward"]) {
 export default function DeskTimePage() {
   const fb = useFocusBlock();
   const { saved, loading: deskLoading } = useMyDesk();
-  const [mins, setMins] = useState<number>(25);
+  // My Desk's Desk Time card can open this page with a length already picked.
+  const [mins, setMins] = useState<number>(() => {
+    const m = Number(new URLSearchParams(window.location.search).get("minutes"));
+    return (LENGTHS as readonly number[]).includes(m) ? m : 25;
+  });
   const [act, setAct] = useState<ActivityId>("work");
   const [goal, setGoal] = useState("");
 
@@ -82,6 +87,9 @@ export default function DeskTimePage() {
     <div className="app-shell">
       <AppHeader />
       <main className="container db-page dt-page" id="desk-time">
+        <Link to="/my-desk" className="page-back">
+          <span aria-hidden="true">‹</span> Back to My Desk
+        </Link>
         <div>
           <h1 className="t-h1">Desk Time</h1>
           <p className="text-muted t-subtitle" style={{ margin: 0 }}>

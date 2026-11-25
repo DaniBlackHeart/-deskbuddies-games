@@ -1,0 +1,152 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import PixelIcon from "./PixelIcon";
+import BuddySprite from "./BuddySprite";
+import { useWhosAround } from "../lib/useWhosAround";
+import { useDeskFinds } from "../lib/useDeskFinds";
+import { useBuddyCollection } from "../lib/useBuddyCollection";
+import { FINDS_ART } from "../lib/findsArt";
+import { LENGTHS } from "../lib/focusBlock";
+
+// "Around your desk" (Debbie nav v4, 24 Nov 2026): Desk Time, Desk Finds,
+// Buddy Collection and Desk Stickies are sections of My Desk. Each card shows a
+// small preview and a button to its own page, and that page has a Back link here.
+
+function CardHead({ icon, title, blurb }: { icon: React.ReactNode; title: string; blurb: string }) {
+  return (
+    <div className="ad-head">
+      <span className="ad-icon" aria-hidden="true">{icon}</span>
+      <div>
+        <h3 className="t-h3" style={{ margin: 0 }}>{title}</h3>
+        <p className="t-body-sm text-muted" style={{ margin: 0 }}>{blurb}</p>
+      </div>
+    </div>
+  );
+}
+
+export function DeskTimeCard() {
+  const { around } = useWhosAround();
+  const [mins, setMins] = useState<number>(25);
+  const count = around?.length ?? null;
+  return (
+    <section className="ad-card" aria-labelledby="ad-dt">
+      <div className="ad-head">
+        <span className="ad-icon" aria-hidden="true"><PixelIcon name="desk-time" size={32} /></span>
+        <div>
+          <h3 id="ad-dt" className="t-h3" style={{ margin: 0 }}>Desk Time</h3>
+          <p className="t-body-sm text-muted" style={{ margin: 0 }}>Quiet company for getting things done</p>
+        </div>
+      </div>
+      <div className="ad-box">
+        <span className="ad-eyebrow">A FOCUS BLOCK, YOUR WAY</span>
+        <div role="group" aria-label="Focus length" className="ad-chips">
+          {LENGTHS.map((m) => (
+            <button key={m} type="button" aria-pressed={mins === m} className={"md-seg" + (mins === m ? " md-seg--on" : "")} onClick={() => setMins(m)}>
+              {m} min
+            </button>
+          ))}
+        </div>
+        {count !== null && (
+          <p className="t-body-sm" style={{ margin: 0 }}>
+            {count === 0 ? "Nobody else is in a Focus Block right now." : `${count} ${count === 1 ? "member" : "members"} focusing now`}
+          </p>
+        )}
+        <span className="t-caption text-muted">Works in Discord or not. Stepping away never takes back what you earned.</span>
+      </div>
+      <Link to={`/desk-time?minutes=${mins}`} className="btn btn-secondary ad-open">Start a Focus Block</Link>
+    </section>
+  );
+}
+
+function FindTile({ itemKey }: { itemKey: string }) {
+  const a = FINDS_ART[itemKey];
+  if (!a) return <span className="ad-find__tile" aria-hidden="true" />;
+  const scale = Math.max(1, Math.min(Math.floor(32 / a.w), Math.floor(32 / a.h)));
+  return (
+    <span className="ad-find__tile" aria-hidden="true">
+      <svg width={a.w * scale} height={a.h * scale} viewBox={`0 0 ${a.w} ${a.h}`} shapeRendering="crispEdges" style={{ display: "block" }}>
+        {a.layers.map(([fill, d], i) => <path key={i} d={d} fill={fill} />)}
+      </svg>
+    </span>
+  );
+}
+
+export function DeskFindsCard() {
+  const { data } = useDeskFinds();
+  // The three cheapest things you don't own yet. "New this week" needs a release date that doesn't exist yet.
+  const few = (data?.items ?? []).filter((i) => !i.owned).sort((a, b) => a.price - b.price).slice(0, 3);
+  return (
+    <section className="ad-card" aria-labelledby="ad-df">
+      <div className="ad-head">
+        <span className="ad-icon" aria-hidden="true"><PixelIcon name="desk-finds" size={32} /></span>
+        <div>
+          <h3 id="ad-df" className="t-h3" style={{ margin: 0 }}>Desk Finds</h3>
+          <p className="t-body-sm text-muted" style={{ margin: 0 }}>Spend your deskbits on your desk</p>
+        </div>
+      </div>
+      <div className="ad-box">
+        <span className="ad-eyebrow">A FEW FINDS</span>
+        {data && few.length === 0 && <p className="t-body-sm text-muted" style={{ margin: 0 }}>You have every Find so far.</p>}
+        {few.map((i) => (
+          <div key={i.key} className="ad-find">
+            <FindTile itemKey={i.key} />
+            <b>{i.name}</b>
+          </div>
+        ))}
+        {data && <span className="t-caption text-muted">You have {data.balance.toLocaleString()} deskbits to spend.</span>}
+      </div>
+      <Link to="/deskfinds" className="btn btn-secondary ad-open">Browse Desk Finds</Link>
+    </section>
+  );
+}
+
+export function BuddyCollectionCard() {
+  const { buddies, failed } = useBuddyCollection();
+  const found = buddies?.filter((b) => b.found).length ?? 0;
+  // Found buddies first, then a few shadows, as in the collection.
+  const shown = buddies ? [...buddies].sort((a, b) => Number(b.found) - Number(a.found)).slice(0, 6) : [];
+  return (
+    <section className="ad-card ad-bc" aria-labelledby="ad-bc">
+      <div className="ad-head">
+        <span className="ad-icon" aria-hidden="true"><BuddySprite id="paper" found size={32} /></span>
+        <div>
+          <h3 id="ad-bc" className="t-h3" style={{ margin: 0 }}>Buddy Collection</h3>
+          <p className="t-body-sm text-muted" style={{ margin: 0 }}>Every Desk Buddy you have found</p>
+        </div>
+      </div>
+      <div className="ad-box">
+        <span className="ad-eyebrow">YOUR DESK BUDDIES</span>
+        {failed && !buddies && <p className="t-body-sm text-muted" style={{ margin: 0 }}>Couldn’t load your collection just now.</p>}
+        {buddies && (
+          <>
+            <div className="ad-sprites" aria-hidden="true">
+              {shown.map((b) => <BuddySprite key={b.key} id={b.key} found={b.found} size={40} />)}
+            </div>
+            <p className="t-body-sm" style={{ margin: 0 }}>
+              {found} of {buddies.length} found. Shadows are buddies you haven’t met yet.
+            </p>
+          </>
+        )}
+      </div>
+      <Link to="/buddy-collection" className="btn btn-secondary ad-open">Open Buddy Collection</Link>
+    </section>
+  );
+}
+
+// Desk Stickies are not built yet (visitor desks come later), so this card says so
+// instead of showing sample notes.
+export function DeskStickiesCard() {
+  return (
+    <section className="ad-card" aria-labelledby="ad-ds">
+      <CardHead
+        icon={<PixelIcon name="new-post" size={32} />}
+        title="Desk Stickies"
+        blurb="Notes visitors leave on your pin board"
+      />
+      <div className="ad-box">
+        <span className="ad-eyebrow">COMING SOON</span>
+        <span className="t-body-sm">Notes visitors leave will land here, and only you will see this list.</span>
+      </div>
+    </section>
+  );
+}

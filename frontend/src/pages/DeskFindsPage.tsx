@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import PixelIcon from "../components/PixelIcon";
 import { FINDS_ART } from "../lib/findsArt";
@@ -86,6 +87,9 @@ export default function DeskFindsPage() {
     <div className="app-shell">
       <AppHeader />
       <main className="container db-page df-page" id="desk-finds">
+        <Link to="/my-desk" className="page-back">
+          <span aria-hidden="true">‹</span> Back to My Desk
+        </Link>
         <div className="df-title">
           <PixelIcon name="desk-finds" size={48} />
           <div>

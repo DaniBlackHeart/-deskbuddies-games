@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
+import { BuddyCollectionCard, DeskFindsCard, DeskStickiesCard, DeskTimeCard } from "../components/MyDeskAroundCards";
 import { useMyDesk } from "../lib/useMyDesk";
 import {
   ITEMS, SLOTS, SLOT_LABEL, SLOT_HINT, BUDDIES, MAX_COMPANIONS,
@@ -175,6 +176,7 @@ export default function MyDeskPage() {
         </div>
 
         <div className="md-grid">
+          <div className={"md-left" + (decorating ? " md-left--dec" : "")}>
           <section className="card md-stage" aria-labelledby="md-stage-h">
             <h2 id="md-stage-h" className="sr-only">Your desk</h2>
             {decorating && (
@@ -212,45 +214,42 @@ export default function MyDeskPage() {
               Placeholder art: only the companion spot redraws, and it can show one buddy. Item names are placeholders.
             </p>
           </section>
+          {!decorating && (
+              <section className="card" aria-labelledby="md-on-h">
+                <h2 id="md-on-h" className="md-h2">On your desk</h2>
+                <p className="text-muted t-body-sm">Everything here came with your desk or is yours.</p>
+                <ul className="md-list">
+                  {rows.map((r) => (
+                    <li key={r.slot} className="md-list__row">
+                      {swatch(r.color)}
+                      <span className="md-list__text">
+                        <span className="text-muted t-body-sm">{r.label}</span>
+                        <strong>{r.value}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        aria-label={`Change ${r.label.toLowerCase()}`}
+                        onClick={startAt(r.slot)}
+                        disabled={loadError}
+                      >
+                        Change
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+          )}
+          </div>
 
           <div className="md-side">
             {!decorating ? (
               <>
-                <section className="card" aria-labelledby="md-on-h">
-                  <h2 id="md-on-h" className="md-h2">On your desk</h2>
-                  <p className="text-muted t-body-sm">Everything here came with your desk or is yours.</p>
-                  <ul className="md-list">
-                    {rows.map((r) => (
-                      <li key={r.slot} className="md-list__row">
-                        {swatch(r.color)}
-                        <span className="md-list__text">
-                          <span className="text-muted t-body-sm">{r.label}</span>
-                          <strong>{r.value}</strong>
-                        </span>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          aria-label={`Change ${r.label.toLowerCase()}`}
-                          onClick={startAt(r.slot)}
-                          disabled={loadError}
-                        >
-                          Change
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-                <section className="card" aria-labelledby="md-comp-h">
-                  <h2 id="md-comp-h" className="md-h2">Your companions</h2>
-                  <p className="t-body">
-                    {names.length > 1
-                      ? `${names.length} buddies are seated: ${names.join(", ")}.`
-                      : names.length === 1
-                        ? `${names[0]} is seated on your desk.`
-                        : "No buddy yet. Your first one is earned, not handed out."}
-                  </p>
-                  <Link className="md-comp-link" to="/buddy-collection">See your Buddy Collection ›</Link>
-                </section>
+                <h2 className="md-around">Around your desk</h2>
+                <DeskTimeCard />
+                <DeskFindsCard />
+                <BuddyCollectionCard />
+                <DeskStickiesCard />
               </>
             ) : (
               <section className="card" aria-labelledby="md-dec-h">
