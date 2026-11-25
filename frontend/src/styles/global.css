@@ -2234,7 +2234,8 @@ button.app-avatar:focus-visible {
 .cr-btn--off, .cr-btn--off:hover { border-color: var(--color-border); background: var(--color-bg-alt); color: var(--color-text-muted); cursor: not-allowed; }
 .cr-x { min-width: 44px; padding: 0; font-size: 1.125rem; flex: none; }
 .cr-empty { background: var(--color-surface); border: 2px dashed var(--color-border); border-radius: 16px; padding: 24px 20px; line-height: 1.5; color: var(--color-text-muted); text-align: center; }
-.cr-aside { background: var(--color-surface); position: sticky; top: 16px; border: 2px solid var(--color-border); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.cr-side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 16px; }
+.cr-aside { background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
 .cr-aside ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 0.9375rem; line-height: 1.5; }
 .cr-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(31, 23, 19, 0.55); display: flex; align-items: flex-start; justify-content: center; padding: 48px 16px 16px; box-sizing: border-box; overflow: auto; }
 .cr-dialog { width: 100%; max-width: 560px; background: var(--color-surface); color: var(--color-text); border: 2px solid var(--color-border); border-radius: 18px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; box-shadow: 0 8px 0 rgba(0, 0, 0, 0.18); }
@@ -2244,7 +2245,7 @@ button.app-avatar:focus-visible {
 .cr-page button:focus-visible, .cr-dialog button:focus-visible, .cr-textarea:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
 @media (max-width: 900px) {
   .cr-grid { grid-template-columns: minmax(0, 1fr); }
-  .cr-aside { position: static; order: 2; }
+  .cr-side { position: static; order: 2; }
 }
 @media (max-width: 640px) {
   .cr-share { padding: 14px 16px; }
@@ -3253,3 +3254,24 @@ button[aria-disabled="true"] {
     order: 5;
   }
 }
+
+/* Common Room: Buddy Calendar card (above How posting works). */
+.cr-cal { display: flex; flex-direction: column; gap: 14px; background: var(--color-surface); border: 2px solid var(--color-border); border-radius: 16px; padding: 18px 20px; }
+.cr-cal__head { display: flex; align-items: center; gap: 12px; }
+.cr-cal__icon { display: inline-flex; flex: none; padding: 8px; border-radius: 12px; background: var(--color-bg-alt); }
+.cr-cal__box { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; background: var(--color-bg-alt); }
+.cr-cal__eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; color: var(--color-text-muted); }
+.cr-cal__ev { display: flex; align-items: center; gap: 12px; }
+.cr-cal__date { flex: none; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 48px; height: 52px; border: 2px solid var(--color-border); border-radius: 10px; background: var(--color-surface); line-height: 1.1; }
+.cr-cal__date span { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; color: var(--color-text-muted); }
+.cr-cal__date b { font-size: 1.25rem; }
+.cr-cal__text { display: flex; flex-direction: column; min-width: 0; font-size: 0.8125rem; }
+.cr-cal__text b { font-size: 0.9375rem; overflow-wrap: anywhere; }
+.cr-cal__open { width: 100%; border-color: var(--color-primary); color: var(--color-accent-text); text-decoration: none; }
+.cr-cal__open:hover { background: var(--color-bg-alt); }
+.cr-cal__open:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+
+/* Back link at the top of a subpage (nav v4). */
+.page-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-bottom: 4px; font-weight: 700; color: var(--color-accent-text); text-decoration: none; }
+.page-back:hover { text-decoration: underline; }
+.page-back:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }

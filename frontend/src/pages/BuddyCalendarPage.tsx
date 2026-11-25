@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import AppHeader from "../components/AppHeader";
+import { Link } from "react-router-dom";
 import PixelIcon from "../components/PixelIcon";
+import { timeRange } from "../lib/calendarFormat";
 import { useCalendar, type CalEvent, type Category } from "../lib/useCalendar";
 
 // Buddy Calendar. Follows the "Debbie Buddy Calendar" design and
@@ -31,18 +33,6 @@ const OFFSET = 8 * 3_600_000;
 const manilaDate = (ts: number) => new Date(ts + OFFSET).toISOString().slice(0, 10); // YYYY-MM-DD
 const fmt = (ts: number | string, o: Intl.DateTimeFormatOptions, zone = TZ) =>
   new Intl.DateTimeFormat("en-US", { timeZone: zone, ...o }).format(new Date(ts));
-
-function timeRange(a: string, b: string | null, zone = TZ) {
-  const t = (ts: string) => {
-    const parts = new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "numeric", minute: "2-digit" }).formatToParts(new Date(ts));
-    const g = (k: string) => parts.find((p) => p.type === k)?.value ?? "";
-    return { hm: `${g("hour")}:${g("minute")}`, ap: g("dayPeriod") };
-  };
-  const x = t(a);
-  if (!b) return `${x.hm} ${x.ap}`;
-  const y = t(b);
-  return x.ap === y.ap ? `${x.hm} – ${y.hm} ${y.ap}` : `${x.hm} ${x.ap} – ${y.hm} ${y.ap}`;
-}
 
 function viewerZone() {
   try {
@@ -302,6 +292,10 @@ export default function BuddyCalendarPage() {
   }, [shown]);
 
   const head = (
+    <>
+    <Link to="/common-room" className="page-back">
+      <span aria-hidden="true">‹</span> Back to The Common Room
+    </Link>
     <div className="cal-title">
       <PixelIcon name="buddy-calendar" size={48} />
       <div>
@@ -313,6 +307,7 @@ export default function BuddyCalendarPage() {
         {data && <p className="text-muted cal-sync">{syncLine(data.sync.last_synced_at, data.sync.failed, data.now)}</p>}
       </div>
     </div>
+    </>
   );
 
   if (loading && !data) {

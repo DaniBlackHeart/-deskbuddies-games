@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import AppHeader from "../components/AppHeader";
 import PixelIcon from "../components/PixelIcon";
+import CommonRoomCalendarCard from "../components/CommonRoomCalendarCard";
 import {
   KINDS, KIND_BY_KEY, REACTIONS, SAMPLE_POSTS, MAX_POST_LENGTH,
   type KindKey, type ReactionKey, type SamplePost,
@@ -169,16 +170,19 @@ export default function CommonRoomPage() {
             </section>
           </div>
 
-          <aside className="cr-aside" aria-label="How posting works">
-            <h2 className="t-h3" style={{ margin: 0 }}>How posting works</h2>
-            <ul>
-              <li>Each post goes to one Discord channel, so nothing is posted twice.</li>
-              <li>Every post also appears here, and you can filter by kind.</li>
-              <li>Replies happen in the Discord thread under the post.</li>
-              <li>Only members can see posts. They are not public.</li>
-              <li>You only see kinds you can post to at your level.</li>
-            </ul>
-          </aside>
+          <div className="cr-side">
+            <CommonRoomCalendarCard />
+            <aside className="cr-aside" aria-label="How posting works">
+              <h2 className="t-h3" style={{ margin: 0 }}>How posting works</h2>
+              <ul>
+                <li>Each post goes to one Discord channel, so nothing is posted twice.</li>
+                <li>Every post also appears here, and you can filter by kind.</li>
+                <li>Replies happen in the Discord thread under the post.</li>
+                <li>Only members can see posts. They are not public.</li>
+                <li>You only see kinds you can post to at your level.</li>
+              </ul>
+            </aside>
+          </div>
         </div>
       </main>
 
