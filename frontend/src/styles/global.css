@@ -3359,3 +3359,9 @@ button[aria-disabled="true"] {
 .kdl-acc__btn:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; border-radius: 8px; }
 .kdl-acc__body { padding: 0 0 18px; gap: 10px; }
 .kdl-acc__body p { font-size: 0.9375rem; }
+
+/* Buddy Calendar: design match */
+.cal-celebrate { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cal-celebrate__label { font-size: 1rem; font-weight: 700; }
+.cal-name { min-height: 44px; padding: 0 14px; box-sizing: border-box; display: inline-flex; align-items: center; border: 2px solid var(--color-border); border-radius: 999px; background: var(--color-surface); font-size: 0.9375rem; font-weight: 700; }
+.cal-reset { min-height: 44px; }

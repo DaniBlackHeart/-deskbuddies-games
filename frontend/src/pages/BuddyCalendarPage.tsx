@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import AppHeader from "../components/AppHeader";
 import { Link } from "react-router-dom";
 import PixelIcon from "../components/PixelIcon";
@@ -127,10 +127,8 @@ function EventCard({
       <button type="button" className="cal-event__head" aria-expanded={open} aria-controls={hid} onClick={onToggle}>
         <span className="cal-event__main">
           <span className="cal-chips">
-            <span className="cal-time">{timeRange(e.starts_at, e.ends_at)}</span>
+            <span className="cal-time">{fmt(e.starts_at, { weekday: "short", month: "short", day: "numeric" })} · {timeRange(e.starts_at, e.ends_at)}</span>
             {pill && <span className={"cal-pill" + (e.phase === "closed" || e.phase === "cancelled" ? " cal-pill--quiet" : "")}>{pill}</span>}
-            {e.category && <span className="cal-tag">{CATEGORY_LABEL[e.category]}</span>}
-            <span className={"cal-tag" + (member ? " cal-tag--member" : "")}>{member ? "Member-hosted" : "Official"}</span>
           </span>
           <span className="cal-event__title">{e.title}</span>
         </span>
@@ -138,6 +136,10 @@ function EventCard({
       </button>
       {open && (
         <div className="cal-event__body" id={hid}>
+          <div className="cal-chips">
+            {e.category && <span className="cal-tag">{CATEGORY_LABEL[e.category]}</span>}
+            <span className={"cal-tag" + (member ? " cal-tag--member" : "")}>{member ? "Member-hosted" : "Official"}</span>
+          </div>
           {e.description && <p className="cal-text">{e.description}</p>}
           {member && <p className="cal-note">Run by a member and approved by a DeskBuddies moderator.</p>}
           <div className="cal-facts">
@@ -261,22 +263,10 @@ function EventCard({
 export default function BuddyCalendarPage() {
   const { data, loading, error, busy, act, goMonth, reload } = useCalendar();
   const [filter, setFilter] = useState<"all" | Category>("all");
-  const [day, setDay] = useState<string | null>(null); // YYYY-MM-DD (Manila)
+  const [day, setDay] = useState<string | null>(null); // YYYY-MM-DD (Manila); null shows upcoming events
   const [open, setOpen] = useState("");
 
-  const month = data?.month ?? null;
   const today = data ? manilaDate(Date.parse(data.now)) : "";
-
-  // Pick a day when the month changes: today if it is in this month, otherwise the first day with an event.
-  useEffect(() => {
-    if (!data || !month) return;
-    setDay((cur) => {
-      if (cur && cur.startsWith(month)) return cur;
-      if (today.startsWith(month)) return today;
-      const firstWith = data.events.map((e) => manilaDate(Date.parse(e.starts_at))).sort()[0];
-      return firstWith ?? `${month}-01`;
-    });
-  }, [data, month, today]);
 
   const shown = useMemo(
     () => (data ? data.events.filter((e) => filter === "all" || e.category === filter) : []),
@@ -291,13 +281,21 @@ export default function BuddyCalendarPage() {
     return m;
   }, [shown]);
 
+  const upcoming = useMemo(
+    () =>
+      shown
+        .filter((e) => e.phase !== "closed" && e.phase !== "cancelled")
+        .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at))
+        .slice(0, 7),
+    [shown],
+  );
+
   const head = (
     <>
     <Link to="/common-room" className="page-back">
       <span aria-hidden="true">‹</span> Back to The Common Room
     </Link>
     <div className="cal-title">
-      <PixelIcon name="buddy-calendar" size={48} />
       <div>
         <div className="cal-eyebrow">WHAT’S ON</div>
         <h1 className="t-h1" style={{ margin: 0 }}>Buddy Calendar</h1>
@@ -340,14 +338,15 @@ export default function BuddyCalendarPage() {
   const lead = (new Date(Date.UTC(yy, mm - 1, 1)).getUTCDay() + 6) % 7;
   const nd = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
   const total = lead + nd > 35 ? 42 : 35;
-  const selected = day && day.startsWith(data.month) ? day : `${data.month}-01`;
-  const dayEvents = byDay.get(selected) ?? [];
-  const sel = new Date(selected + "T00:00:00Z");
-  const dayTitle = `${WEEKDAYS[sel.getUTCDay()]}, ${MON3[sel.getUTCMonth()]} ${sel.getUTCDate()}`;
+  const selected = day && day.startsWith(data.month) ? day : null;
+  const dayEvents = selected ? byDay.get(selected) ?? [] : upcoming;
+  const sel = selected ? new Date(selected + "T00:00:00Z") : null;
+  const dayTitle = sel ? `${WEEKDAYS[sel.getUTCDay()]}, ${MON3[sel.getUTCMonth()]} ${sel.getUTCDate()}` : "Upcoming events";
   const shift = (d: number) => {
     const x = new Date(Date.UTC(yy, mm - 1 + d, 1));
     void goMonth(`${x.getUTCFullYear()}-${String(x.getUTCMonth() + 1).padStart(2, "0")}`);
     setOpen("");
+    setDay(null);
   };
 
   return (
@@ -424,9 +423,16 @@ export default function BuddyCalendarPage() {
                   <img className="cal-art cal-art--light" src="/calendar/birthday-card-light.svg" alt="The sixteen buddies in a row, with Foundie holding a cake" width={940} height={92} />
                   <img className="cal-art cal-art--dark" src="/calendar/birthday-card-dark.svg" alt="" width={940} height={92} />
                 </div>
-                <p className="cal-names">
-                  {data.birthdays.names.length ? `Celebrating: ${data.birthdays.names.join(", ")}` : "No one has shared a birthday month for this month."}
-                </p>
+                <div className="cal-celebrate">
+                  {data.birthdays.names.length ? (
+                    <>
+                      <span className="cal-celebrate__label">Celebrating:</span>
+                      {data.birthdays.names.map((n) => <span key={n} className="cal-name">{n}</span>)}
+                    </>
+                  ) : (
+                    <span className="cal-names">No one has shared a birthday month for this month.</span>
+                  )}
+                </div>
                 <p className="cal-note" style={{ margin: 0 }}>
                   Members who shared their birth month. This is not an event, so there is nothing to join or check in to. You can still leave a Desk Sticky on their desk to greet them.
                 </p>
@@ -459,7 +465,7 @@ export default function BuddyCalendarPage() {
                         aria-pressed={isSel}
                         aria-current={isToday ? "date" : undefined}
                         aria-label={`${MON3[mm - 1]} ${n}${has ? ", has an event" : ""}${isToday ? ", today" : ""}`}
-                        onClick={() => { setDay(key); setOpen(""); }}
+                        onClick={() => { setDay(isSel ? null : key); setOpen(""); }}
                       >
                         <span>{n}</span>
                         <span aria-hidden="true" className={"cal-dot" + (has ? " cal-dot--on" : "")} />
@@ -467,14 +473,19 @@ export default function BuddyCalendarPage() {
                     );
                   })}
                 </div>
-                <p className="cal-note" style={{ margin: 0 }}>A dot means there is an event that day. Today is outlined.</p>
+                <p className="cal-note" style={{ margin: 0 }}>A dot means there is an event that day. Tap a day to see just that day, and tap it again to go back to upcoming events. Today is outlined.</p>
               </section>
 
               <section className="cal-day" aria-labelledby="cal-day-h">
                 <h2 className="cal-h2" id="cal-day-h" style={{ margin: 0, fontSize: "1.5rem" }}>{dayTitle}</h2>
+                {selected ? (
+                  <div><button type="button" className="cal-btn cal-reset" onClick={() => { setDay(null); setOpen(""); }}>‹ Show upcoming events</button></div>
+                ) : (
+                  <p className="cal-note" style={{ margin: 0 }}>Next 7 events, soonest first. Tap one to see details.</p>
+                )}
                 {dayEvents.length === 0 && (
                   <p className="t-body text-muted" style={{ margin: 0 }}>
-                    No events this day.{filter !== "all" ? " Try “All” to see everything." : ""}
+                    {selected ? "No events this day." : "No upcoming events."}{filter !== "all" ? " Try “All” to see everything." : ""}
                   </p>
                 )}
                 {dayEvents.map((e) => (
