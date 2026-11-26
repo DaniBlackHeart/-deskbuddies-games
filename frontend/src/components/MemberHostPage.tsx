@@ -16,7 +16,7 @@ import { useAuth } from "../contexts/AuthContext";
 // which is what the old MOD list pages did. The editors stay MOD-only routes.
 // Starting a game always goes through the game's host Edge Function.
 
-type Choice = { id: string; name: string; item_count: number };
+type Choice = { id: string; name: string; item_count: number; extra_count?: number };
 
 const INTRO: Record<GameKey, string> = {
   trivia: "Pick how you want it to run. Questions come from the shared sets, so there's nothing to prepare.",
@@ -31,6 +31,15 @@ const UNITS: Partial<Record<GameKey, string>> = {
   trivia: "question",
   feud: "board question",
   impostor: "word",
+  wheel: "phrase",
+  rebus: "puzzle",
+};
+
+// Wheel and Rebus fill themselves, so members can't pick from these lists. They
+// just see what is in the mix (read-only), the same list a MOD manages.
+const BROWSE: Partial<Record<GameKey, string>> = {
+  wheel: "Categories in the mix",
+  rebus: "Sets in the mix",
 };
 
 export default function MemberHostPage({ gameKey }: { gameKey: GameKey }) {
@@ -50,7 +59,8 @@ export default function MemberHostPage({ gameKey }: { gameKey: GameKey }) {
   const [reloadKey, setReloadKey] = useState(0);
   const [pace, setPace] = useState<"chill" | "hard">("chill");
   const [teams, setTeams] = useState<"solo" | "team">("solo");
-  const [choices, setChoices] = useState<Choice[] | undefined>(game.content ? undefined : []);
+  const browse = !isMod ? BROWSE[game.key] : undefined;
+  const [choices, setChoices] = useState<Choice[] | undefined>(game.content || browse ? undefined : []);
   const [choice, setChoice] = useState(""); // "" = random
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +77,7 @@ export default function MemberHostPage({ gameKey }: { gameKey: GameKey }) {
   }, [manage, reloadKey]);
 
   useEffect(() => {
-    if (!game.content || isMod) return;
+    if ((!game.content && !browse) || isMod) return;
     let cancelled = false;
     supabase.rpc("host_content_options").then(({ data }) => {
       if (cancelled) return;
@@ -77,7 +87,7 @@ export default function MemberHostPage({ gameKey }: { gameKey: GameKey }) {
     return () => {
       cancelled = true;
     };
-  }, [game, isMod]);
+  }, [game, isMod, browse]);
 
   async function createNew() {
     if (!manage || !userId || !newName.trim()) return;
@@ -136,7 +146,10 @@ export default function MemberHostPage({ gameKey }: { gameKey: GameKey }) {
   // What can be picked: members get the name+size list, MODs the full list they manage.
   const options: { id: string; name: string; detail: string }[] | undefined = isMod
     ? rows?.filter((r) => !r.archived)
-    : choices?.map((c) => ({ id: c.id, name: c.name, detail: `${c.item_count} ${unit}${c.item_count === 1 ? "" : "s"}` }));
+    : choices?.map((c) => ({ id: c.id, name: c.name, detail:
+          `${c.item_count} ${unit}${c.item_count === 1 ? "" : "s"}` +
+          (game.key === "rebus" ? ` · ${c.extra_count ?? 0} sprint puzzle${c.extra_count === 1 ? "" : "s"}` : ""),
+      }));
   const chosenName = choice ? options?.find((c) => c.id === choice)?.name : game.content?.randomLabel;
   const archivedRows = rows?.filter((r) => r.archived) ?? [];
   const hasOptions = !!(game.hostOptions.pace || game.hostOptions.teams);
@@ -211,11 +224,11 @@ export default function MemberHostPage({ gameKey }: { gameKey: GameKey }) {
           </p>
         )}
 
-        {(game.content || manage) && (
+        {(game.content || manage || browse) && (
           <section className="rb-section" aria-labelledby="mh-choice-h">
             <div className="row-between" style={{ flexWrap: "wrap", gap: "var(--space-3)" }}>
               <h2 className="t-h2" id="mh-choice-h" style={{ margin: 0 }}>
-                {game.content ? game.content.label : manage ? `Manage ${manage.noun}s` : ""}
+                {game.content ? game.content.label : manage ? `Manage ${manage.noun}s` : (browse ?? "")}
               </h2>
               {manage && (
                 <div className="row" style={{ gap: "8px", flexWrap: "wrap" }}>
