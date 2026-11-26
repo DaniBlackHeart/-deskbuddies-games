@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import GameHostPanel from "../../components/GameHostPanel";
 import UnoCardView from "../../components/UnoCardView";
@@ -116,6 +116,9 @@ export default function UnoLobbyPage() {
     <div className="app-shell">
       <AppHeader />
       <div className="container container--narrow">
+        <Link to="/games" className="page-back">
+          <span aria-hidden="true">‹</span> Back to Reality Break
+        </Link>
         <div className="card text-center">
           <div className="game-lobby-icon"><PixelIcon name="game-uno" size={64} /></div>
           <h1>UNO</h1>
