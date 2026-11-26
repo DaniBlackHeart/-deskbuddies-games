@@ -20,6 +20,7 @@ import {
   handleOptions,
   getAdminClient,
   requireMember,
+  claimMemberSlot,
   computeRebusLeaderboard,
   computeRebusTeamLeaderboard,
   resolveWrongPenalty,
@@ -44,6 +45,8 @@ Deno.serve(async (req) => {
     if (!session) return jsonResponse({ error: "Session not found" }, 404);
 
     if (!spectator) {
+      const slotError = await claimMemberSlot(admin, { userId: user.id, game: "rebus", sessionId: session_id, role: "player" });
+      if (slotError) return slotError;
       await admin.from("rebus_participants").upsert({ session_id, user_id: user.id }, { onConflict: "session_id,user_id" });
     }
 

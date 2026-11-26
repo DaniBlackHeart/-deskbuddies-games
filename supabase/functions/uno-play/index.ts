@@ -34,6 +34,8 @@ import {
   isUnoWildCard,
   nextUnoSeat,
   releaseSessionLock,
+  claimMemberSlot,
+  releaseMemberSlot,
   type UnoCard,
   type UnoColor,
 } from "../_shared/utils.ts";
@@ -137,9 +139,14 @@ Deno.serve(async (req) => {
         const { data: existing } = await admin.from("uno_participants").select("id").eq("session_id", session_id).eq("user_id", user.id).maybeSingle();
         if (existing) return jsonResponse({ ok: true }); // already joined (e.g. refresh) — treat as success
 
+        const slotError = await claimMemberSlot(admin, { userId: user.id, game: "uno", sessionId: session_id, role: "player" });
+        if (slotError) return slotError;
         const nextSeat = count ?? 0;
         const { error } = await admin.from("uno_participants").insert({ session_id, user_id: user.id, seat_order: nextSeat });
-        if (error) return jsonResponse({ error: "Could not join" }, 500);
+        if (error) {
+          await releaseMemberSlot(admin, { userId: user.id, sessionId: session_id, slotKind: "active" });
+          return jsonResponse({ error: "Could not join" }, 500);
+        }
         return jsonResponse({ ok: true });
       }
 
@@ -148,6 +155,7 @@ Deno.serve(async (req) => {
         if (!session) return jsonResponse({ error: "Session not found" }, 404);
         if (session.status !== "lobby") return jsonResponse({ error: "Can't leave once the game has started" }, 409);
         await admin.from("uno_participants").delete().eq("session_id", session_id).eq("user_id", user.id);
+        await releaseMemberSlot(admin, { userId: user.id, sessionId: session_id, slotKind: "active" });
         return jsonResponse({ ok: true });
       }
 

@@ -99,7 +99,7 @@ export default function UnoSpectatorPage() {
 
   async function handleStopWatching() {
     await invokeFunction("uno-host", { action: "release_spectator", session_id: sessionId });
-    navigate("/mod");
+    navigate("/games");
   }
 
   function usernameFor(userId: string | null): string {
@@ -122,7 +122,7 @@ export default function UnoSpectatorPage() {
           <div style={{ fontSize: "2.5rem" }}>👀</div>
           <h1>Seat taken</h1>
           <p className="text-muted">{claimError}</p>
-          <button className="btn btn-secondary" onClick={() => navigate("/mod")}>
+          <button className="btn btn-secondary" onClick={() => navigate("/games")}>
             Back to MOD dashboard
           </button>
         </div>

@@ -125,23 +125,26 @@ export default function ModDashboardPage() {
   async function handleForceReleaseLock() {
     if (
       !confirm(
-        "This clears the global lock that stops two sessions from running at once. " +
-          "Only use this if starting a new session says one's already running, but nothing shows above. Continue?"
+        "This clears any game lock that is still held. Locks for sessions that already ended are cleared automatically, and a live game's lock is only cleared if you are a MOD. Continue?"
       )
     ) {
       return;
     }
     setClearingLock(true);
     setLockResult(null);
-    const { data, error } = await invokeFunction("trivia-host", { action: "force_release_lock" });
+    // Locks are per game now, so clear every game's (stale or MOD-cleared) lock.
+    const fns = ["trivia-host", "feud-host", "uno-host", "impostor-host", "wheel-host", "rebus-host"];
+    const results = await Promise.all(fns.map((fn) => invokeFunction(fn, { action: "force_release_lock" })));
     setClearingLock(false);
-    if (error) {
-      setLockResult(error);
+    const failed = results.find((r) => r.error);
+    if (failed?.error) {
+      setLockResult(failed.error);
       return;
     }
+    const cleared = results.map((r) => r.data?.released).filter(Boolean) as { game: string; started_at: string }[];
     setLockResult(
-      data.released
-        ? `Cleared a stuck ${data.released.game} lock (started ${new Date(data.released.started_at).toLocaleString()}).`
+      cleared.length > 0
+        ? `Cleared ${cleared.length} lock${cleared.length === 1 ? "" : "s"}: ${cleared.map((c) => c.game).join(", ")}.`
         : "Nothing was stuck — there was no lock to clear."
     );
   }

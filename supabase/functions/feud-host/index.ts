@@ -17,10 +17,12 @@ import {
   jsonResponse,
   handleOptions,
   getAdminClient,
-  requireMod,
+  requireMember,
   feudReveaLeastToMostIndices,
   claimSessionLock,
   releaseSessionLock,
+  requireSessionHost,
+  claimMemberSlot,
   forceReleaseSessionLock,
   claimSpectatorSeat,
   releaseSpectatorSeat,
@@ -55,9 +57,9 @@ Deno.serve(async (req) => {
   const preflight = handleOptions(req);
   if (preflight) return preflight;
 
-  const auth = await requireMod(req);
+  const auth = await requireMember(req);
   if ("error" in auth) return auth.error;
-  const { user } = auth;
+  const { user, profile } = auth;
 
   const admin = getAdminClient();
 
@@ -65,9 +67,40 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, session_id } = body;
 
+    // Any member can host now, so being allowed in here no longer means "may run
+    // THIS session": every host action except starting one (or the per-member
+    // spectate / stale-lock actions) must come from that session's own host,
+    // or a MOD stepping in.
+    if (!["create_session", "force_release_lock", "claim_spectator", "release_spectator"].includes(action)) {
+      const hostError = await requireSessionHost(admin, { game: "feud", sessionId: body.session_id, userId: user.id, isMod: !!profile.is_mod });
+      if (hostError) return hostError;
+    }
+
     switch (action) {
       case "create_session": {
-        const { feud_set_id, team_a_name, team_b_name } = body;
+        const { team_a_name, team_b_name } = body;
+        let feud_set_id: string | undefined = body.feud_set_id;
+
+        // Members start Family Feud without choosing a set: no set given means
+        // "pick a random set that has board questions" (same spirit as the
+        // mixed Trivia / Type What You See sessions).
+        if (!feud_set_id) {
+          const { data: sets } = await admin.from("feud_sets").select("id");
+          const shuffled = (sets ?? []).map((x) => x.id as string).sort(() => Math.random() - 0.5);
+          for (const candidate of shuffled) {
+            const { count: c } = await admin
+              .from("feud_round_questions")
+              .select("id", { count: "exact", head: true })
+              .eq("feud_set_id", candidate);
+            if (c && c > 0) {
+              feud_set_id = candidate;
+              break;
+            }
+          }
+          if (!feud_set_id) {
+            return jsonResponse({ error: "No Family Feud sets are ready yet" }, 400);
+          }
+        }
 
         const { count } = await admin
           .from("feud_round_questions")
@@ -80,6 +113,11 @@ Deno.serve(async (req) => {
         const sessionId = crypto.randomUUID();
         const lockError = await claimSessionLock(admin, { game: "feud", sessionId, hostId: user.id });
         if (lockError) return lockError;
+        const slotError = await claimMemberSlot(admin, { userId: user.id, game: "feud", sessionId, role: "host" });
+        if (slotError) {
+          await releaseSessionLock(admin, sessionId);
+          return slotError;
+        }
 
         let joinCode = randomJoinCode();
         for (let i = 0; i < 5; i++) {
@@ -563,14 +601,15 @@ Deno.serve(async (req) => {
       case "release_spectator": {
         // Any mod can release the seat, not just whoever holds it — same
         // reasoning as trivia-host's.
-        await releaseSpectatorSeat(admin, "feud_sessions", session_id);
+        await releaseSpectatorSeat(admin, "feud_sessions", session_id, user.id);
         return jsonResponse({ ok: true });
       }
 
       case "force_release_lock": {
         // Same escape hatch as trivia-host's — any mod can clear a stuck
         // global lock, not just whoever was hosting when it got stranded.
-        const released = await forceReleaseSessionLock(admin);
+        const { released, error: forceError } = await forceReleaseSessionLock(admin, { game: "feud", callerId: user.id, callerIsMod: !!profile.is_mod });
+        if (forceError) return forceError;
         return jsonResponse({ ok: true, released });
       }
 

@@ -47,6 +47,8 @@ import {
   getAdminClient,
   requireMember,
   releaseSessionLock,
+  claimMemberSlot,
+  releaseMemberSlot,
   spinWheel,
   maskWheelPhrase,
   countWheelLetterOccurrences,
@@ -390,10 +392,15 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: `This game is full (max ${WHEEL_MAX_PLAYERS} players)` }, 409);
         }
 
+        const slotError = await claimMemberSlot(admin, { userId: user.id, game: "wheel", sessionId: session_id, role: "player" });
+        if (slotError) return slotError;
         const { error } = await admin
           .from("wheel_participants")
           .upsert({ session_id, user_id: user.id, seat_order: count ?? 0 }, { onConflict: "session_id,user_id" });
-        if (error) return jsonResponse({ error: "Could not join" }, 500);
+        if (error) {
+          await releaseMemberSlot(admin, { userId: user.id, sessionId: session_id, slotKind: "active" });
+          return jsonResponse({ error: "Could not join" }, 500);
+        }
         return jsonResponse({ ok: true });
       }
 
@@ -404,7 +411,8 @@ Deno.serve(async (req) => {
 
         const { data: mine } = await admin.from("wheel_participants").select("team_id").eq("session_id", session_id).eq("user_id", user.id).maybeSingle();
         await admin.from("wheel_participants").delete().eq("session_id", session_id).eq("user_id", user.id);
-
+        await releaseMemberSlot(admin, { userId: user.id, sessionId: session_id, slotKind: "active" });
+        
         if (session.game_mode === "team" && mine?.team_id) {
           const { data: teammates } = await admin
             .from("wheel_participants")
@@ -446,12 +454,15 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: `This game already has the maximum of ${WHEEL_MAX_TEAMS} teams` }, 409);
         }
 
+        const slotError = await claimMemberSlot(admin, { userId: user.id, game: "wheel", sessionId: session_id, role: "player" });
+        if (slotError) return slotError;
         const { data: team, error: teamError } = await admin
           .from("wheel_teams")
           .insert({ session_id, name: trimmedName, seat_order: count ?? 0 })
           .select()
           .single();
         if (teamError || !team) {
+          await releaseMemberSlot(admin, { userId: user.id, sessionId: session_id, slotKind: "active" });
           return jsonResponse({ error: teamError?.code === "23505" ? "A team with that name already exists" : "Could not create that team" }, teamError?.code === "23505" ? 409 : 500);
         }
 
@@ -478,6 +489,8 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: `That team is full (max ${WHEEL_MAX_TEAM_SIZE})` }, 409);
         }
 
+        const slotError = await claimMemberSlot(admin, { userId: user.id, game: "wheel", sessionId: session_id, role: "player" });
+        if (slotError) return slotError;
         const { count: totalParticipants } = await admin.from("wheel_participants").select("id", { count: "exact", head: true }).eq("session_id", session_id);
         await admin.from("wheel_participants").insert({ session_id, user_id: user.id, seat_order: totalParticipants ?? 0, team_id, line_position: count ?? 0 });
         return jsonResponse({ ok: true });

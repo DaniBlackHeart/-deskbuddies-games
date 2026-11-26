@@ -10,6 +10,7 @@ import {
   handleOptions,
   getAdminClient,
   requireMember,
+  claimMemberSlot,
   computeLeaderboard,
   resolveWrongPenalty,
 } from "../_shared/utils.ts";
@@ -40,6 +41,8 @@ Deno.serve(async (req) => {
     // Spectators watch read-only and should never show up in the
     // participant list, "who's answered," or standings.
     if (!spectator) {
+      const slotError = await claimMemberSlot(admin, { userId: user.id, game: "trivia", sessionId: session_id, role: "player" });
+      if (slotError) return slotError;
       await admin
         .from("session_participants")
         .upsert({ session_id, user_id: user.id }, { onConflict: "session_id,user_id" });

@@ -1,219 +1,111 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabaseClient";
-import PixelIcon, { type PixelIconName } from "./PixelIcon";
+import { invokeFunction } from "../lib/supabaseClient";
+import { gameInfo } from "../lib/gameCatalog";
+import { useLiveGames } from "../lib/useLiveGames";
+import PixelIcon from "./PixelIcon";
 
-// Sits at the top of the member dashboard and answers "is anything happening
-// right now?" across the whole catalogue. There's no shared games/sessions
-// table (see PROJECT_CONTEXT.md §5) and active_session_lock is intentionally
-// not client-facing (0008_active_session_lock.sql — it exists to enforce the
-// one-live-session-at-a-time rule server-side, not to announce who's
-// hosting), so this checks each game's own session table the same way that
-// game's own Lobby page already does — same status filters, just all six at
-// once. Only one will ever come back non-null thanks to that lock.
-
-type LiveGame = {
-  key: string;
-  icon: PixelIconName;
-  title: string;
-  lobbyPath: string;
-  status: string;
-  detail: string | null;
-};
-
-async function checkTrivia(): Promise<LiveGame | null> {
-  const { data } = await supabase
-    .from("trivia_sessions")
-    .select("status, question_sets(name)")
-    .in("status", ["lobby", "live", "grading"])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
-  const row = data as unknown as { status: string; question_sets: { name: string } | null };
-  return {
-    key: "trivia",
-    icon: "game-trivia",
-    title: "Trivia Night",
-    lobbyPath: "/trivia",
-    status: row.status,
-    detail: row.question_sets?.name ?? "Random mix",
-  };
-}
-
-async function checkFeud(): Promise<LiveGame | null> {
-  const { data } = await supabase
-    .from("feud_sessions")
-    .select("status, feud_sets(name)")
-    .neq("status", "ended")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
-  const row = data as unknown as { status: string; feud_sets: { name: string } | null };
-  return {
-    key: "feud",
-    icon: "game-family-feud",
-    title: "Family Feud",
-    lobbyPath: "/feud/lobby",
-    status: row.status,
-    detail: row.feud_sets?.name ?? null,
-  };
-}
-
-async function checkUno(): Promise<LiveGame | null> {
-  const { data } = await supabase
-    .from("uno_sessions")
-    .select("status")
-    .neq("status", "ended")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
-  return {
-    key: "uno",
-    icon: "game-uno",
-    title: "UNO",
-    lobbyPath: "/uno/lobby",
-    status: (data as { status: string }).status,
-    detail: null,
-  };
-}
-
-async function checkImpostor(): Promise<LiveGame | null> {
-  const { data } = await supabase
-    .from("impostor_sessions")
-    .select("status, category_name")
-    .neq("status", "ended")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
-  const row = data as unknown as { status: string; category_name: string | null };
-  return {
-    key: "impostor",
-    icon: "game-impostor-who",
-    title: "Impostor WHO?",
-    lobbyPath: "/impostor/lobby",
-    status: row.status,
-    detail: row.category_name ?? null,
-  };
-}
-
-async function checkWheel(): Promise<LiveGame | null> {
-  const { data } = await supabase
-    .from("wheel_sessions")
-    .select("status")
-    .neq("status", "ended")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
-  return {
-    key: "wheel",
-    icon: "game-wheel-of-fortune",
-    title: "Wheel of Fortune",
-    lobbyPath: "/wheel/lobby",
-    status: (data as { status: string }).status,
-    detail: null,
-  };
-}
-
-async function checkRebus(): Promise<LiveGame | null> {
-  const { data } = await supabase
-    .from("rebus_sessions")
-    .select("status, game_mode")
-    .neq("status", "ended")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
-  const row = data as unknown as { status: string; game_mode: string };
-  return {
-    key: "rebus",
-    icon: "game-type-what-you-see",
-    title: "Type What You See",
-    lobbyPath: "/rebus/lobby",
-    status: row.status,
-    detail: row.game_mode === "team" ? "Team mode" : "Solo mode",
-  };
-}
-
-// Order doubles as tie-break priority if the lock is ever bypassed/stale —
-// doesn't matter in practice since at most one of these resolves non-null.
-const CHECKS = [checkTrivia, checkFeud, checkUno, checkImpostor, checkWheel, checkRebus];
-const WATCHED_TABLES = [
-  "trivia_sessions",
-  "feud_sessions",
-  "uno_sessions",
-  "impostor_sessions",
-  "wheel_sessions",
-  "rebus_sessions",
-];
+// Sits on Home and answers "what's happening right now?" for every game at
+// once. Up to six games (one per game) can be live together, so this lists
+// them all. It reads ONE database call (live_games(), migration 0043), not six
+// table checks and six realtime listeners.
 
 export default function ActiveGameStatus() {
-  const [active, setActive] = useState<LiveGame | null | undefined>(undefined);
+  const { games, refresh } = useLiveGames();
+  const [message, setMessage] = useState<string | null>(null);
 
-  async function refresh() {
-    const results = await Promise.all(CHECKS.map((check) => check()));
-    setActive(results.find((r) => r !== null) ?? null);
-  }
-
-  useEffect(() => {
+  async function stopWatching() {
+    setMessage(null);
+    const { error } = await invokeFunction("my-game-slots", { action: "release_spectate" });
+    if (error) setMessage(error);
     refresh();
-    // One channel, one listener per game table — mirrors how each Lobby
-    // page watches its own table, just consolidated since this component
-    // needs to watch all six at once.
-    const channel = supabase.channel("dashboard-active-game-watch");
-    WATCHED_TABLES.forEach((table) => {
-      channel.on("postgres_changes", { event: "*", schema: "public", table }, () => refresh());
-    });
-    channel.subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+  }
 
-  if (active === undefined) {
+  if (games === undefined) {
     return (
       <div className="card card--tight" style={{ marginBottom: "24px" }}>
         <p className="text-muted" style={{ margin: 0 }}>
-          Checking for a live game…
+          Checking for live games…
         </p>
       </div>
     );
   }
 
-  if (active === null) {
+  if (games.length === 0) {
     return (
-      <div className="card card--tight" style={{ marginBottom: "24px" }}>
+      <div className="card card--tight row-between" style={{ marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
         <p className="text-muted" style={{ margin: 0 }}>
-          No game is live right now — keep an eye on Discord for the next announcement!
+          No game is live right now. Start one in Reality Break, or keep an eye on Discord.
         </p>
+        <Link to="/games" className="btn btn-secondary btn-sm">
+          Open Reality Break
+        </Link>
       </div>
     );
   }
-
-  const isLobby = active.status === "lobby";
 
   return (
-    <div className="card card--tight row-between" style={{ marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
-      <div className="row" style={{ gap: "12px" }}>
-        <PixelIcon name={active.icon} size={32} />
-        <div>
-          <div className="row" style={{ gap: "8px" }}>
-            <strong>{active.title}</strong>
-            <span className="badge badge-live">🔴 Live</span>
+    <div className="stack" style={{ marginBottom: "24px", gap: "12px" }}>
+      {games.map((g) => {
+        const info = gameInfo(g.game);
+        if (!info) return null;
+        const isLobby = g.status === "lobby";
+        return (
+          <div key={g.session_id} className="card card--tight row-between" style={{ flexWrap: "wrap", gap: "12px" }}>
+            <div className="row" style={{ gap: "12px" }}>
+              <PixelIcon name={info.icon} size={32} />
+              <div>
+                <div className="row" style={{ gap: "8px" }}>
+                  <strong>{info.title}</strong>
+                  <span className="badge badge-live">🔴 Live</span>
+                </div>
+                <p className="hint" style={{ margin: 0 }}>
+                  {isLobby ? "Lobby is open." : "Game in progress."}
+                  {g.host_username ? ` Hosted by ${g.host_username}.` : ""}
+                  {` ${g.player_count} ${g.player_count === 1 ? "player" : "players"}.`}
+                  {g.my_role === "host" && " You're hosting."}
+                  {g.my_role === "player" && " You're in this game."}
+                  {g.i_am_spectating && " You're watching."}
+                </p>
+              </div>
+            </div>
+            <div className="row" style={{ gap: "8px" }}>
+              {g.my_role === "host" ? (
+                <Link to={info.hostPath(g.session_id)} className="btn btn-primary btn-sm">
+                  Host controls
+                </Link>
+              ) : (
+                <>
+                  <Link to={info.lobbyPath} className="btn btn-primary btn-sm">
+                    {g.my_role === "player" ? "Back to game" : `Join ${info.title}`}
+                  </Link>
+                  {g.i_am_spectating ? (
+                    <>
+                      <Link to={info.spectatePath(g.session_id)} className="btn btn-secondary btn-sm">
+                        Keep watching
+                      </Link>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={stopWatching}>
+                        Stop watching
+                      </button>
+                    </>
+                  ) : (
+                    g.my_role !== "player" && (
+                      <Link to={info.spectatePath(g.session_id)} className="btn btn-secondary btn-sm">
+                        Watch
+                      </Link>
+                    )
+                  )}
+                </>
+              )}
+            </div>
           </div>
-          <p className="hint" style={{ margin: 0 }}>
-            {active.detail && `${active.detail} — `}
-            {isLobby ? "Lobby is open, join before it starts." : "Game in progress."}
-          </p>
-        </div>
-      </div>
-      <Link to={active.lobbyPath} className="btn btn-primary">
-        Join {active.title}
-      </Link>
+        );
+      })}
+      {message && (
+        <p className="hint" role="alert" style={{ margin: 0 }}>
+          {message}
+        </p>
+      )}
     </div>
   );
 }

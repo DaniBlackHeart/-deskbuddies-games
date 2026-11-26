@@ -224,7 +224,7 @@ export default function HostImpostorSessionPage() {
                 <strong>{session.revealed_secret_word}</strong>
               </p>
             )}
-            <button className="btn btn-secondary" style={{ marginTop: "12px" }} onClick={() => navigate("/mod")}>
+            <button className="btn btn-secondary" style={{ marginTop: "12px" }} onClick={() => navigate("/games")}>
               Back to dashboard
             </button>
           </div>

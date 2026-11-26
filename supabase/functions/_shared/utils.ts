@@ -273,104 +273,225 @@ export function typedAnswerMatches(submitted: string, accepted: string[]): boole
   return accepted.some((a) => normalizeAnswer(a) === normalizedSubmitted);
 }
 
-// --- Cross-game session exclusivity ---
+// --- Per-game session exclusivity + one-game-at-a-time per member ---
+
+export type GameKey = "trivia" | "feud" | "uno" | "impostor" | "wheel" | "rebus";
+
+const GAME_LABELS: Record<GameKey, string> = {
+  trivia: "Trivia Night",
+  feud: "Family Feud",
+  uno: "UNO",
+  impostor: "Impostor WHO?",
+  wheel: "Wheel of Fortune",
+  rebus: "Type What You See",
+};
+
+const SESSION_TABLES: Record<GameKey, string> = {
+  trivia: "trivia_sessions",
+  feud: "feud_sessions",
+  uno: "uno_sessions",
+  impostor: "impostor_sessions",
+  wheel: "wheel_sessions",
+  rebus: "rebus_sessions",
+};
+
+export function gameLabel(game: string): string {
+  return GAME_LABELS[game as GameKey] ?? game;
+}
+
+/** True when the session row no longer exists or has ended (so any lock/slot pointing at it is stale). */
+async function sessionIsOver(admin: ReturnType<typeof getAdminClient>, game: string, sessionId: string): Promise<boolean> {
+  const table = SESSION_TABLES[game as GameKey];
+  if (!table) return true;
+  const { data } = await admin.from(table).select("status").eq("id", sessionId).maybeSingle();
+  return !data || data.status === "ended";
+}
 
 /**
- * Atomically claims the single global "a session is running" lock, so at
- * most one session — of ANY game — can be live at a time. Call this before
- * creating a new session row; if it returns non-null, stop and return that
- * response instead of creating the session.
+ * Atomically claims THIS GAME's session lock (primary key = game), so at most
+ * one session per game can be live at a time — up to six games at once. Call
+ * before creating a new session row; if it returns non-null, stop and return
+ * that response. A lock left behind by a session that already ended is
+ * cleared automatically instead of blocking the game forever.
  */
 export async function claimSessionLock(
   admin: ReturnType<typeof getAdminClient>,
   opts: { game: string; sessionId: string; hostId: string }
 ): Promise<Response | null> {
-  const { error } = await admin
-    .from("active_session_lock")
-    .insert({ lock_key: true, game: opts.game, session_id: opts.sessionId, host_id: opts.hostId });
-
+  const row = { game: opts.game, session_id: opts.sessionId, host_id: opts.hostId };
+  const { error } = await admin.from("active_session_lock").insert(row);
   if (!error) return null;
 
-  const { data: existing } = await admin.from("active_session_lock").select("game").maybeSingle();
+  const { data: existing } = await admin
+    .from("active_session_lock")
+    .select("session_id")
+    .eq("game", opts.game)
+    .maybeSingle();
+
+  if (existing && (await sessionIsOver(admin, opts.game, existing.session_id))) {
+    await releaseSessionLock(admin, existing.session_id);
+    await releaseSessionSlots(admin, existing.session_id);
+    const retry = await admin.from("active_session_lock").insert(row);
+    if (!retry.error) return null;
+  }
+
   return jsonResponse(
-    { error: `A ${existing?.game ?? "different"} session is already running. End it before starting a new one.` },
+    { error: `A ${gameLabel(opts.game)} session is already running. You can join or watch it, or wait until it ends.` },
     409
   );
 }
 
-/** Releases the global session lock. Safe to call even if it's already gone. */
+/** Releases a session's game lock. Safe to call even if it's already gone. */
 export async function releaseSessionLock(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
   await admin.from("active_session_lock").delete().eq("session_id", sessionId);
+  // A session ending (or failing to start) frees every member's slot for it.
+  await releaseSessionSlots(admin, sessionId);
 }
 
 /**
- * Force-clears the global session lock regardless of who holds it or what
- * session it points to — the "it crashed / somebody forgot to end it"
- * escape hatch, same reasoning as trivia-host's release_spectator (any mod
- * can release it, not just whoever holds it, so it can't get permanently
- * stuck). Returns the cleared row, if any, so the caller can tell the mod
- * what just got released.
+ * Force-clears one game's lock when it is stuck. Allowed only when the lock is
+ * stale (its session ended or is gone), or the caller is that session's host
+ * or a MOD — a plain member can never kill someone else's live game.
  */
-export async function forceReleaseSessionLock(admin: ReturnType<typeof getAdminClient>) {
-  const { data } = await admin
-    .from("active_session_lock")
+export async function forceReleaseSessionLock(
+  admin: ReturnType<typeof getAdminClient>,
+  opts: { game: string; callerId: string; callerIsMod: boolean }
+): Promise<{ released: { game: string; session_id: string; host_id: string; started_at: string } | null; error?: Response }> {
+  const { data: lock } = await admin.from("active_session_lock").select("*").eq("game", opts.game).maybeSingle();
+  if (!lock) return { released: null };
+
+  const stale = await sessionIsOver(admin, opts.game, lock.session_id);
+  if (!stale && !opts.callerIsMod && lock.host_id !== opts.callerId) {
+    return { released: null, error: jsonResponse({ error: "Only the host or a MOD can clear a live session's lock" }, 403) };
+  }
+  await releaseSessionLock(admin, lock.session_id);
+  await releaseSessionSlots(admin, lock.session_id);
+  return { released: lock };
+}
+
+/**
+ * Claims the member's single "active" slot (hosting OR playing) or their
+ * single "spectate" slot. A member can hold one of each at the same time, but
+ * not two of the same kind. Re-claiming the same session with the same role
+ * (page refresh) succeeds. A slot pointing at an ended session is cleared.
+ */
+export async function claimMemberSlot(
+  admin: ReturnType<typeof getAdminClient>,
+  opts: { userId: string; game: string; sessionId: string; role: "host" | "player" | "spectator" }
+): Promise<Response | null> {
+  const slotKind = opts.role === "spectator" ? "spectate" : "active";
+  const row = { user_id: opts.userId, slot_kind: slotKind, game: opts.game, session_id: opts.sessionId, role: opts.role };
+
+  // Cheap path first: refreshes and repeat polls re-claim the same session.
+  const readSlot = () =>
+    admin
+      .from("member_game_slots")
+      .select("game, session_id, role")
+      .eq("user_id", opts.userId)
+      .eq("slot_kind", slotKind)
+      .maybeSingle();
+
+  let { data: existing } = await readSlot();
+  if (existing && existing.session_id === opts.sessionId && existing.role === opts.role) return null;
+
+  if (!existing) {
+    if (!(await admin.from("member_game_slots").insert(row)).error) return null;
+    // Lost a race with a simultaneous claim — look again.
+    ({ data: existing } = await readSlot());
+    if (existing && existing.session_id === opts.sessionId && existing.role === opts.role) return null;
+  }
+
+  if (existing && (await sessionIsOver(admin, existing.game, existing.session_id))) {
+    await admin.from("member_game_slots").delete().eq("user_id", opts.userId).eq("slot_kind", slotKind);
+    if (!(await admin.from("member_game_slots").insert(row)).error) return null;
+  }
+
+  if (slotKind === "spectate") {
+    return jsonResponse(
+      { error: `You're already watching a ${gameLabel(existing?.game ?? "")} game. Stop watching it first — you can only watch one game at a time.` },
+      409
+    );
+  }
+  if (existing && existing.session_id === opts.sessionId) {
+    return jsonResponse({ error: "You're hosting this game, so you can't also play in it." }, 409);
+  }
+  return jsonResponse(
+    { error: `You're already in a ${gameLabel(existing?.game ?? "")} game. Finish or leave it before joining or hosting another.` },
+    409
+  );
+}
+
+/** Frees one member's slot for a given session (leaving a lobby, stopping watching). */
+export async function releaseMemberSlot(
+  admin: ReturnType<typeof getAdminClient>,
+  opts: { userId: string; sessionId: string; slotKind: "active" | "spectate" }
+) {
+  await admin
+    .from("member_game_slots")
     .delete()
-    .eq("lock_key", true)
-    .select()
+    .eq("user_id", opts.userId)
+    .eq("session_id", opts.sessionId)
+    .eq("slot_kind", opts.slotKind);
+}
+
+/** Frees EVERY member's slot for a session — call whenever a session ends. */
+export async function releaseSessionSlots(admin: ReturnType<typeof getAdminClient>, sessionId: string) {
+  await admin.from("member_game_slots").delete().eq("session_id", sessionId);
+}
+
+/**
+ * Host-ownership guard for every host action after create_session. Any member
+ * can host now, so "is a MOD" no longer implies "may run this session": only
+ * that session's host, or a MOD stepping in to rescue it, may.
+ */
+export async function requireSessionHost(
+  admin: ReturnType<typeof getAdminClient>,
+  opts: { game: GameKey; sessionId: string | undefined; userId: string; isMod: boolean }
+): Promise<Response | null> {
+  if (!opts.sessionId) return jsonResponse({ error: "session_id is required" }, 400);
+  const { data: session } = await admin
+    .from(SESSION_TABLES[opts.game])
+    .select("host_id")
+    .eq("id", opts.sessionId)
     .maybeSingle();
-  return data as { game: string; session_id: string; host_id: string; started_at: string } | null;
+  if (!session) return jsonResponse({ error: "Session not found" }, 404);
+  if (session.host_id !== opts.userId && !opts.isMod) {
+    return jsonResponse({ error: "Only the host can do that" }, 403);
+  }
+  return null;
 }
 
 // --- Spectator seat (single-claim "who's currently watching") ---
 
 /**
- * Atomically claims a single-seat spectator slot on a session row. Only one
- * user can hold it at a time. The read-then-check below exists only to
- * return a friendlier "taken by X" message in the common case — the actual
- * atomicity comes from the conditional update's .is("spectator_id", null),
- * which loses a genuine race cleanly instead of letting both callers win.
+ * Spectating now has no single "seat" per session — any member may watch.
+ * The limit is per MEMBER: they can watch one game at a time, enforced by the
+ * "spectate" slot in member_game_slots. (sessions.spectator_id is left in the
+ * schema but no longer written.)
  */
 export async function claimSpectatorSeat(
   admin: ReturnType<typeof getAdminClient>,
   opts: { table: string; sessionId: string; userId: string }
 ): Promise<Response | null> {
-  const { data: session } = await admin
-    .from(opts.table)
-    .select("id, spectator_id")
-    .eq("id", opts.sessionId)
-    .single();
+  const game = (Object.keys(SESSION_TABLES) as GameKey[]).find((g) => SESSION_TABLES[g] === opts.table);
+  if (!game) return jsonResponse({ error: "Unknown game" }, 400);
+
+  const { data: session } = await admin.from(opts.table).select("id, status, host_id").eq("id", opts.sessionId).maybeSingle();
   if (!session) return jsonResponse({ error: "Session not found" }, 404);
+  if (session.status === "ended") return jsonResponse({ error: "This game has already ended" }, 409);
+  if (session.host_id === opts.userId) return jsonResponse({ error: "You're hosting this game" }, 409);
 
-  if (session.spectator_id === opts.userId) {
-    return null; // already theirs (e.g. page refresh) — treat as success
-  }
-
-  if (session.spectator_id) {
-    const { data: holder } = await admin
-      .from("profiles")
-      .select("username")
-      .eq("id", session.spectator_id)
-      .maybeSingle();
-    return jsonResponse({ error: `Already being watched by ${holder?.username ?? "another mod"}.` }, 409);
-  }
-
-  const { data: claimed } = await admin
-    .from(opts.table)
-    .update({ spectator_id: opts.userId })
-    .eq("id", opts.sessionId)
-    .is("spectator_id", null)
-    .select()
-    .maybeSingle();
-
-  if (!claimed) {
-    return jsonResponse({ error: "Someone just claimed this seat — try again." }, 409);
-  }
-  return null;
+  return claimMemberSlot(admin, { userId: opts.userId, game, sessionId: opts.sessionId, role: "spectator" });
 }
 
-/** Releases a session's spectator seat. Any mod can call this, not just whoever holds it — avoids it getting permanently stuck. */
-export async function releaseSpectatorSeat(admin: ReturnType<typeof getAdminClient>, table: string, sessionId: string) {
-  await admin.from(table).update({ spectator_id: null }).eq("id", sessionId);
+/** Stops the caller watching a session (frees their one spectate slot). */
+export async function releaseSpectatorSeat(
+  admin: ReturnType<typeof getAdminClient>,
+  _table: string,
+  sessionId: string,
+  userId: string
+) {
+  await releaseMemberSlot(admin, { userId, sessionId, slotKind: "spectate" });
 }
 
 // --- Trivia Night helpers ---

@@ -211,7 +211,7 @@ export default function RebusSpectatorPage() {
 
   async function handleStopWatching() {
     await supabase.functions.invoke("rebus-host", { body: { action: "release_spectator", session_id: sessionId } });
-    navigate("/mod");
+    navigate("/games");
   }
 
   if (phase === "loading") {
@@ -229,7 +229,7 @@ export default function RebusSpectatorPage() {
           <div style={{ fontSize: "2.5rem" }}>👀</div>
           <h1>Seat taken</h1>
           <p className="text-muted">{claimError}</p>
-          <button className="btn btn-secondary" onClick={() => navigate("/mod")}>
+          <button className="btn btn-secondary" onClick={() => navigate("/games")}>
             Back to MOD dashboard
           </button>
         </div>

@@ -427,17 +427,17 @@ export default function App() {
             <Route
               path="/mod/host/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <HostSessionPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/mod/spectate/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <SpectatorPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -459,33 +459,33 @@ export default function App() {
             <Route
               path="/mod/feud-host/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <HostFeudSessionPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/mod/feud-spectate/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <FeudSpectatorPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/mod/uno-host/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <HostUnoSessionPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/mod/uno-spectate/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <UnoSpectatorPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -507,17 +507,17 @@ export default function App() {
             <Route
               path="/mod/impostor-host/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <HostImpostorSessionPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/mod/impostor-spectate/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <ImpostorSpectatorPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -539,17 +539,17 @@ export default function App() {
             <Route
               path="/mod/wheel-host/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <HostWheelSessionPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/mod/wheel-spectate/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <WheelSpectatorPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -571,17 +571,17 @@ export default function App() {
             <Route
               path="/mod/rebus-host/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <HostRebusSessionPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/mod/rebus-spectate/:sessionId"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <RebusSpectatorPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
           </Routes>

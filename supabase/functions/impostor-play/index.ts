@@ -17,6 +17,7 @@ import {
   requireMember,
   nextUnoSeat,
   releaseSessionLock,
+  claimMemberSlot,
 } from "../_shared/utils.ts";
 
 const CLUE_WINDOW_MS = 45_000;
@@ -326,10 +327,13 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (existing) return jsonResponse({ ok: true }); // already joined (e.g. page refresh)
 
+        const slotError = await claimMemberSlot(admin, { userId: user.id, game: "impostor", sessionId: session_id, role: "player" });
+        if (slotError) return slotError;
         const { count } = await admin.from("impostor_participants").select("id", { count: "exact", head: true }).eq("session_id", session_id);
         const { error } = await admin.from("impostor_participants").insert({ session_id, user_id: user.id, seat_order: count ?? 0 });
         if (error) {
           console.error("impostor join failed", error);
+          await admin.from("member_game_slots").delete().eq("user_id", user.id).eq("session_id", session_id).eq("slot_kind", "active");
           return jsonResponse({ error: "Could not join" }, 500);
         }
         return jsonResponse({ ok: true });

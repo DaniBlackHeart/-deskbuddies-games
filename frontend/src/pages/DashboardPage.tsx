@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
-import ActiveGameStatus from "../components/ActiveGameStatus";
+import HostGameButton from "../components/HostGameButton";
 import PixelIcon, { type PixelIconName } from "../components/PixelIcon";
 import { useAuth } from "../contexts/AuthContext";
+import { GAME_CATALOG } from "../lib/gameCatalog";
+import { invokeFunction } from "../lib/supabaseClient";
+import { useLiveGames } from "../lib/useLiveGames";
 
 // Reality Break (the /games route): the games, one tap away. Follows the "Debbie
 // Reality Break" design, with the game icons from Game Icons v1.1. Only the six
@@ -11,14 +15,9 @@ import { useAuth } from "../contexts/AuthContext";
 // nothing here counts, tracks or pays anything. When one ships, move it into
 // GAMES (see claude/adding-a-new-game.md).
 
-const GAMES: { to: string; icon: PixelIconName; name: string; blurb: string }[] = [
-  { to: "/trivia", icon: "game-trivia", name: "Trivia Night", blurb: "Live-hosted trivia with a mix of multiple choice and typed answers." },
-  { to: "/uno/lobby", icon: "game-uno", name: "UNO", blurb: "Classic card matching." },
-  { to: "/feud/lobby", icon: "game-family-feud", name: "Family Feud", blurb: "Guess the most popular answers." },
-  { to: "/impostor/lobby", icon: "game-impostor-who", name: "Impostor WHO?", blurb: "Work out who is bluffing." },
-  { to: "/wheel/lobby", icon: "game-wheel-of-fortune", name: "Wheel of Fortune", blurb: "Spin and solve the phrase." },
-  { to: "/rebus/lobby", icon: "game-type-what-you-see", name: "Type What You See", blurb: "Type it fast and get it right." },
-];
+// The six live games come from GAME_CATALOG (lib/gameCatalog.ts). Every member can
+// host one: one live session per game, so up to six can run at once, and each
+// member can be in one game (hosting or playing) and watch one game at a time.
 
 const BRAIN_BREAKS: { icon: PixelIconName; name: string; blurb: string; tag: string }[] = [
   { icon: "game-daily-puzzle", name: "Daily Puzzle", blurb: "Guess today's five-letter word in six tries.", tag: "New" },
@@ -35,6 +34,16 @@ const LATER: { icon: PixelIconName; name: string; blurb: string }[] = [
 
 export default function DashboardPage() {
   const { profile } = useAuth();
+  const { games: live, refresh } = useLiveGames();
+  const [hostError, setHostError] = useState<string | null>(null);
+  const imInAGame = (live ?? []).some((l) => l.my_role !== null);
+
+  async function stopWatching() {
+    setHostError(null);
+    const { error } = await invokeFunction("my-game-slots", { action: "release_spectate" });
+    if (error) setHostError(error);
+    refresh();
+  }
 
   return (
     <div className="app-shell">
@@ -54,7 +63,11 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <ActiveGameStatus />
+        {hostError && (
+          <p className="hint" role="alert" style={{ margin: 0 }}>
+            {hostError}
+          </p>
+        )}
 
         <section aria-labelledby="rb-bb-h" className="rb-section">
           <div>
@@ -84,24 +97,57 @@ export default function DashboardPage() {
         <section aria-labelledby="rb-games-h" className="rb-section">
           <div>
             <h2 className="t-h2" id="rb-games-h" style={{ margin: 0 }}>Games</h2>
-            <p className="text-muted t-body" style={{ margin: "4px 0 0" }}>Play alone or with others. These are the games you already know, plus two on the way.</p>
+            <p className="text-muted t-body" style={{ margin: "4px 0 0" }}>Join a game that is already open, watch one, or host your own. Each game runs one session at a time.</p>
           </div>
           <div className="rb-grid">
-            {GAMES.map((g) => (
-              <article key={g.to} className="rb-card">
-                <span className="rb-icon" aria-hidden="true">
-                  <PixelIcon name={g.icon} size={64} />
-                </span>
-                <div className="rb-card__text">
-                  <h3 className="rb-card__title">{g.name}</h3>
-                  <p className="t-body text-muted" style={{ margin: 0 }}>{g.blurb}</p>
-                </div>
-                <span className="rb-tag">Live now</span>
-                <Link to={g.to} className="rb-open" aria-label={`Open ${g.name}`}>
-                  Open game
-                </Link>
-              </article>
-            ))}
+            {GAME_CATALOG.map((g) => {
+              const row = (live ?? []).find((l) => l.game === g.key);
+              return (
+                <article key={g.key} className="rb-card">
+                  <span className="rb-icon" aria-hidden="true">
+                    <PixelIcon name={g.icon} size={64} />
+                  </span>
+                  <div className="rb-card__text">
+                    <h3 className="rb-card__title">{g.title}</h3>
+                    <p className="t-body text-muted" style={{ margin: 0 }}>{g.blurb}</p>
+                  </div>
+                  <span className="rb-tag">
+                    {row
+                      ? `${row.status === "lobby" ? "Lobby open" : "In progress"} · ${row.player_count} ${row.player_count === 1 ? "player" : "players"}${row.host_username ? ` · hosted by ${row.host_username}` : ""}`
+                      : "Nobody's playing yet"}
+                  </span>
+                  <div className="rb-actions">
+                    {row ? (
+                      row.my_role === "host" ? (
+                        <Link to={g.hostPath(row.session_id)} className="rb-open">Host controls</Link>
+                      ) : (
+                        <>
+                          <Link to={g.lobbyPath} className="rb-open" aria-label={`Join ${g.title}`}>
+                            {row.my_role === "player" ? "Back to game" : "Join game"}
+                          </Link>
+                          {row.i_am_spectating ? (
+                            <>
+                              <Link to={g.spectatePath(row.session_id)} className="rb-open rb-open--secondary">Keep watching</Link>
+                              <button type="button" className="rb-open rb-open--secondary" onClick={stopWatching}>Stop watching</button>
+                            </>
+                          ) : (
+                            row.my_role !== "player" && (
+                              <Link to={g.spectatePath(row.session_id)} className="rb-open rb-open--secondary">Watch</Link>
+                            )
+                          )}
+                        </>
+                      )
+                    ) : imInAGame ? (
+                      <button type="button" className="rb-open rb-open--off" aria-disabled="true">
+                        Finish your current game first
+                      </button>
+                    ) : (
+                      <HostGameButton game={g} onError={setHostError} />
+                    )}
+                  </div>
+                </article>
+              );
+            })}
             {LATER.map((g) => (
               <article key={g.name} className="rb-card rb-card--later">
                 <span className="rb-icon" aria-hidden="true">

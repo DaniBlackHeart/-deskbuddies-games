@@ -11,6 +11,7 @@ import {
   handleOptions,
   getAdminClient,
   requireMember,
+  claimMemberSlot,
   typedAnswerMatches,
   resolveWrongPenalty,
   REBUS_SPEED_BONUS,
@@ -46,6 +47,8 @@ Deno.serve(async (req) => {
         if (session.game_mode !== "team") return jsonResponse({ error: "This session isn't in team mode" }, 409);
         if (session.status !== "lobby") return jsonResponse({ error: "Teams can only be set up before the game starts" }, 409);
 
+        const slotError = await claimMemberSlot(admin, { userId: user.id, game: "rebus", sessionId: session_id, role: "player" });
+        if (slotError) return slotError;
         const { data: team, error } = await admin
           .from("rebus_teams")
           .insert({ session_id, name: String(name).trim() })
@@ -73,6 +76,8 @@ Deno.serve(async (req) => {
         const { data: team } = await admin.from("rebus_teams").select("id").eq("id", team_id).eq("session_id", session_id).maybeSingle();
         if (!team) return jsonResponse({ error: "That team doesn't exist" }, 404);
 
+        const slotError = await claimMemberSlot(admin, { userId: user.id, game: "rebus", sessionId: session_id, role: "player" });
+        if (slotError) return slotError;
         await admin
           .from("rebus_participants")
           .upsert({ session_id, user_id: user.id, team_id }, { onConflict: "session_id,user_id" });

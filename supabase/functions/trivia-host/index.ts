@@ -10,12 +10,14 @@ import {
   jsonResponse,
   handleOptions,
   getAdminClient,
-  requireMod,
+  requireMember,
   computeLeaderboard,
   resolveWrongPenalty,
   resolveTimeoutPenalty,
   claimSessionLock,
   releaseSessionLock,
+  requireSessionHost,
+  claimMemberSlot,
   forceReleaseSessionLock,
   claimSpectatorSeat,
   releaseSpectatorSeat,
@@ -51,15 +53,24 @@ Deno.serve(async (req) => {
   const preflight = handleOptions(req);
   if (preflight) return preflight;
 
-  const auth = await requireMod(req);
+  const auth = await requireMember(req);
   if ("error" in auth) return auth.error;
-  const { user } = auth;
+  const { user, profile } = auth;
 
   const admin = getAdminClient();
 
   try {
     const body = await req.json();
     const { action } = body;
+
+    // Any member can host now, so being allowed in here no longer means "may run
+    // THIS session": every host action except starting one (or the per-member
+    // spectate / stale-lock actions) must come from that session's own host,
+    // or a MOD stepping in.
+    if (!["create_session", "force_release_lock", "claim_spectator", "release_spectator"].includes(action)) {
+      const hostError = await requireSessionHost(admin, { game: "trivia", sessionId: body.session_id, userId: user.id, isMod: !!profile.is_mod });
+      if (hostError) return hostError;
+    }
 
     switch (action) {
       case "create_session": {
@@ -95,6 +106,11 @@ Deno.serve(async (req) => {
         const sessionId = crypto.randomUUID();
         const lockError = await claimSessionLock(admin, { game: "trivia", sessionId, hostId: user.id });
         if (lockError) return lockError;
+        const slotError = await claimMemberSlot(admin, { userId: user.id, game: "trivia", sessionId, role: "host" });
+        if (slotError) {
+          await releaseSessionLock(admin, sessionId);
+          return slotError;
+        }
 
         let joinCode = randomJoinCode();
         for (let i = 0; i < 5; i++) {
@@ -372,7 +388,7 @@ Deno.serve(async (req) => {
         // Any mod can release the seat, not just whoever holds it — avoids
         // it getting permanently stuck if someone forgets to click "stop
         // watching" (e.g. closes their laptop mid-stream).
-        await releaseSpectatorSeat(admin, "trivia_sessions", session_id);
+        await releaseSpectatorSeat(admin, "trivia_sessions", session_id, user.id);
         return jsonResponse({ ok: true });
       }
 
@@ -382,7 +398,8 @@ Deno.serve(async (req) => {
         // (crash, dropped connection) between marking itself ended and
         // releasing the lock, nothing else can start until this runs. Any
         // mod can call it, not just whoever was hosting.
-        const released = await forceReleaseSessionLock(admin);
+        const { released, error: forceError } = await forceReleaseSessionLock(admin, { game: "trivia", callerId: user.id, callerIsMod: !!profile.is_mod });
+        if (forceError) return forceError;
         return jsonResponse({ ok: true, released });
       }
 

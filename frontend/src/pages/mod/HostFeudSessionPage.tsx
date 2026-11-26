@@ -566,7 +566,7 @@ export default function HostFeudSessionPage() {
     return (
       <div className="card text-center">
         <h2>Session ended</h2>
-        <button className="btn btn-secondary" style={{ marginTop: "12px" }} onClick={() => navigate("/mod/feud-sets")}>
+        <button className="btn btn-secondary" style={{ marginTop: "12px" }} onClick={() => navigate("/games")}>
           Back to Feud sets
         </button>
       </div>

@@ -194,7 +194,7 @@ export default function HostUnoSessionPage() {
         {session.status === "ended" && (
           <div className="card text-center">
             <h2>Game ended</h2>
-            <button className="btn btn-secondary" style={{ marginTop: "12px" }} onClick={() => navigate("/mod")}>
+            <button className="btn btn-secondary" style={{ marginTop: "12px" }} onClick={() => navigate("/games")}>
               Back to dashboard
             </button>
           </div>

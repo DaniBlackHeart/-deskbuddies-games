@@ -341,7 +341,7 @@ export default function HostWheelSessionPage() {
                 {session.bonus_won ? `Solved the Bonus Round for ${session.bonus_points_awarded} points!` : "Didn't solve the Bonus Round."}
               </p>
             )}
-            <button className="btn btn-secondary" style={{ marginTop: "12px" }} onClick={() => navigate("/mod")}>
+            <button className="btn btn-secondary" style={{ marginTop: "12px" }} onClick={() => navigate("/games")}>
               Back to dashboard
             </button>
           </div>

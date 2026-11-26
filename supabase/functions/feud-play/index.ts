@@ -14,6 +14,8 @@ import {
   handleOptions,
   getAdminClient,
   requireMember,
+  claimMemberSlot,
+  releaseMemberSlot,
   matchFeudAnswer,
   type FeudAnswer,
 } from "../_shared/utils.ts";
@@ -89,6 +91,8 @@ Deno.serve(async (req) => {
         if (!session) return jsonResponse({ error: "Session not found" }, 404);
         if (session.status !== "lobby") return jsonResponse({ error: "Teams are locked — the game has already started" }, 409);
 
+        const slotError = await claimMemberSlot(admin, { userId: user.id, game: "feud", sessionId: session_id, role: "player" });
+        if (slotError) return slotError;
         const { data: teamMembers } = await admin
           .from("feud_participants")
           .select("line_position")
@@ -110,6 +114,7 @@ Deno.serve(async (req) => {
         if (!session) return jsonResponse({ error: "Session not found" }, 404);
         if (session.status !== "lobby") return jsonResponse({ error: "Can't leave once the game has started" }, 409);
         await admin.from("feud_participants").delete().eq("session_id", session_id).eq("user_id", user.id);
+        await releaseMemberSlot(admin, { userId: user.id, sessionId: session_id, slotKind: "active" });
         return jsonResponse({ ok: true });
       }
 

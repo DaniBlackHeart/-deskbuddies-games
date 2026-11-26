@@ -13,12 +13,14 @@ import {
   jsonResponse,
   handleOptions,
   getAdminClient,
-  requireMod,
+  requireMember,
   buildUnoDeck,
   shuffle,
   nextUnoSeat,
   claimSessionLock,
   releaseSessionLock,
+  requireSessionHost,
+  claimMemberSlot,
   forceReleaseSessionLock,
   claimSpectatorSeat,
   releaseSpectatorSeat,
@@ -38,9 +40,9 @@ Deno.serve(async (req) => {
   const preflight = handleOptions(req);
   if (preflight) return preflight;
 
-  const auth = await requireMod(req);
+  const auth = await requireMember(req);
   if ("error" in auth) return auth.error;
-  const { user } = auth;
+  const { user, profile } = auth;
 
   const admin = getAdminClient();
 
@@ -48,11 +50,25 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, session_id } = body;
 
+    // Any member can host now, so being allowed in here no longer means "may run
+    // THIS session": every host action except starting one (or the per-member
+    // spectate / stale-lock actions) must come from that session's own host,
+    // or a MOD stepping in.
+    if (!["create_session", "force_release_lock", "claim_spectator", "release_spectator"].includes(action)) {
+      const hostError = await requireSessionHost(admin, { game: "uno", sessionId: body.session_id, userId: user.id, isMod: !!profile.is_mod });
+      if (hostError) return hostError;
+    }
+
     switch (action) {
       case "create_session": {
         const sessionId = crypto.randomUUID();
         const lockError = await claimSessionLock(admin, { game: "uno", sessionId, hostId: user.id });
         if (lockError) return lockError;
+        const slotError = await claimMemberSlot(admin, { userId: user.id, game: "uno", sessionId, role: "host" });
+        if (slotError) {
+          await releaseSessionLock(admin, sessionId);
+          return slotError;
+        }
 
         const { data: session, error } = await admin
           .from("uno_sessions")
@@ -213,12 +229,13 @@ Deno.serve(async (req) => {
       }
 
       case "release_spectator": {
-        await releaseSpectatorSeat(admin, "uno_sessions", session_id);
+        await releaseSpectatorSeat(admin, "uno_sessions", session_id, user.id);
         return jsonResponse({ ok: true });
       }
 
       case "force_release_lock": {
-        const released = await forceReleaseSessionLock(admin);
+        const { released, error: forceError } = await forceReleaseSessionLock(admin, { game: "uno", callerId: user.id, callerIsMod: !!profile.is_mod });
+        if (forceError) return forceError;
         return jsonResponse({ ok: true, released });
       }
 

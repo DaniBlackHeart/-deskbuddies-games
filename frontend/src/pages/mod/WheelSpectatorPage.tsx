@@ -134,7 +134,7 @@ export default function WheelSpectatorPage() {
         <div className="container container--narrow">
           <div className="card text-center">
             <p className="error-text">{claimError}</p>
-            <button className="btn btn-secondary" onClick={() => navigate("/mod")}>
+            <button className="btn btn-secondary" onClick={() => navigate("/games")}>
               Back to dashboard
             </button>
           </div>
