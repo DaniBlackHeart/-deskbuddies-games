@@ -157,8 +157,8 @@ export default function MemberHostPage({ gameKey }: { gameKey: GameKey }) {
     <div className="app-shell">
       <AppHeader />
       <main className="container db-page rb-page">
-        <Link to={game.lobbyPath} className="page-back">
-          <span aria-hidden="true">‹</span> Back to {game.title}
+        <Link to="/games" className="page-back">
+          <span aria-hidden="true">‹</span> Back to Reality Break
         </Link>
 
         <div className="row" style={{ gap: "var(--space-3)", alignItems: "center" }}>
