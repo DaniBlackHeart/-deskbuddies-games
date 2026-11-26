@@ -355,7 +355,7 @@ export default function HostSessionPage() {
 
         {session.status === "ended" && (
           <button className="btn btn-secondary" style={{ marginTop: "16px" }} onClick={() => navigate("/games")}>
-            Back to MOD dashboard
+            Back to Reality Break
           </button>
         )}
       </div>

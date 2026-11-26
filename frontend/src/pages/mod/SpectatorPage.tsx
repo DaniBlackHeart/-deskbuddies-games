@@ -177,7 +177,7 @@ export default function SpectatorPage() {
           <h1>Seat taken</h1>
           <p className="text-muted">{claimError}</p>
           <button className="btn btn-secondary" onClick={() => navigate("/games")}>
-            Back to MOD dashboard
+            Back to Reality Break
           </button>
         </div>
       </div>
