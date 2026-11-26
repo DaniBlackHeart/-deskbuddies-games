@@ -28,6 +28,8 @@ export type GameInfo = {
   blurb: string;
   lobbyPath: string;
   hostFunction: string;
+  /** The old MOD set/category page; members get the hosting view of it. UNO has none (it starts directly). */
+  hostListPath?: string;
   hostPath: (sessionId: string) => string;
   spectatePath: (sessionId: string) => string;
   hostOptions: HostOptions;
@@ -44,6 +46,7 @@ export const GAME_CATALOG: GameInfo[] = [
     blurb: "Live-hosted trivia with a mix of multiple choice and typed answers.",
     lobbyPath: "/trivia",
     hostFunction: "trivia-host",
+    hostListPath: "/mod/sets",
     hostPath: (id) => `/mod/host/${id}`,
     spectatePath: (id) => `/mod/spectate/${id}`,
     hostOptions: { pace: true },
@@ -69,6 +72,7 @@ export const GAME_CATALOG: GameInfo[] = [
     blurb: "Guess the most popular answers.",
     lobbyPath: "/feud/lobby",
     hostFunction: "feud-host",
+    hostListPath: "/mod/feud-sets",
     hostPath: (id) => `/mod/feud-host/${id}`,
     spectatePath: (id) => `/mod/feud-spectate/${id}`,
     hostOptions: {},
@@ -82,6 +86,7 @@ export const GAME_CATALOG: GameInfo[] = [
     blurb: "Work out who is bluffing.",
     lobbyPath: "/impostor/lobby",
     hostFunction: "impostor-host",
+    hostListPath: "/mod/impostor-categories",
     hostPath: (id) => `/mod/impostor-host/${id}`,
     spectatePath: (id) => `/mod/impostor-spectate/${id}`,
     hostOptions: {},
@@ -95,6 +100,7 @@ export const GAME_CATALOG: GameInfo[] = [
     blurb: "Spin and solve the phrase.",
     lobbyPath: "/wheel/lobby",
     hostFunction: "wheel-host",
+    hostListPath: "/mod/wheel-categories",
     hostPath: (id) => `/mod/wheel-host/${id}`,
     spectatePath: (id) => `/mod/wheel-spectate/${id}`,
     hostOptions: { teams: true },
@@ -107,6 +113,7 @@ export const GAME_CATALOG: GameInfo[] = [
     blurb: "Type it fast and get it right.",
     lobbyPath: "/rebus/lobby",
     hostFunction: "rebus-host",
+    hostListPath: "/mod/rebus-sets",
     hostPath: (id) => `/mod/rebus-host/${id}`,
     spectatePath: (id) => `/mod/rebus-spectate/${id}`,
     hostOptions: { pace: true, teams: true },

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import MemberHostPage from "../../components/MemberHostPage";
 import BackToModDashboardLink from "../../components/BackToModDashboardLink";
 import ImpostorImportModal from "../../components/ImpostorImportModal";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
@@ -9,7 +10,7 @@ import { deleteImpostorCategory, restoreImpostorCategory } from "../../lib/archi
 import type { ImpostorCategory } from "../../types";
 import type { ParsedCategory } from "../../utils/impostorParser";
 
-export default function ImpostorCategoriesPage() {
+function ImpostorCategoriesPageModView() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [categories, setCategories] = useState<ImpostorCategory[]>([]);
@@ -234,4 +235,11 @@ export default function ImpostorCategoriesPage() {
       {showImport && <ImpostorImportModal mode="categories" onCancel={() => setShowImport(false)} onConfirm={handleBulkImport} />}
     </div>
   );
+}
+
+// MODs keep this page exactly as it was (with the editors). Any other member sees
+// the hosting view of it: same options and set/category choice, no authoring.
+export default function ImpostorCategoriesPage() {
+  const { profile } = useAuth();
+  return profile?.is_mod ? <ImpostorCategoriesPageModView /> : <MemberHostPage gameKey="impostor" />;
 }

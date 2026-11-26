@@ -411,9 +411,9 @@ export default function App() {
             <Route
               path="/mod/sets"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <QuestionSetsPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -443,9 +443,9 @@ export default function App() {
             <Route
               path="/mod/feud-sets"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <FeudSetsPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -491,9 +491,9 @@ export default function App() {
             <Route
               path="/mod/impostor-categories"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <ImpostorCategoriesPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -523,9 +523,9 @@ export default function App() {
             <Route
               path="/mod/wheel-categories"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <WheelCategoriesPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -555,9 +555,9 @@ export default function App() {
             <Route
               path="/mod/rebus-sets"
               element={
-                <ModRoute>
+                <ProtectedRoute>
                   <RebusSetsPage />
-                </ModRoute>
+                </ProtectedRoute>
               }
             />
             <Route

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import MemberHostPage from "../../components/MemberHostPage";
 import BackToModDashboardLink from "../../components/BackToModDashboardLink";
 import WheelImportModal from "../../components/WheelImportModal";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
@@ -9,7 +10,7 @@ import { deleteWheelCategory, restoreWheelCategory } from "../../lib/archiveOrDe
 import type { WheelCategory } from "../../types";
 import type { ParsedWheelCategory } from "../../utils/wheelParser";
 
-export default function WheelCategoriesPage() {
+function WheelCategoriesPageModView() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [categories, setCategories] = useState<WheelCategory[]>([]);
@@ -249,4 +250,11 @@ export default function WheelCategoriesPage() {
       {showImport && <WheelImportModal mode="categories" onCancel={() => setShowImport(false)} onConfirm={handleBulkImport} />}
     </div>
   );
+}
+
+// MODs keep this page exactly as it was (with the editors). Any other member sees
+// the hosting view of it: same options and set/category choice, no authoring.
+export default function WheelCategoriesPage() {
+  const { profile } = useAuth();
+  return profile?.is_mod ? <WheelCategoriesPageModView /> : <MemberHostPage gameKey="wheel" />;
 }

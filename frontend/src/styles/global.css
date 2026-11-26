@@ -2317,6 +2317,10 @@ button.app-avatar:focus-visible {
 .rb-open--secondary, .rb-open--secondary:hover { background: var(--color-surface); color: var(--color-text); border-color: var(--color-border); cursor: pointer; font-family: inherit; }
 .rb-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .rb-host-options { display: flex; flex-direction: column; gap: 8px; }
+.rb-pill { min-height: 44px; padding: 0 18px; border-radius: 999px; font: inherit; font-weight: 700; cursor: pointer; border: 2px solid var(--color-border); background: var(--color-surface-raised); color: var(--color-text); }
+.rb-pill[aria-pressed="true"] { border-color: var(--color-primary); background: var(--color-secondary-soft); }
+.rb-choice { text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.rb-choice[aria-pressed="true"] { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary); }
 .rb-page a:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
 .rb-card--later { border-style: dashed; }
 .rb-tag--later { border-style: dashed; color: var(--color-text-muted); }

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import MemberHostPage from "../../components/MemberHostPage";
 import BackToModDashboardLink from "../../components/BackToModDashboardLink";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { deleteQuestionSet, restoreQuestionSet } from "../../lib/archiveOrDelete";
 import type { QuestionSet } from "../../types";
 
-export default function QuestionSetsPage() {
+function QuestionSetsPageModView() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [sets, setSets] = useState<QuestionSet[]>([]);
@@ -255,4 +256,11 @@ export default function QuestionSetsPage() {
       </div>
     </div>
   );
+}
+
+// MODs keep this page exactly as it was (with the editors). Any other member sees
+// the hosting view of it: same options and set/category choice, no authoring.
+export default function QuestionSetsPage() {
+  const { profile } = useAuth();
+  return profile?.is_mod ? <QuestionSetsPageModView /> : <MemberHostPage gameKey="trivia" />;
 }

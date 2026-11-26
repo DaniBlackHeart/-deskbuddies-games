@@ -33,7 +33,7 @@ export default function GameHostPanel({ gameKey }: { gameKey: GameKey }) {
   if (!row) {
     return (
       <div className="card stack" style={{ marginTop: "16px", gap: "12px" }}>
-        <h2 style={{ margin: 0 }}>Host {game.title}</h2>
+        <h2 style={{ margin: 0 }}>Start a game</h2>
         {inAnotherGame ? (
           <p className="text-muted" style={{ margin: 0 }}>
             You're already in another game. Finish or leave it before hosting this one.
@@ -41,9 +41,15 @@ export default function GameHostPanel({ gameKey }: { gameKey: GameKey }) {
         ) : (
           <>
             <p className="text-muted" style={{ margin: 0 }}>
-              Nobody is playing yet. Choose your options and open the lobby, and other members can join you.
+              Nobody is playing yet. Start one and other members can join or watch.
             </p>
-            <HostGameButton game={game} alwaysOpen />
+            {game.hostListPath ? (
+              <Link to={game.hostListPath} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
+                Host {game.title}
+              </Link>
+            ) : (
+              <HostGameButton game={game} />
+            )}
           </>
         )}
       </div>
