@@ -36,7 +36,8 @@ const UNITS: Partial<Record<GameKey, string>> = {
 export default function MemberHostPage({ gameKey }: { gameKey: GameKey }) {
   const game = gameInfo(gameKey)!;
   const navigate = useNavigate();
-  const { profile, user } = useAuth();
+  const { profile, session } = useAuth();
+  const userId = session?.user.id;
   const isMod = !!profile?.is_mod;
   const manage = isMod ? MANAGE[gameKey] : undefined;
   const [rows, setRows] = useState<ManageRow[] | undefined>(undefined);
@@ -79,9 +80,9 @@ export default function MemberHostPage({ gameKey }: { gameKey: GameKey }) {
   }, [game, isMod]);
 
   async function createNew() {
-    if (!manage || !user || !newName.trim()) return;
+    if (!manage || !userId || !newName.trim()) return;
     setBusyId("new");
-    const id = await manage.create(newName, user.id);
+    const id = await manage.create(newName, userId);
     setBusyId(null);
     if (!id) {
       setNotice("Could not create that. Please try again.");
@@ -334,7 +335,7 @@ export default function MemberHostPage({ gameKey }: { gameKey: GameKey }) {
               setImporting(false);
               setReloadKey((k) => k + 1);
             },
-            user?.id
+            userId
           )}
       </main>
     </div>
