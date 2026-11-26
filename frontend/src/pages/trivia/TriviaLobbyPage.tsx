@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import GameHostPanel from "../../components/GameHostPanel";
 import { supabase } from "../../lib/supabaseClient";
 import PixelIcon from "../../components/PixelIcon";
 
@@ -97,6 +98,8 @@ export default function TriviaLobbyPage() {
             </>
           )}
         </div>
+
+        <GameHostPanel gameKey="trivia" />
       </div>
     </div>
   );

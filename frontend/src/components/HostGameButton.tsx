@@ -9,10 +9,10 @@ import type { GameInfo } from "../lib/gameCatalog";
 // access to the authoring tools. Chill/Hard and Solo/Team are chosen up front
 // because they can't change once the lobby opens.
 
-export default function HostGameButton({ game, onError }: { game: GameInfo; onError?: (message: string | null) => void }) {
+export default function HostGameButton({ game, onError, alwaysOpen = false }: { game: GameInfo; onError?: (message: string | null) => void; alwaysOpen?: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(alwaysOpen);
   const [busy, setBusy] = useState(false);
   const [pace, setPace] = useState<"chill" | "hard">("chill");
   const [teams, setTeams] = useState<"solo" | "team">("solo");
@@ -56,7 +56,7 @@ export default function HostGameButton({ game, onError }: { game: GameInfo; onEr
 
   const hasOptions = !!(game.content || game.hostOptions.pace || game.hostOptions.teams);
 
-  if (!open) {
+  if (!open && !alwaysOpen) {
     return (
       <>
       <button
@@ -119,9 +119,11 @@ export default function HostGameButton({ game, onError }: { game: GameInfo; onEr
         <button type="button" className="rb-open" onClick={start} disabled={busy}>
           {busy ? "Opening the lobby…" : "Start hosting"}
         </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)} disabled={busy}>
-          Cancel
-        </button>
+        {!alwaysOpen && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)} disabled={busy}>
+            Cancel
+          </button>
+        )}
       </div>
     </div>
   );

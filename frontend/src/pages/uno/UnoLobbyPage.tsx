@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import GameHostPanel from "../../components/GameHostPanel";
 import UnoCardView from "../../components/UnoCardView";
 import { supabase, invokeFunction } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
@@ -164,6 +165,8 @@ export default function UnoLobbyPage() {
             </>
           )}
         </div>
+
+        <GameHostPanel gameKey="uno" />
       </div>
     </div>
   );

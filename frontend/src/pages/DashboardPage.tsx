@@ -1,11 +1,8 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
-import HostGameButton from "../components/HostGameButton";
 import PixelIcon, { type PixelIconName } from "../components/PixelIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { GAME_CATALOG } from "../lib/gameCatalog";
-import { invokeFunction } from "../lib/supabaseClient";
 import { useLiveGames } from "../lib/useLiveGames";
 
 // Reality Break (the /games route): the games, one tap away. Follows the "Debbie
@@ -34,16 +31,7 @@ const LATER: { icon: PixelIconName; name: string; blurb: string }[] = [
 
 export default function DashboardPage() {
   const { profile } = useAuth();
-  const { games: live, refresh } = useLiveGames();
-  const [hostError, setHostError] = useState<string | null>(null);
-  const imInAGame = (live ?? []).some((l) => l.my_role !== null);
-
-  async function stopWatching() {
-    setHostError(null);
-    const { error } = await invokeFunction("my-game-slots", { action: "release_spectate" });
-    if (error) setHostError(error);
-    refresh();
-  }
+  const { games: live } = useLiveGames();
 
   return (
     <div className="app-shell">
@@ -62,12 +50,6 @@ export default function DashboardPage() {
             </Link>
           )}
         </div>
-
-        {hostError && (
-          <p className="hint" role="alert" style={{ margin: 0 }}>
-            {hostError}
-          </p>
-        )}
 
         <section aria-labelledby="rb-bb-h" className="rb-section">
           <div>
@@ -97,7 +79,7 @@ export default function DashboardPage() {
         <section aria-labelledby="rb-games-h" className="rb-section">
           <div>
             <h2 className="t-h2" id="rb-games-h" style={{ margin: 0 }}>Games</h2>
-            <p className="text-muted t-body" style={{ margin: "4px 0 0" }}>Join a game that is already open, watch one, or host your own. Each game runs one session at a time.</p>
+            <p className="text-muted t-body" style={{ margin: "4px 0 0" }}>Open a game to join one that is running, watch it, or host your own. Each game runs one session at a time.</p>
           </div>
           <div className="rb-grid">
             {GAME_CATALOG.map((g) => {
@@ -116,35 +98,9 @@ export default function DashboardPage() {
                       ? `${row.status === "lobby" ? "Lobby open" : "In progress"} · ${row.player_count} ${row.player_count === 1 ? "player" : "players"}${row.host_username ? ` · hosted by ${row.host_username}` : ""}`
                       : "Nobody's playing yet"}
                   </span>
-                  <div className="rb-actions">
-                    {row ? (
-                      row.my_role === "host" ? (
-                        <Link to={g.hostPath(row.session_id)} className="rb-open">Host controls</Link>
-                      ) : (
-                        <>
-                          <Link to={g.lobbyPath} className="rb-open" aria-label={`Join ${g.title}`}>
-                            {row.my_role === "player" ? "Back to game" : "Join game"}
-                          </Link>
-                          {row.i_am_spectating ? (
-                            <>
-                              <Link to={g.spectatePath(row.session_id)} className="rb-open rb-open--secondary">Keep watching</Link>
-                              <button type="button" className="rb-open rb-open--secondary" onClick={stopWatching}>Stop watching</button>
-                            </>
-                          ) : (
-                            row.my_role !== "player" && (
-                              <Link to={g.spectatePath(row.session_id)} className="rb-open rb-open--secondary">Watch</Link>
-                            )
-                          )}
-                        </>
-                      )
-                    ) : imInAGame ? (
-                      <button type="button" className="rb-open rb-open--off" aria-disabled="true">
-                        Finish your current game first
-                      </button>
-                    ) : (
-                      <HostGameButton game={g} onError={setHostError} />
-                    )}
-                  </div>
+                  <Link to={g.lobbyPath} className="rb-open" aria-label={`Open ${g.title}`}>
+                    Open game
+                  </Link>
                 </article>
               );
             })}
