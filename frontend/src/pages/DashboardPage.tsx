@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import HostGameButton from "../components/HostGameButton";
 import PixelIcon, { type PixelIconName } from "../components/PixelIcon";
-import { useAuth } from "../contexts/AuthContext";
 import { GAME_CATALOG } from "../lib/gameCatalog";
 import { useLiveGames } from "../lib/useLiveGames";
 
@@ -32,7 +31,6 @@ const LATER: { icon: PixelIconName; name: string; blurb: string }[] = [
 ];
 
 export default function DashboardPage() {
-  const { profile } = useAuth();
   const { games: live } = useLiveGames();
   const [hostError, setHostError] = useState<string | null>(null);
 
@@ -47,11 +45,6 @@ export default function DashboardPage() {
               Step away from the to-do list for a few minutes. Play something small, on your own or with company.
             </p>
           </div>
-          {profile?.is_mod && (
-            <Link to="/mod" className="btn btn-secondary btn-sm">
-              MOD Dashboard
-            </Link>
-          )}
         </div>
 
         {hostError && (
