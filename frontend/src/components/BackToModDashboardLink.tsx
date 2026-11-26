@@ -1,20 +1,18 @@
 import { Link } from "react-router-dom";
 
-// Small, consistent "back" affordance for the MOD management pages that
-// hang off the MOD Dashboard's tiles (Question Sets, Feud Sets, Hosting
-// UNO, Impostor Categories, Wheel of Fortune, Type What You See). AppHeader
-// already has a "MOD Dashboard" link, but it reads as a generic nav item,
-// not a way back from the page you're on — this sits right above the page
-// title instead, styled like the other low-emphasis ghost buttons in the
-// app (see ModDashboardPage's "Troubleshooting" toggle).
+// Small, consistent "back" affordance for the game hosting pages (Question
+// Sets, Feud Sets, Hosting UNO, Impostor Categories, Wheel of Fortune, Type
+// What You See). Any member can host now, so these pages are reached from
+// Reality Break, and that is where this leads back to. (The file name is kept
+// so existing imports don't change.)
 export default function BackToModDashboardLink() {
   return (
     <Link
-      to="/mod"
+      to="/games"
       className="btn btn-ghost btn-sm"
       style={{ padding: 0, marginBottom: "12px", display: "inline-block" }}
     >
-      ← Back to MOD Dashboard
+      ← Back to Reality Break
     </Link>
   );
 }
