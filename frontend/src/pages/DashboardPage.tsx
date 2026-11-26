@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
+import HostGameButton from "../components/HostGameButton";
 import PixelIcon, { type PixelIconName } from "../components/PixelIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { GAME_CATALOG } from "../lib/gameCatalog";
@@ -32,6 +34,7 @@ const LATER: { icon: PixelIconName; name: string; blurb: string }[] = [
 export default function DashboardPage() {
   const { profile } = useAuth();
   const { games: live } = useLiveGames();
+  const [hostError, setHostError] = useState<string | null>(null);
 
   return (
     <div className="app-shell">
@@ -50,6 +53,12 @@ export default function DashboardPage() {
             </Link>
           )}
         </div>
+
+        {hostError && (
+          <p className="hint" role="alert" style={{ margin: 0 }}>
+            {hostError}
+          </p>
+        )}
 
         <section aria-labelledby="rb-bb-h" className="rb-section">
           <div>
@@ -98,9 +107,19 @@ export default function DashboardPage() {
                       ? `${row.status === "lobby" ? "Lobby open" : "In progress"} · ${row.player_count} ${row.player_count === 1 ? "player" : "players"}${row.host_username ? ` · hosted by ${row.host_username}` : ""}`
                       : "Nobody's playing yet"}
                   </span>
-                  <Link to={g.lobbyPath} className="rb-open" aria-label={`Open ${g.title}`}>
-                    Open game
-                  </Link>
+                  {live !== undefined && !row ? (
+                    g.hostListPath ? (
+                      <Link to={g.hostListPath} className="rb-open" aria-label={`Host a ${g.title} game`}>
+                        Host a game
+                      </Link>
+                    ) : (
+                      <HostGameButton game={g} onError={setHostError} />
+                    )
+                  ) : (
+                    <Link to={g.lobbyPath} className="rb-open" aria-label={`Open ${g.title}`}>
+                      Open game
+                    </Link>
+                  )}
                 </article>
               );
             })}
