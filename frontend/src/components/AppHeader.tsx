@@ -33,17 +33,14 @@ const BEYOND: NavItem = {
 };
 const MY_DESK: NavItem = { to: "/my-desk", label: "My Desk", icon: "my-desk", hint: "Your desk and your buddies" };
 
-// Nav v4 (24 Nov 2026). Desktop: Home, The Common Room, Reality Break | Beyond
-// the Desk, My Desk. Account pages (Buddy Profile, Notifications, Settings,
+// Nav v5 (26 Nov 2026). Desktop: one ungrouped bar, no divider: Home, My Desk,
+// The Common Room, Reality Break, Beyond the Desk. Account pages (Buddy Profile, Notifications, Settings,
 // A Note for Debbie, Keep the Desk Lit) live in the avatar menu. Subpages sit
 // under a parent and light the parent's tab (see PARENT_PREFIXES).
-const DESKTOP_GROUPS: NavItem[][] = [
-  [HOME, COMMON_ROOM, REALITY_BREAK],
-  [BEYOND, MY_DESK],
-];
-// Phone bar, then the More sheet (Beyond the Desk; Buddy Boards and Buddy
-// Clubs join it only when those features are live).
-const BAR_TABS = [HOME, COMMON_ROOM, MY_DESK, REALITY_BREAK];
+const DESKTOP_GROUPS: NavItem[][] = [[HOME, MY_DESK, COMMON_ROOM, REALITY_BREAK, BEYOND]];
+// Phone bar, same order, then the More sheet (Beyond the Desk; Buddy Boards
+// and Buddy Clubs join it only when those features are live).
+const BAR_TABS = [HOME, MY_DESK, COMMON_ROOM, REALITY_BREAK];
 const SHEET_MAIN = [BEYOND];
 
 // Pages that open from a parent and keep the parent's tab highlighted.

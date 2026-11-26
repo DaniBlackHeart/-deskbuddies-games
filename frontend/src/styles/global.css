@@ -1296,21 +1296,6 @@ button {
   padding: 0 6px;
   list-style: none;
 }
-.app-iconnav__group + .app-iconnav__group {
-  position: relative;
-  margin-left: 6px;
-  padding-left: 12px;
-}
-.app-iconnav__group + .app-iconnav__group::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 2px;
-  height: 28px;
-  transform: translateY(-50%);
-  background: var(--color-border);
-}
 .app-icontab {
   position: relative;
   display: inline-flex;
