@@ -13,6 +13,14 @@ export type HostOptions = {
   teams?: boolean;
 };
 
+/** Games where the host can pick the set / category (otherwise a random mix is used). */
+export type ContentPicker = {
+  param: string; // create_session body field that carries the chosen id
+  label: string;
+  randomLabel: string;
+  randomBody?: Record<string, unknown>; // extra body when "random" is chosen
+};
+
 export type GameInfo = {
   key: GameKey;
   title: string;
@@ -23,6 +31,7 @@ export type GameInfo = {
   hostPath: (sessionId: string) => string;
   spectatePath: (sessionId: string) => string;
   hostOptions: HostOptions;
+  content?: ContentPicker;
   /** Extra body for create_session when a member starts a game without picking content. */
   createBody: Record<string, unknown>;
 };
@@ -38,6 +47,7 @@ export const GAME_CATALOG: GameInfo[] = [
     hostPath: (id) => `/mod/host/${id}`,
     spectatePath: (id) => `/mod/spectate/${id}`,
     hostOptions: { pace: true },
+    content: { param: "question_set_id", label: "Question set", randomLabel: "Random mix of all sets" },
     createBody: {},
   },
   {
@@ -62,6 +72,7 @@ export const GAME_CATALOG: GameInfo[] = [
     hostPath: (id) => `/mod/feud-host/${id}`,
     spectatePath: (id) => `/mod/feud-spectate/${id}`,
     hostOptions: {},
+    content: { param: "feud_set_id", label: "Set", randomLabel: "Random set" },
     createBody: {},
   },
   {
@@ -74,7 +85,8 @@ export const GAME_CATALOG: GameInfo[] = [
     hostPath: (id) => `/mod/impostor-host/${id}`,
     spectatePath: (id) => `/mod/impostor-spectate/${id}`,
     hostOptions: {},
-    createBody: { random_category: true },
+    content: { param: "category_id", label: "Category", randomLabel: "Random category", randomBody: { random_category: true } },
+    createBody: {},
   },
   {
     key: "wheel",
