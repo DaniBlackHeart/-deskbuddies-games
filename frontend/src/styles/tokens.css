@@ -157,3 +157,8 @@
   --iacc: #e08a68;
   --spO: #1c130f;
 }
+
+/* Keepsake medal finishes (v1.7). Set on the medal svg; the same in light and dark. */
+.finish-bronze { --mr: #a8683f; --mf: #e0a777; }
+.finish-silver { --mr: #7f8a99; --mf: #c3cad3; }
+.finish-gold { --mr: #d9a13b; --mf: #f2c766; }

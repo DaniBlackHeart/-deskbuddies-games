@@ -1,7 +1,9 @@
 import BuddybookCard from "../components/BuddybookCard";
 import { useEffect, useRef, useState } from "react";
 import AppHeader from "../components/AppHeader";
+import KeepsakeMedal from "../components/KeepsakeMedal";
 import PixelIcon, { type PixelIconName } from "../components/PixelIcon";
+import { MEDAL_GLYPHS } from "../lib/keepsakeArt";
 import SideQuestsSection from "../components/SideQuestsSection";
 import { useBeyondTheDesk, type Goal, type KeepCard, type Reward } from "../lib/useBeyondTheDesk";
 
@@ -95,10 +97,17 @@ function GoalCard({ g, reward, past }: { g: Goal; reward: Reward; past?: boolean
   );
 }
 
-function Medallion({ tier, threshold, state }: { tier: string; threshold: number; state: "earned" | "next" | "later" }) {
+function Medallion({ cardKey, tier, threshold, state }: { cardKey: string; tier: string; threshold: number; state: "earned" | "next" | "later" }) {
+  // Keepsake medals v1.7: a round medal per card in the step's finish. Cards with no
+  // picture yet keep the plain disc. The state is also said in words, not by look alone.
+  const hasArt = cardKey in MEDAL_GLYPHS;
   return (
     <div className={"bd-med bd-med--" + state}>
-      <span className={"bd-med__disc bd-med__disc--" + tier} aria-hidden="true">{state === "earned" ? "✓" : ""}</span>
+      {hasArt ? (
+        <span className="bd-med__medal" aria-hidden="true"><KeepsakeMedal cardKey={cardKey} tier={tier} size={32} /></span>
+      ) : (
+        <span className={"bd-med__disc bd-med__disc--" + tier} aria-hidden="true">{state === "earned" ? "✓" : ""}</span>
+      )}
       <span className="bd-count">{threshold}</span>
       <span className="bd-med__tier">
         {TIER_LABEL[tier as keyof typeof TIER_LABEL] ?? tier}
@@ -120,7 +129,7 @@ function Keepsake({ card, onOpen }: { card: KeepCard; onOpen: (c: KeepCard, trig
       </p>
       <div className="bd-meds">
         {card.steps.map((s, i) => (
-          <Medallion key={s.tier} tier={s.tier} threshold={s.threshold} state={s.earned ? "earned" : i === nextIndex ? "next" : "later"} />
+          <Medallion key={s.tier} cardKey={card.key} tier={s.tier} threshold={s.threshold} state={s.earned ? "earned" : i === nextIndex ? "next" : "later"} />
         ))}
       </div>
       <button type="button" className="bd-btn" onClick={(e) => onOpen(card, e.currentTarget)}>
@@ -176,7 +185,7 @@ function StepsDialog({ card, onClose }: { card: KeepCard; onClose: () => void })
         <ul className="bd-steplist">
           {card.steps.map((s, i) => (
             <li key={s.tier} className="bd-step">
-              <Medallion tier={s.tier} threshold={s.threshold} state={s.earned ? "earned" : i === nextIndex ? "next" : "later"} />
+              <Medallion cardKey={card.key} tier={s.tier} threshold={s.threshold} state={s.earned ? "earned" : i === nextIndex ? "next" : "later"} />
               <div style={{ minWidth: 0 }}>
                 <b>{TIER_LABEL[s.tier]} · {s.threshold}</b>
                 <p className="t-body text-muted" style={{ margin: 0 }}>
