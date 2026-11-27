@@ -129,6 +129,10 @@ const DailyTriviaPage = lazy(() => loadDailyTrivia().then((m) => ({ default: m.D
 const loadDailyAnagram = () => import("./pages/daily-anagram/daily-anagram.bundle");
 const DailyAnagramPage = lazy(() => loadDailyAnagram().then((m) => ({ default: m.DailyAnagramPage })));
 
+// Daily Sudoku (Number Nook)
+const loadDailySudoku = () => import("./pages/daily-sudoku/daily-sudoku.bundle");
+const DailySudokuPage = lazy(() => loadDailySudoku().then((m) => ({ default: m.DailySudokuPage })));
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -416,6 +420,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <DailyAnagramPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/games/daily-sudoku"
+              element={
+                <ProtectedRoute>
+                  <DailySudokuPage />
                 </ProtectedRoute>
               }
             />
