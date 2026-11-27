@@ -125,6 +125,10 @@ const DailyPuzzlePage = lazy(() => loadDailyPuzzle().then((m) => ({ default: m.D
 const loadDailyTrivia = () => import("./pages/daily-trivia/daily-trivia.bundle");
 const DailyTriviaPage = lazy(() => loadDailyTrivia().then((m) => ({ default: m.DailyTriviaPage })));
 
+// Daily Anagram (Letter Shuffle)
+const loadDailyAnagram = () => import("./pages/daily-anagram/daily-anagram.bundle");
+const DailyAnagramPage = lazy(() => loadDailyAnagram().then((m) => ({ default: m.DailyAnagramPage })));
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -404,6 +408,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <DailyTriviaPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/games/daily-anagram"
+              element={
+                <ProtectedRoute>
+                  <DailyAnagramPage />
                 </ProtectedRoute>
               }
             />
