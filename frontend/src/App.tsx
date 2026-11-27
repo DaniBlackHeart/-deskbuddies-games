@@ -117,6 +117,10 @@ const RebusSetEditorPage = lazy(() => loadRebus().then((m) => ({ default: m.Rebu
 const HostRebusSessionPage = lazy(() => loadRebus().then((m) => ({ default: m.HostRebusSessionPage })));
 const RebusSpectatorPage = lazy(() => loadRebus().then((m) => ({ default: m.RebusSpectatorPage })));
 
+// Daily Puzzle
+const loadDailyPuzzle = () => import("./pages/daily-puzzle/daily-puzzle.bundle");
+const DailyPuzzlePage = lazy(() => loadDailyPuzzle().then((m) => ({ default: m.DailyPuzzlePage })));
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -380,6 +384,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <WheelPlayPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/games/daily-puzzle"
+              element={
+                <ProtectedRoute>
+                  <DailyPuzzlePage />
                 </ProtectedRoute>
               }
             />

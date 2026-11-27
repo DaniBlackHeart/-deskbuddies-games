@@ -17,8 +17,8 @@ import { useLiveGames } from "../lib/useLiveGames";
 // host one: one live session per game, so up to six can run at once, and each
 // member can be in one game (hosting or playing) and watch one game at a time.
 
-const BRAIN_BREAKS: { icon: PixelIconName; name: string; blurb: string; tag: string }[] = [
-  { icon: "game-daily-puzzle", name: "Daily Puzzle", blurb: "Guess today's five-letter word in six tries.", tag: "New" },
+const BRAIN_BREAKS: { icon: PixelIconName; name: string; blurb: string; tag: string; path?: string }[] = [
+  { icon: "game-daily-puzzle", name: "Daily Puzzle", blurb: "Guess today's five-letter word in six tries.", tag: "New", path: "/games/daily-puzzle" },
   { icon: "game-trivia", name: "Daily Trivia", blurb: "A fresh set of mixed questions every day.", tag: "Moves over from Trivia Night" },
   { icon: "game-daily-anagram", name: "Daily Anagram", blurb: "Unscramble today's word. Same word for everyone, any pace.", tag: "New" },
   { icon: "game-daily-sudoku", name: "Daily Sudoku", blurb: "One grid a day. Take as long as you like.", tag: "New" },
@@ -69,12 +69,16 @@ export default function DashboardPage() {
                   <p className="t-body text-muted" style={{ margin: 0 }}>{g.blurb}</p>
                 </div>
                 <span className="rb-tag">{g.tag}</span>
-                <button type="button" className="rb-open rb-open--off" aria-disabled="true">Coming soon</button>
+                {g.path ? (
+                  <Link to={g.path} className="rb-open" aria-label={`Play ${g.name}`}>Play</Link>
+                ) : (
+                  <button type="button" className="rb-open rb-open--off" aria-disabled="true">Coming soon</button>
+                )}
               </article>
             ))}
           </div>
           <p className="t-body-sm text-muted" style={{ margin: 0 }}>
-            Playing earns Buddy XP, win or lose. Practice rounds come later and don't earn extra.
+            Finishing a daily puzzle earns Buddy XP, solved or not. Solving earns more. One try a day, and a new one at midnight, Manila time.
           </p>
         </section>
 
