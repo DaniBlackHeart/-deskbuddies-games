@@ -22,7 +22,7 @@ const BRAIN_BREAKS: { icon: PixelIconName; name: string; blurb: string; tag: str
   { icon: "game-trivia", name: "Daily Trivia", blurb: "One question a day. You get a minute to answer.", tag: "New", path: "/games/daily-trivia" },
   { icon: "game-daily-anagram", name: "Letter Shuffle", blurb: "Unscramble today's long word in four minutes. New word at midnight.", tag: "New", path: "/games/daily-anagram" },
   { icon: "game-daily-sudoku", name: "Number Nook", blurb: "One sudoku a day. Five mistakes allowed. New grid at midnight.", tag: "New", path: "/games/daily-sudoku" },
-  { icon: "game-daily-word-search", name: "Daily Word Search", blurb: "Find today's hidden words. Fastest solvers get a mention later.", tag: "New" },
+  { icon: "game-daily-word-search", name: "Word Hunt", blurb: "Find 8 hidden words in five minutes. New grid at midnight.", tag: "New", path: "/games/daily-word-search" },
 ];
 
 const LATER: { icon: PixelIconName; name: string; blurb: string }[] = [

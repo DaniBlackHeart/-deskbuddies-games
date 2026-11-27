@@ -3444,3 +3444,17 @@ button.page-back { font: inherit; font-weight: 700; cursor: pointer; background:
 .sk-pad { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; width: 100%; max-width: 450px; margin: 0 auto; }
 .sk-confirm { border: 2px solid var(--color-border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; background: var(--color-bg); }
 @media (max-width: 420px) { .sk-cell { font-size: 1.0625rem; } .sk-pad { gap: 3px; } }
+
+/* ---- Daily Word Search / Word Hunt (placeholder look: plain cells, no final art) ---- */
+.ws-grid { display: grid; grid-template-columns: repeat(10, 1fr); width: 100%; max-width: 440px; margin: 0 auto; border: 3px solid var(--color-text); border-radius: 6px; overflow: hidden; background: var(--color-surface); }
+.ws-cell { aspect-ratio: 1; min-width: 0; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 1.0625rem; font-weight: 700; cursor: pointer; }
+.ws-cell:disabled { cursor: default; opacity: 1; }
+.ws-cell--found { background: var(--color-success); color: #fff; }
+.ws-cell--missed { background: var(--color-warning); color: #3a2a22; text-decoration: underline; }
+.ws-cell--anchor { outline: 3px solid var(--color-primary); outline-offset: -3px; background: var(--color-bg); color: var(--color-text); }
+.ws-words { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; }
+.ws-word { font-weight: 700; letter-spacing: 0.04em; }
+.ws-word--done { color: var(--color-text-muted); text-decoration: line-through; }
+.ws-word--missed { text-decoration: underline; }
+.ws-word span { font-weight: 500; font-size: 0.8125rem; letter-spacing: 0; text-decoration: none; display: inline-block; }
+@media (max-width: 420px) { .ws-cell { font-size: 0.9375rem; } }

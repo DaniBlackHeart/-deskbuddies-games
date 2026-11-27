@@ -133,6 +133,10 @@ const DailyAnagramPage = lazy(() => loadDailyAnagram().then((m) => ({ default: m
 const loadDailySudoku = () => import("./pages/daily-sudoku/daily-sudoku.bundle");
 const DailySudokuPage = lazy(() => loadDailySudoku().then((m) => ({ default: m.DailySudokuPage })));
 
+// Daily Word Search (Word Hunt)
+const loadDailyWordSearch = () => import("./pages/daily-word-search/daily-word-search.bundle");
+const DailyWordSearchPage = lazy(() => loadDailyWordSearch().then((m) => ({ default: m.DailyWordSearchPage })));
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -428,6 +432,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <DailySudokuPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/games/daily-word-search"
+              element={
+                <ProtectedRoute>
+                  <DailyWordSearchPage />
                 </ProtectedRoute>
               }
             />
