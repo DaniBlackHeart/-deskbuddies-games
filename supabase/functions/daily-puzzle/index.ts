@@ -55,10 +55,17 @@ async function grant(admin: Admin, userId: string, eventType: string, date: stri
   return data as RewardResult;
 }
 
+/** Paper Pal is earned by a second check-in day plus one starter activity; a finished puzzle can be that activity. */
+async function settlePaperPal(admin: Admin, userId: string) {
+  const { error } = await admin.rpc("grant_paper_pal", { p_user: userId });
+  if (error) console.error("daily-puzzle: grant_paper_pal failed:", error);
+}
+
 /** Pay (or re-confirm) the rewards for a finished attempt and total what was actually paid. */
 async function payFinished(admin: Admin, userId: string, date: string, solved: boolean) {
   const finished = await grant(admin, userId, "puzzle_finished", date, "finished");
   const solvedReward = solved ? await grant(admin, userId, "puzzle_solved", date, "solved") : null;
+  await settlePaperPal(admin, userId);
   const parts = [finished, solvedReward].filter((r): r is RewardResult => r !== null);
   if (parts.length === 0) return null;
   return {

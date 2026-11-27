@@ -55,6 +55,7 @@ function stepLine(k: KeepsakeEntry): string {
     case "keep_welcome_back": return "Came back after 7 or more days away";
     case "keep_focus": return `Finished ${n} Focus Blocks`;
     case "keep_long_haul": return `Finished a Focus Block on ${n} different days`;
+    case "keep_brain_break": return `Finished the daily puzzle on ${n} different days`;
     case "keep_detour": return `Tried ${n} Daily Detours`;
     case "keep_many_detours": return `Tried ${n} different detour prompts`;
     case "keep_wins": return `Finished a goal in ${n} different weeks`;

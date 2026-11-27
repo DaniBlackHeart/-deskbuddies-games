@@ -183,7 +183,6 @@ export default function DailyPuzzlePage() {
                 <p className="text-muted t-body-sm" style={{ margin: 0 }}>A new word arrives at midnight, Manila time.</p>
                 <div className="dt-actions">
                   <button type="button" className="dt-btn" onClick={copy}>{copied ? "Copied!" : "Copy my result"}</button>
-                  <Link to="/games" className="dt-btn" style={{ textAlign: "center", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>Back to Reality Break</Link>
                 </div>
               </div>
             ) : (

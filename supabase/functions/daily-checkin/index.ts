@@ -182,6 +182,10 @@ Deno.serve(async (req) => {
       // Always ask, even when not newly claimed: grant_reward is idempotent, and
       // this repairs a claim whose payout failed earlier.
       reward = await grantCheckinReward(admin, user.id, today);
+
+      // A second check-in day can complete Paper Pal's rule. Never fails the check-in.
+      const { error: palError } = await admin.rpc("grant_paper_pal", { p_user: user.id });
+      if (palError) console.error("daily-checkin: grant_paper_pal failed:", palError);
     }
 
     const status = await getStatus(admin, user.id, today);

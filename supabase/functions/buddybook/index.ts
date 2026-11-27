@@ -188,6 +188,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "action must be 'status' or 'collection'" }, 400);
     }
     const admin = getAdminClient();
+    // Paper Pal's rule may have been met through a Focus Block; settle it before reading the book.
+    const { error: palError } = await admin.rpc("grant_paper_pal", { p_user: auth.user.id });
+    if (palError) console.error("buddybook: grant_paper_pal failed:", palError);
     if (body.action === "collection") return jsonResponse(await buildCollection(admin, auth.user.id));
     return jsonResponse(await buildStatus(admin, auth.user.id));
   } catch (err) {
