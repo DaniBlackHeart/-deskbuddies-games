@@ -3488,6 +3488,9 @@ button.page-back { font: inherit; font-weight: 700; cursor: pointer; background:
 .bbd-h { margin: 0; font-family: var(--font-heading); font-weight: 600; font-size: 1.375rem; line-height: 1.15; }
 .bbd-h--big { font-size: 1.625rem; }
 .bbd-tag { flex: none; display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border: 2px solid var(--color-border); border-radius: 999px; font-size: 0.8125rem; font-weight: 700; background: var(--color-bg); white-space: nowrap; }
+.bbd-stats { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.bbd-stats li { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 12px; border: 2px solid var(--color-border); background: var(--color-bg); min-width: 0; }
+.bbd-stat-n { font-family: var(--font-heading); font-weight: 600; font-size: 1.5rem; line-height: 1.1; }
 .bbd-empty { border: 2px dashed var(--color-border); border-radius: 12px; padding: 14px; }
 .bbd-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 20px; align-items: start; }
 @media (max-width: 640px) { .bbd-cols { grid-template-columns: minmax(0, 1fr); } }

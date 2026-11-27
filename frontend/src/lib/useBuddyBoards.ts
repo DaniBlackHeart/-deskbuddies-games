@@ -23,6 +23,65 @@ export type OverallBoard = {
   you: { rank: number; value: number } | null; // set only when you are ranked below the ten shown
 };
 
+export type TabBoardRow = { rank: number; name: string; avatar_url: string | null; value: number; value2: number | null; is_you: boolean };
+export type TabBoard = {
+  board: string;
+  hidden: boolean;
+  rows: TabBoardRow[];
+  you: { rank: number; value: number; value2: number | null } | null;
+  tag: string | null; // Number Nook: today's level
+};
+export type Overview = {
+  hidden: boolean;
+  places: { board: string; rank: number }[];
+  stats: { focus_blocks: number; check_ins: number; quests: number; stickies: number; events: number };
+};
+
+// The boards of one non-Overall tab (brain / habits / community), ranked on the server.
+export function useTabBoards(tab: "brain" | "habits" | "community" | null, period: BoardPeriod) {
+  const [boards, setBoards] = useState<TabBoard[] | null>(null);
+  const [error, setError] = useState(false);
+  const seq = useRef(0);
+  const load = useCallback(async () => {
+    if (!tab) return;
+    const mine = ++seq.current;
+    setBoards(null);
+    try {
+      const { data, error: err } = await supabase.functions.invoke("buddy-boards", { body: { action: "boards", tab, period } });
+      if (err) throw err;
+      if (mine !== seq.current) return;
+      setBoards((data as { boards: TabBoard[] }).boards);
+      setError(false);
+    } catch (e) {
+      console.error("Buddy Boards tab failed:", e);
+      if (mine === seq.current) setError(true);
+    }
+  }, [tab, period]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  return { boards, error, reload: load };
+}
+
+// "Your places" (all boards but Overall) and "The month so far".
+export function useOverview(period: BoardPeriod, refreshKey: unknown) {
+  const [data, setData] = useState<Overview | null>(null);
+  useEffect(() => {
+    let live = true;
+    setData(null);
+    supabase.functions
+      .invoke("buddy-boards", { body: { action: "overview", period } })
+      .then(({ data: d, error: err }) => {
+        if (live && !err) setData(d as Overview);
+      })
+      .catch((e) => console.error("Buddy Boards overview failed:", e));
+    return () => {
+      live = false;
+    };
+  }, [period, refreshKey]);
+  return data;
+}
+
 export function useBuddyBoards() {
   const [period, setPeriod] = useState<BoardPeriod>("this");
   const [board, setBoard] = useState<OverallBoard | null>(null);

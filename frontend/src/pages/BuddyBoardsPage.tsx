@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import AppHeader from "../components/AppHeader";
 import TrophyIcon from "../components/TrophyIcon";
-import { useBuddyBoards, type BoardRow } from "../lib/useBuddyBoards";
+import { useBuddyBoards, useOverview, useTabBoards, type BoardRow, type TabBoard, type TabBoardRow } from "../lib/useBuddyBoards";
 
 // Buddy Boards (Debbie Buddy Boards design, 26-28 Nov 2026). Layout follows the design: five tabs,
 // the Overall card (top ten in two columns, your place pinned under it), Your places, The month so far,
@@ -31,17 +31,17 @@ function Face({ name, avatar }: { name: string; avatar: string | null }) {
   );
 }
 
-function Row({ r }: { r: BoardRow }) {
+function Row({ r, text, trophies = true }: { r: BoardRow | TabBoardRow; text?: string; trophies?: boolean }) {
   return (
     <li className={"bbd-row" + (r.is_you ? " bbd-row--you" : "")}>
-      {r.rank <= 3 ? <span className="bbd-trophy"><TrophyIcon place={r.rank as 1 | 2 | 3} size={32} /></span> : <span className="bbd-trophy" aria-hidden="true" />}
+      {trophies && r.rank <= 3 ? <span className="bbd-trophy"><TrophyIcon place={r.rank as 1 | 2 | 3} size={32} /></span> : <span className="bbd-trophy" aria-hidden="true" />}
       <span className="bbd-rank">{ordinal(r.rank)}</span>
       <Face name={r.name} avatar={r.avatar_url} />
       <span className="bbd-name">
         {r.name}
         {r.is_you && <span className="badge badge-neutral bbd-you">You</span>}
       </span>
-      <span className="bbd-value">{fmt(r.value)} XP</span>
+      <span className="bbd-value">{text ?? `${fmt(r.value)} XP`}</span>
     </li>
   );
 }
@@ -111,9 +111,8 @@ const TABS: { id: TabId; label: string }[] = [
 
 type Soon = { title: string; sub: string; tag: string };
 
-// Boards that are designed but have no data source yet. They are listed so the page has its final
-// shape; none of them shows a name or a number.
-const SOON: Record<Exclude<TabId, "overall">, { heading: string; sub: string; boards: Soon[] }> = {
+// Boards that are designed but have no data source yet. None of them shows a name or a number.
+const SOON: Record<"games", { heading: string; sub: string; boards: Soon[] }> = {
   games: {
     heading: "Games",
     sub: "One board per game. Season points, reset each month.",
@@ -123,40 +122,63 @@ const SOON: Record<Exclude<TabId, "overall">, { heading: string; sub: string; bo
       tag: "Monthly",
     })),
   },
+};
+
+type Fmt = "time" | "tries" | "days" | "count";
+type Def = { key: string; title: string; sub: string; tag: string; fmt: Fmt; empty: string; daily?: boolean };
+
+const mmss = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`;
+function show(fmt: Fmt, v: number, v2: number | null) {
+  if (fmt === "time") return mmss(v);
+  if (fmt === "tries") return `${v} ${v === 1 ? "try" : "tries"} · ${mmss(v2 ?? 0)}`;
+  if (fmt === "days") return `${fmt2(v)} ${v === 1 ? "day" : "days"}`;
+  return fmt2(v);
+}
+const fmt2 = (n: number) => n.toLocaleString("en-US");
+
+// Tabs with real boards (migration 0067). Boards in a tab that is not listed here yet stay as "not live" cards.
+const LIVE: Record<"brain" | "habits" | "community", { heading: string; sub: string; defs: Def[]; soon: Soon[] }> = {
   brain: {
     heading: "Brain Breaks",
-    sub: "Fastest solve today. Resets at midnight Manila time.",
-    boards: [
-      { title: "Five Tiles", sub: "Fewest tries first, then fastest.", tag: "Today" },
-      { title: "Minute Quiz", sub: "Fastest correct answer.", tag: "Today" },
-      { title: "Letter Shuffle", sub: "Fastest solve.", tag: "Today" },
-      { title: "Number Nook", sub: "Fastest solve. Same level for everyone.", tag: "Today" },
-      { title: "Word Hunt", sub: "Fastest solve.", tag: "Today" },
+    sub: "Fastest solve today. Resets at midnight Manila time. Only solved rounds are ranked.",
+    defs: [
+      { key: "five_tiles", title: "Five Tiles", sub: "Fewest tries first, then fastest.", tag: "Today", fmt: "tries", empty: "Solve today’s Five Tiles to be the first.", daily: true },
+      { key: "minute_quiz", title: "Minute Quiz", sub: "Fastest correct answer.", tag: "Today", fmt: "time", empty: "Answer today’s Minute Quiz correctly to be the first.", daily: true },
+      { key: "letter_shuffle", title: "Letter Shuffle", sub: "Fastest solve.", tag: "Today", fmt: "time", empty: "Solve today’s Letter Shuffle to be the first.", daily: true },
+      { key: "number_nook", title: "Number Nook", sub: "Fastest solve. Same level for everyone.", tag: "Today", fmt: "time", empty: "Solve today’s Number Nook to be the first.", daily: true },
+      { key: "word_hunt", title: "Word Hunt", sub: "Fastest solve.", tag: "Today", fmt: "time", empty: "Solve today’s Word Hunt to be the first.", daily: true },
     ],
+    soon: [],
   },
   habits: {
     heading: "Focus and habits",
     sub: "Showing up, not racing.",
-    boards: [
-      { title: "Focus days", sub: "Days with a finished Focus Block.", tag: "Monthly" },
-      { title: "Daily streaks", sub: "Check-in days in a row, right now.", tag: "Right now" },
-      { title: "Quests finished", sub: "Side quests completed.", tag: "Monthly" },
-      { title: "Stamps collected", sub: "Stamps in the passport. Never resets.", tag: "All time" },
+    defs: [
+      { key: "focus_days", title: "Focus days", sub: "Days with a finished Focus Block.", tag: "Month", fmt: "days", empty: "Finish a Focus Block in Desk Time to be the first." },
+      { key: "streaks", title: "Daily streaks", sub: "Check-in days in a row, right now.", tag: "Right now", fmt: "days", empty: "Check in today to start a streak.", daily: true },
+      { key: "quests", title: "Quests finished", sub: "Side quests completed.", tag: "Month", fmt: "count", empty: "Finish a side quest in Beyond the Desk to be the first." },
     ],
+    soon: [{ title: "Stamps collected", sub: "Stamps in the passport. Never resets.", tag: "All time" }],
   },
   community: {
     heading: "Community",
     sub: "Kindness and company.",
-    boards: [
-      { title: "Stickies left", sub: "Desk Stickies left on other desks.", tag: "Monthly" },
+    defs: [
+      { key: "stickies_left", title: "Stickies left", sub: "Desk Stickies left on other desks.", tag: "Month", fmt: "count", empty: "Leave a Desk Sticky on a friend’s desk to be the first." },
+      { key: "events_joined", title: "Events joined", sub: "Community events joined.", tag: "Month", fmt: "count", empty: "Join an event on the Buddy Calendar to be the first." },
+      { key: "buddies", title: "Buddies collected", sub: "Buddies in the collection. Never resets.", tag: "All time", fmt: "count", empty: "Earn a buddy to be the first.", daily: true },
+    ],
+    soon: [
       { title: "Games played", sub: "Rounds finished, win or lose.", tag: "Monthly" },
-      { title: "Buddies collected", sub: "Buddies in the collection. Never resets.", tag: "All time" },
       { title: "Shared in the feed", sub: "Posts shared in the community feed.", tag: "Monthly" },
       { title: "Reacts given", sub: "Reactions given on community posts.", tag: "Monthly" },
-      { title: "Events joined", sub: "Community events joined.", tag: "Monthly" },
     ],
   },
 };
+
+const PLACE_NAMES: Record<string, string> = Object.fromEntries(
+  Object.values(LIVE).flatMap((t) => t.defs.map((d) => [d.key, d.title])),
+);
 
 function CardHead({ id, title, sub, tag, big }: { id: string; title: string; sub: string; tag: string; big?: boolean }) {
   return (
@@ -172,6 +194,35 @@ function CardHead({ id, title, sub, tag, big }: { id: string; title: string; sub
 
 function Empty({ children }: { children: ReactNode }) {
   return <p className="bbd-empty text-muted t-body" style={{ margin: 0 }}>{children}</p>;
+}
+
+function LiveBoard({ d, b }: { d: Def; b: TabBoard | undefined }) {
+  const id = `bbd-b-${d.key}`;
+  const rows = b?.rows ?? [];
+  return (
+    <section className="card bbd-card" aria-labelledby={id}>
+      <CardHead id={id} title={d.title} sub={d.sub} tag={d.key === "number_nook" && b?.tag ? `Today: ${b.tag}` : d.tag} />
+      {!b ? (
+        <Empty>Loading…</Empty>
+      ) : rows.length === 0 ? (
+        <Empty>{d.empty}</Empty>
+      ) : (
+        <ol className="bbd-list" aria-label="Top places">
+          {rows.map((r, i) => <Row key={i} r={r} text={show(d.fmt, r.value, r.value2)} trophies={false} />)}
+        </ol>
+      )}
+      {b?.you && (
+        <div className="bbd-pinned">
+          <div aria-hidden="true" className="text-muted" style={{ textAlign: "center" }}>· · ·</div>
+          <div className="bbd-row bbd-row--you">
+            <span className="bbd-rank">{ordinal(b.you.rank)}</span>
+            <span className="bbd-name">You</span>
+            <span className="bbd-value">{show(d.fmt, b.you.value, b.you.value2)}</span>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }
 
 function SoonBoard({ id, b }: { id: string; b: Soon }) {
@@ -198,7 +249,24 @@ export default function BuddyBoardsPage() {
   const mine = rows.find((r) => r.is_you);
   const label = board ? monthLabel(board.month_start) : period === "this" ? "This month" : "Last month";
   const place = mine ?? board?.you ?? null;
-  const soon = tab === "overall" ? null : SOON[tab];
+  const gamesSoon = tab === "games" ? SOON.games : null;
+  const live = tab === "overall" || tab === "games" ? null : LIVE[tab];
+  const tabData = useTabBoards(live ? (tab as "brain" | "habits" | "community") : null, period);
+  const overview = useOverview(period, board?.hidden);
+  const places = [
+    ...(place ? [{ name: "Overall", rank: place.rank }] : []),
+    ...(overview?.places ?? []).map((p) => ({ name: PLACE_NAMES[p.board] ?? p.board, rank: p.rank })),
+  ];
+  const mine2 = overview?.stats;
+  const stats = mine2
+    ? [
+        ["Focus Blocks finished", mine2.focus_blocks],
+        ["Daily check-ins", mine2.check_ins],
+        ["Side quests completed", mine2.quests],
+        ["Stickies left", mine2.stickies],
+        ["Events joined", mine2.events],
+      ]
+    : [];
 
   return (
     <div className="app-shell">
@@ -231,15 +299,33 @@ export default function BuddyBoardsPage() {
           ))}
         </div>
 
-        {soon ? (
+        {gamesSoon ? (
           <>
             <div>
-              <h2 className="t-h2" style={{ margin: 0 }}>{soon.heading}</h2>
-              <p className="text-muted t-body" style={{ margin: "2px 0 0" }}>{soon.sub}</p>
+              <h2 className="t-h2" style={{ margin: 0 }}>{gamesSoon.heading}</h2>
+              <p className="text-muted t-body" style={{ margin: "2px 0 0" }}>{gamesSoon.sub}</p>
             </div>
             <div className="bbd-boards">
-              {soon.boards.map((b) => <SoonBoard key={b.title} id={`bbd-${tab}-${b.title.replace(/\W+/g, "-")}`} b={b} />)}
+              {gamesSoon.boards.map((b) => <SoonBoard key={b.title} id={`bbd-games-${b.title.replace(/\W+/g, "-")}`} b={b} />)}
             </div>
+          </>
+        ) : live ? (
+          <>
+            <div>
+              <h2 className="t-h2" style={{ margin: 0 }}>{live.heading}</h2>
+              <p className="text-muted t-body" style={{ margin: "2px 0 0" }}>{live.sub}</p>
+            </div>
+            {tabData.error && !tabData.boards ? (
+              <section className="card">
+                <p role="alert" className="t-body" style={{ margin: 0 }}>These boards didn’t load.</p>
+                <button type="button" className="btn btn-sm" style={{ marginTop: 8 }} onClick={() => void tabData.reload()}>Try again</button>
+              </section>
+            ) : (
+              <div className="bbd-boards">
+                {live.defs.map((d) => <LiveBoard key={d.key} d={d} b={tabData.boards?.find((x) => x.board === d.key)} />)}
+                {live.soon.map((b) => <SoonBoard key={b.title} id={`bbd-${tab}-${b.title.replace(/\W+/g, "-")}`} b={b} />)}
+              </div>
+            )}
           </>
         ) : error && !board ? (
           <section className="card">
@@ -283,16 +369,16 @@ export default function BuddyBoardsPage() {
               <section className="card bbd-card bbd-card--alt" aria-labelledby="bbd-yours">
                 <div>
                   <h3 id="bbd-yours" className="bbd-h bbd-h--big">Your places</h3>
-                  <p className="text-muted t-body-sm" style={{ margin: "3px 0 0" }}>Where you stand in {label}. Only you see this card.</p>
+                  <p className="text-muted t-body-sm" style={{ margin: "3px 0 0" }}>Where you stand ({label} for monthly boards). Only you see this card.</p>
                 </div>
                 {board.hidden ? (
                   <Empty>You are hidden from the boards. Nobody sees your name or results here. Your progress, rewards and records carry on as normal.</Empty>
-                ) : place ? (
+                ) : places.length > 0 ? (
                   <ul className="bbd-places">
-                    <li><span>Overall</span><b>{ordinal(place.rank)}</b></li>
+                    {places.map((p) => <li key={p.name}><span>{p.name}</span><b>{ordinal(p.rank)}</b></li>)}
                   </ul>
                 ) : (
-                  <Empty>Your places show up here once you have earned Buddy XP in {label}.</Empty>
+                  <Empty>Your places show up here once you appear on a board.</Empty>
                 )}
               </section>
             </div>
@@ -300,7 +386,15 @@ export default function BuddyBoardsPage() {
             <div className="bbd-trio">
               <section className="card bbd-card" aria-labelledby="bbd-month">
                 <CardHead id="bbd-month" title="The month so far" sub="Everyone together. No ranks." tag={label} />
-                <Empty>Community totals are not live yet.</Empty>
+                {stats.length === 0 ? (
+                  <Empty>Loading…</Empty>
+                ) : (
+                  <ul className="bbd-stats">
+                    {stats.map(([name, n]) => (
+                      <li key={name}><span className="bbd-stat-n">{fmt(n as number)}</span><span className="text-muted t-body-sm">{name}</span></li>
+                    ))}
+                  </ul>
+                )}
               </section>
               <section className="card bbd-card" aria-labelledby="bbd-podium">
                 <CardHead id="bbd-podium" title="Last month’s podium" sub="Top three on each board, 1st to 3rd." tag="Last month" />
