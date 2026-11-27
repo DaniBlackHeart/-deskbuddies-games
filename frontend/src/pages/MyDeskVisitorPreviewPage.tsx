@@ -3,6 +3,7 @@ import AppHeader from "../components/AppHeader";
 import { useAuth } from "../contexts/AuthContext";
 import { useMyDesk } from "../lib/useMyDesk";
 import { buddyName } from "../lib/deskCatalog";
+import DeskScene from "../components/DeskScene";
 
 // "See how visitors see it" (Debbie My Desk design). A PREVIEW of your own desk
 // the way a visitor will see it: the desk, your companions and a pin board. It
@@ -38,7 +39,7 @@ export default function MyDeskVisitorPreviewPage() {
               <p className="text-muted" role="status">Loading your desk…</p>
             ) : (
               <div className="md-scene">
-                <img src={scene} alt={names.length ? `${name}'s desk with ${names.join(" and ")} on the companion mat` : `${name}'s desk with an empty spot for a companion`} width={160} height={112} className="md-scene__img" />
+                <DeskScene src={scene} alt={names.length ? `${name}'s desk with ${names.join(" and ")} on the companion mat` : `${name}'s desk with an empty spot for a companion`} decor={saved.decor} className="md-scene__img" />
               </div>
             )}
             <p className="text-muted t-body-sm" style={{ margin: 0 }}>Placeholder art: only the companion spot redraws, and it can show one buddy.</p>

@@ -3,18 +3,19 @@ import { Link, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { BuddyCollectionCard, DeskFindsCard, DeskTimeCard } from "../components/MyDeskAroundCards";
 import { MyStickiesCard } from "../components/DeskStickies";
+import DeskScene from "../components/DeskScene";
 import { useMyDesk } from "../lib/useMyDesk";
 import {
-  ITEMS, SLOTS, SLOT_LABEL, SLOT_HINT, BUDDIES, MAX_COMPANIONS,
-  itemName, buddyName, type Layout, type Slot,
+  ITEMS, SLOTS, SLOT_LABEL, SLOT_HINT, BUDDIES, MAX_COMPANIONS, DECOR_SLOTS, DECOR_ITEMS,
+  itemName, buddyName, decorName, type Layout, type Slot, type DecorSlot,
 } from "../lib/deskCatalog";
 
 // My Desk: look at your desk, decorate it, save. Follows the "Debbie My Desk"
 // design. Placing an item never costs deskbits, Buddy XP or access. The browser
 // only asks for a layout; the desk-save Edge Function checks ownership.
 
-type Spot = Slot | "companions";
-const SPOTS: Spot[] = [...SLOTS, "companions"];
+type Spot = Slot | "companions" | "decor";
+const SPOTS: Spot[] = [...SLOTS, "decor", "companions"];
 
 function sceneFor(l: Layout): string {
   // Art exists for one buddy at a time; show the first seated one.
@@ -22,7 +23,8 @@ function sceneFor(l: Layout): string {
 }
 
 export default function MyDeskPage() {
-  const { saved, loading, loadError, isOwned, save } = useMyDesk();
+  const { saved, loading, loadError, isOwned, ownsFind, save } = useMyDesk();
+  const [decorSlot, setDecorSlot] = useState<DecorSlot>("d1");
   const [draft, setDraft] = useState<Layout | null>(null);
   const [spot, setSpot] = useState<Spot>("companions");
   const [notice, setNotice] = useState("");
@@ -34,11 +36,12 @@ export default function MyDeskPage() {
   const cur: Layout = draft ?? saved;
   const changes = draft
     ? SLOTS.filter((s) => draft[s] !== saved[s]).length +
-      (draft.companions.slice().sort().join() !== saved.companions.slice().sort().join() ? 1 : 0)
+      (draft.companions.slice().sort().join() !== saved.companions.slice().sort().join() ? 1 : 0) +
+      DECOR_SLOTS.filter((d) => draft.decor[d] !== saved.decor[d]).length
     : 0;
 
   const startAt = (s: Spot) => () => {
-    setDraft({ ...saved, companions: [...saved.companions] });
+    setDraft({ ...saved, companions: [...saved.companions], decor: { ...saved.decor } });
     setSpot(s);
     setNotice("");
     setBlocked("");
@@ -72,6 +75,24 @@ export default function MyDeskPage() {
     setBlocked("");
     setDraft({ ...draft, [slot]: id });
   };
+  const pickDecor = (key: string) => {
+    if (!draft) return;
+    if (key === "") {
+      setBlocked("");
+      setDraft({ ...draft, decor: { ...draft.decor, [decorSlot]: "" } });
+      return;
+    }
+    if (!ownsFind(key)) {
+      setBlocked(`You don't have the ${decorName(key).toLowerCase()} yet. You can buy it in Desk Finds, and then it will be here.`);
+      return;
+    }
+    setBlocked("");
+    // Each item is owned once, so it can sit in one spot: picking it moves it here.
+    const next = { ...draft.decor };
+    for (const d of DECOR_SLOTS) if (next[d] === key) next[d] = "";
+    next[decorSlot] = key;
+    setDraft({ ...draft, decor: next });
+  };
   const pickBuddy = (id: string | "none") => {
     if (!draft) return;
     if (id === "none") {
@@ -100,7 +121,7 @@ export default function MyDeskPage() {
   // Home's "Decorate" button arrives here with ?decorate=1 and opens Decorate straight away.
   useEffect(() => {
     if (!loading && !loadError && params.get("decorate") === "1") {
-      setDraft({ ...saved, companions: [...saved.companions] });
+      setDraft({ ...saved, companions: [...saved.companions], decor: { ...saved.decor } });
       setSpot("companions");
       setParams({}, { replace: true });
     }
@@ -127,6 +148,12 @@ export default function MyDeskPage() {
       const it = ITEMS[s].find((i) => i.id === cur[s]) ?? ITEMS[s][0];
       return { slot: s as Spot, label: SLOT_LABEL[s], value: it.name, color: it.swatch };
     }),
+    {
+      slot: "decor",
+      label: SLOT_LABEL.decor,
+      value: DECOR_SLOTS.filter((d) => cur.decor[d]).map((d) => decorName(cur.decor[d])).join(", ") || "Nothing placed yet",
+      color: "#F2C766",
+    },
     {
       slot: "companions",
       label: SLOT_LABEL.companions,
@@ -187,7 +214,7 @@ export default function MyDeskPage() {
               </div>
             )}
             <div className="md-scene">
-              <img src={sceneFor(cur)} alt={sceneAlt} width={160} height={112} className="md-scene__img" />
+              <DeskScene src={sceneFor(cur)} alt={sceneAlt} decor={cur.decor} className="md-scene__img" />
             </div>
             <div className="md-stage__bar">
               <div className="md-stage__text">
@@ -301,6 +328,46 @@ export default function MyDeskPage() {
                             state={on ? "On your desk" : own ? "Owned" : "Locked"}
                             color="#FBF3E3"
                             onPick={() => pickBuddy(b.id)}
+                          />
+                        );
+                      })}
+                    </>
+                  ) : spot === "decor" ? (
+                    <>
+                      <div role="group" aria-label="Spot on the desk" className="md-chips" style={{ gridColumn: "1 / -1" }}>
+                        {DECOR_SLOTS.map((d, i) => (
+                          <button
+                            key={d}
+                            type="button"
+                            aria-pressed={decorSlot === d}
+                            className={"md-seg" + (decorSlot === d ? " md-seg--on" : "")}
+                            onClick={() => { setDecorSlot(d); setBlocked(""); }}
+                          >
+                            Spot {i + 1}{cur.decor[d] ? " ·" : ""}
+                          </button>
+                        ))}
+                      </div>
+                      <Tile
+                        on={cur.decor[decorSlot] === ""}
+                        own
+                        name="Empty spot"
+                        state={cur.decor[decorSlot] === "" ? "In this spot" : "Take it off"}
+                        color="#F3E6D2"
+                        onPick={() => pickDecor("")}
+                      />
+                      {DECOR_ITEMS.map((it) => {
+                        const own = ownsFind(it.key);
+                        const at = DECOR_SLOTS.findIndex((d) => cur.decor[d] === it.key);
+                        const on = at >= 0 && DECOR_SLOTS[at] === decorSlot;
+                        return (
+                          <Tile
+                            key={it.key}
+                            on={on}
+                            own={own}
+                            name={it.name}
+                            state={on ? "In this spot" : at >= 0 ? `In spot ${at + 1}` : own ? "Owned" : "Not owned yet"}
+                            color="#F2C766"
+                            onPick={() => pickDecor(it.key)}
                           />
                         );
                       })}

@@ -49,3 +49,11 @@ export const BUDDIES = [
   "paper", "sprout", "foundie", "mug", "sticky", "keycap", "bookmark", "button",
   "cloudlet", "patch", "pebble", "pencil", "riceball", "snackling", "spoolie", "tabby",
 ];
+
+// Desk Finds items that sit on the desk in a decor slot (design: Debbie_Desk_Finds_Item_Art_v1_LOCKED,
+// "Desk scene and slots", a PROPOSAL not yet approved by Rika). The ids are shop_items.key; a member
+// owns one when member_items has "find:<key>". Each can be placed once. Slots d1..d6 hold one item each.
+export const DECOR_SLOTS = ["d1", "d2", "d3", "d4", "d5", "d6"] as const;
+export const DECOR_ITEMS = [
+  "sticky_note_stack", "pen_cup", "coaster_set", "snack_tin", "mini_cactus", "tea_mug_with_steam", "fern_pot",
+];

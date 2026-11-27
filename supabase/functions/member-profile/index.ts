@@ -8,6 +8,7 @@
 // Someone who is not a verified member is reported as "not found", the same as an unknown id.
 
 import { jsonResponse, handleOptions, getAdminClient, requireMember } from "../_shared/utils.ts";
+import { DECOR_SLOTS, DECOR_ITEMS } from "../_shared/deskCatalog.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_COMPANIONS = 2;
@@ -39,6 +40,14 @@ Deno.serve(async (req) => {
       ? raw.filter((c): c is string => typeof c === "string" && /^[a-z0-9-]{1,30}$/.test(c)).slice(0, MAX_COMPANIONS)
       : [];
 
+    // Desk Finds items on their desk. Only known slot and item ids go out, nothing about what else they own.
+    const rawDecor = ((lay?.layout as { decor?: Record<string, unknown> } | null)?.decor ?? {}) as Record<string, unknown>;
+    const decor: Record<string, string> = {};
+    for (const d of DECOR_SLOTS) {
+      const v = rawDecor[d];
+      decor[d] = typeof v === "string" && DECOR_ITEMS.includes(v) ? v : "";
+    }
+
     return jsonResponse({
       id: p.id,
       name: p.username,
@@ -46,6 +55,7 @@ Deno.serve(async (req) => {
       is_mod: !!p.is_mod,
       since: p.created_at,
       companions,
+      decor,
     });
   } catch (err) {
     console.error("member-profile failed:", err);

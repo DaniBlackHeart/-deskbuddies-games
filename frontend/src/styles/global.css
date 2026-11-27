@@ -3507,3 +3507,8 @@ button.page-back { font: inherit; font-weight: 700; cursor: pointer; background:
 .ds-backdrop { position: fixed; inset: 0; background: rgba(61, 50, 41, 0.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
 .ds-dialog { max-width: 460px; width: 100%; display: flex; flex-direction: column; gap: 10px; max-height: 90vh; overflow-y: auto; }
 .ds-text { font: inherit; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 2px solid var(--color-border); border-radius: 12px; background: var(--color-surface); color: var(--color-text); resize: vertical; }
+
+/* Desk scene overlay (Desk Finds items drawn on the desk picture) */
+.ds-scene { position: relative; display: inline-block; line-height: 0; max-width: 100%; }
+.ds-scene__over { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+[data-theme="dark"] .ds-scene__over { filter: brightness(0.85); }

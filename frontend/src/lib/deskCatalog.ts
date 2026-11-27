@@ -5,12 +5,12 @@
 export type Slot = "surface" | "monitor" | "extra" | "keyboard" | "mouse" | "pad" | "mat" | "lamp";
 export const SLOTS: Slot[] = ["surface", "monitor", "extra", "keyboard", "mouse", "pad", "mat", "lamp"];
 
-export const SLOT_LABEL: Record<Slot | "companions", string> = {
+export const SLOT_LABEL: Record<Slot | "companions" | "decor", string> = {
   surface: "Desk surface", monitor: "Monitor", extra: "Extra monitor", keyboard: "Keyboard",
-  mouse: "Mouse", pad: "Mousepad", mat: "Desk mat", lamp: "Lamp", companions: "Companions",
+  mouse: "Mouse", pad: "Mousepad", mat: "Desk mat", lamp: "Lamp", companions: "Companions", decor: "Desk items",
 };
 
-export const SLOT_HINT: Record<Slot | "companions", string> = {
+export const SLOT_HINT: Record<Slot | "companions" | "decor", string> = {
   surface: "Colors are open to everyone for now. More unlock through milestones and Challenge rewards.",
   monitor: "Monitors unlock through milestones and Challenge rewards.",
   extra: "An extra monitor is its own item, landscape or portrait. Each unlocks through milestones and Challenge rewards.",
@@ -19,6 +19,7 @@ export const SLOT_HINT: Record<Slot | "companions", string> = {
   pad: "Colors are open to everyone for now. More unlock through milestones and Challenge rewards.",
   mat: "A desk mat under your keyboard and mouse. Unlocks through milestones and Challenge rewards.",
   lamp: "Colors are open to everyone for now. More unlock through milestones and Challenge rewards.",
+  decor: "Desk items come from Desk Finds. Each one can go in one spot. Placing them is free, and your desk keeps what you own.",
   companions: "Seat as many buddies as you like. How many fit will grow as your collection grows (the rule isn't decided).",
 };
 
@@ -87,11 +88,44 @@ export const BUDDIES: { id: string; name: string }[] = [
 /** Provisional: how many buddies fit on the desk. The real rule is undecided. */
 export const MAX_COMPANIONS = 4;
 
-export type Layout = Record<Slot, string> & { companions: string[] };
+/** Desk Finds items that sit on the desk (shop_items.key). Spots are a PROPOSAL (6 slots, staggered). */
+export const DECOR_SLOTS = ["d1", "d2", "d3", "d4", "d5", "d6"] as const;
+export type DecorSlot = (typeof DECOR_SLOTS)[number];
+export type Decor = Record<DecorSlot, string>;
+/** Top-left of each 16x16 spot on the 160x112 desk scene. */
+export const DECOR_POS: Record<DecorSlot, { x: number; y: number }> = {
+  d1: { x: 118, y: 40 }, d2: { x: 136, y: 43 }, d3: { x: 50, y: 44 },
+  d4: { x: 94, y: 42 }, d5: { x: 66, y: 82 }, d6: { x: 90, y: 80 },
+};
+export const DECOR_ITEMS: { key: string; name: string }[] = [
+  { key: "sticky_note_stack", name: "Sticky-note stack" },
+  { key: "pen_cup", name: "Pen cup" },
+  { key: "coaster_set", name: "Coaster set" },
+  { key: "snack_tin", name: "Snack tin" },
+  { key: "mini_cactus", name: "Mini cactus" },
+  { key: "tea_mug_with_steam", name: "Tea mug with steam" },
+  { key: "fern_pot", name: "Fern pot" },
+];
+export const EMPTY_DECOR: Decor = { d1: "", d2: "", d3: "", d4: "", d5: "", d6: "" };
+export function decorName(key: string): string {
+  return DECOR_ITEMS.find((i) => i.key === key)?.name ?? key;
+}
+/** Only known spots and items; anything else becomes an empty spot. */
+export function cleanDecor(raw: unknown): Decor {
+  const out: Decor = { ...EMPTY_DECOR };
+  if (!raw || typeof raw !== "object") return out;
+  for (const d of DECOR_SLOTS) {
+    const v = (raw as Record<string, unknown>)[d];
+    if (typeof v === "string" && DECOR_ITEMS.some((i) => i.key === v)) out[d] = v;
+  }
+  return out;
+}
+
+export type Layout = Record<Slot, string> & { companions: string[]; decor: Decor };
 
 export const DEFAULT_LAYOUT: Layout = {
   surface: "oak", monitor: "basic", extra: "none", keyboard: "full",
-  mouse: "wired", pad: "sage", mat: "none", lamp: "starter", companions: [],
+  mouse: "wired", pad: "sage", mat: "none", lamp: "starter", companions: [], decor: { ...EMPTY_DECOR },
 };
 
 export function itemName(slot: Slot, id: string): string {
