@@ -12,18 +12,6 @@ import { LENGTHS } from "../lib/focusBlock";
 // Buddy Collection and Desk Stickies are sections of My Desk. Each card shows a
 // small preview and a button to its own page, and that page has a Back link here.
 
-function CardHead({ icon, title, blurb }: { icon: React.ReactNode; title: string; blurb: string }) {
-  return (
-    <div className="ard-head">
-      <span className="ard-icon" aria-hidden="true">{icon}</span>
-      <div>
-        <h3 className="t-h3" style={{ margin: 0 }}>{title}</h3>
-        <p className="t-body-sm text-muted" style={{ margin: 0 }}>{blurb}</p>
-      </div>
-    </div>
-  );
-}
-
 export function DeskTimeCard() {
   const { around } = useWhosAround();
   const [mins, setMins] = useState<number>(25);
@@ -130,36 +118,6 @@ export function BuddyCollectionCard() {
         )}
       </div>
       <Link to="/buddy-collection" className="btn btn-secondary ard-open">Open Buddy Collection</Link>
-    </section>
-  );
-}
-
-// The sticky-note icon from the My Desk design (a yellow note with a terracotta pin).
-function StickyIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 16 16" shapeRendering="crispEdges" aria-hidden="true" style={{ display: "block" }}>
-      <rect x="2" y="2" width="12" height="12" fill="#FFF3B0" />
-      <path fill="#4A3228" d="M2 1h12v1h-12zM1 2h1v12h-1zM14 2h1v12h-1zM2 14h12v1h-12z" />
-      <path fill="#B5573A" d="M7 2h2v2h-2z" />
-      <path fill="#4A3228" d="M4 7h8v1h-8zM4 9h6v1h-6zM4 11h4v1h-4z" />
-    </svg>
-  );
-}
-
-// Desk Stickies are not built yet (visitor desks come later), so this card says so
-// instead of showing sample notes.
-export function DeskStickiesCard() {
-  return (
-    <section className="ard-card" aria-labelledby="ard-ds">
-      <CardHead
-        icon={<StickyIcon />}
-        title="Desk Stickies"
-        blurb="Notes visitors leave on your pin board"
-      />
-      <div className="ard-box">
-        <span className="ard-eyebrow">COMING SOON</span>
-        <span className="t-body-sm">Notes visitors leave will land here, and only you will see this list.</span>
-      </div>
     </section>
   );
 }

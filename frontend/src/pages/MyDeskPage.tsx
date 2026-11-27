@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
-import { BuddyCollectionCard, DeskFindsCard, DeskStickiesCard, DeskTimeCard } from "../components/MyDeskAroundCards";
+import { BuddyCollectionCard, DeskFindsCard, DeskTimeCard } from "../components/MyDeskAroundCards";
+import { MyStickiesCard } from "../components/DeskStickies";
 import { useMyDesk } from "../lib/useMyDesk";
 import {
   ITEMS, SLOTS, SLOT_LABEL, SLOT_HINT, BUDDIES, MAX_COMPANIONS,
@@ -254,7 +255,7 @@ export default function MyDeskPage() {
                 <DeskTimeCard />
                 <DeskFindsCard />
                 <BuddyCollectionCard />
-                <DeskStickiesCard />
+                <MyStickiesCard />
               </>
             ) : (
               <section className="card" aria-labelledby="md-dec-h">

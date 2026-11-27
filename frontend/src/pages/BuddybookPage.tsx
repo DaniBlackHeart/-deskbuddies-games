@@ -7,7 +7,7 @@ import PixelIcon from "../components/PixelIcon";
 import { BOOK_ART } from "../lib/bookArt";
 import { STAMP_ART } from "../lib/stampArt";
 import { inkFor } from "../lib/questInk";
-import { useBuddybook, type BuddyEntry, type BuddybookData, type KeepsakeEntry, type QuestMark, type Stamp } from "../lib/useBuddybook";
+import { useBuddybook, type BuddyEntry, type BuddybookData, type KeepsakeEntry, type KeptSticky, type QuestMark, type Stamp } from "../lib/useBuddybook";
 
 // Buddybook: your private, read-only record. Follows the "Debbie Buddybook" design
 // and brief: a flip book you open with the tabs, the page corners or the buttons,
@@ -213,6 +213,31 @@ function CardGrid({ children, cols = 2 }: { children: ReactNode; cols?: 2 | 3 })
   return <ul className={"bb-cards bb-cards--" + cols}>{children}</ul>;
 }
 
+const KEPT_SHOWN = 6;
+
+function KeptStickies({ list }: { list: KeptSticky[] }) {
+  return (
+    <div>
+      <p className="bb-eyebrow">DESK STICKIES YOU KEPT</p>
+      {list.length === 0 ? (
+        <p className="bb-quiet">Notes you keep from your Desk Stickies are saved here.</p>
+      ) : (
+        <>
+          <ul className="ds-list">
+            {list.slice(0, KEPT_SHOWN).map((n) => (
+              <li key={n.id} className="ds-note">
+                <p className="ds-note__body">{n.body}</p>
+                <p className="ds-note__meta"><span>{n.sender_name} · written {new Date(n.written_on).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span></p>
+              </li>
+            ))}
+          </ul>
+          {list.length > KEPT_SHOWN && <p className="bb-quiet">and {list.length - KEPT_SHOWN} more kept.</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
 function PrivateNote() {
   return (
     <p className="bb-private">
@@ -323,6 +348,10 @@ function ListView({ d, seen }: { d: BuddybookData; seen: ReadonlySet<string> }) 
         <h2 className="t-h2" id="bbl-keeps">Keepsakes earned</h2>
         {d.keepsakes.length === 0 ? <p className="bb-quiet">Nothing yet. Keepsakes you earn are kept here.</p> : <ul className="bb-keeps">{d.keepsakes.map((k) => <KeepsakeRow key={k.key} k={k} />)}</ul>}
         <p className="bb-quiet">Progress lives on Beyond the Desk. This page only keeps what you have earned.</p>
+      </section>
+      <section aria-labelledby="bbl-stickies">
+        <h2 className="t-h2" id="bbl-stickies">Desk Stickies</h2>
+        <KeptStickies list={d.stickies ?? []} />
       </section>
       <PrivateNote />
     </div>
@@ -495,6 +524,7 @@ function Book({ d, spread, setSpread, seen }: { d: BuddybookData; spread: number
                 <ul className="bb-keeps">{d.keepsakes.map((k) => <KeepsakeRow key={k.key} k={k} />)}</ul>
               )}
               <p className="bb-quiet">Progress lives on Beyond the Desk. This page only keeps what you have earned.</p>
+              <KeptStickies list={d.stickies ?? []} />
               <PrivateNote />
             </Page>
             <PageNav num={9} />

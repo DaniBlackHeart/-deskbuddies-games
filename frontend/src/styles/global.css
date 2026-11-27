@@ -3492,3 +3492,18 @@ button.page-back { font: inherit; font-weight: 700; cursor: pointer; background:
 .bbd-places li { display: flex; justify-content: space-between; gap: 12px; min-height: 36px; align-items: center; }
 .bbd-backdrop { position: fixed; inset: 0; background: rgba(61, 50, 41, 0.4); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
 .bbd-dialog { max-width: 520px; width: 100%; max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+
+/* Desk Stickies */
+.ds-cork { align-items: stretch; justify-content: flex-start; padding: 12px; }
+.ds-notes, .ds-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; width: 100%; }
+.ds-notes { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.ds-note { background: #fff3b0; color: #3a261c; border: 2px solid #4a3228; border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-weight: 400; }
+.ds-note__body { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.ds-note__meta { margin: 0; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 0.8125rem; color: #5b4636; }
+.ds-link { font: inherit; font-size: 0.8125rem; font-weight: 700; color: #7a3a22; background: transparent; border: 0; padding: 4px 2px; min-height: 32px; cursor: pointer; text-decoration: underline; }
+.ds-link:focus-visible, .ds-text:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.ds-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+.ds-actions .kdl-btn { min-height: 44px; font-size: 0.9375rem; }
+.ds-backdrop { position: fixed; inset: 0; background: rgba(61, 50, 41, 0.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+.ds-dialog { max-width: 460px; width: 100%; display: flex; flex-direction: column; gap: 10px; max-height: 90vh; overflow-y: auto; }
+.ds-text { font: inherit; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 2px solid var(--color-border); border-radius: 12px; background: var(--color-surface); color: var(--color-text); resize: vertical; }

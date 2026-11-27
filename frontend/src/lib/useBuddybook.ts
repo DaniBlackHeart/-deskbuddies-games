@@ -11,12 +11,15 @@ export type BuddyEntry = { key: string; owned: boolean; limited: boolean; name: 
 export type QuestMark = { key: string; name: string; theme: string; done_on: string };
 export type KeepsakeEntry = { key: string; name: string; category: string; tier: "bronze" | "silver" | "gold"; threshold: number; earned_at: string | null };
 
+export type KeptSticky = { id: string; sender_name: string; body: string; written_on: string };
+
 export type BuddybookData = {
   counts: { stamps: number; quests: number; buddies: number; keepsakes: number };
   firsts: Stamp[];
   quests: QuestMark[];
   buddies: BuddyEntry[];
   keepsakes: KeepsakeEntry[];
+  stickies: KeptSticky[];
 };
 
 export function useBuddybook() {

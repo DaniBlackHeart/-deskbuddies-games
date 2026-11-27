@@ -140,6 +140,19 @@ async function buildStatus(admin: Admin, userId: string) {
     .map((d) => ({ key: d.quest_key, name: questName.get(d.quest_key)?.name ?? "", theme: questName.get(d.quest_key)?.theme ?? "", done_on: d.done_on }))
     .filter((q) => q.name);
 
+  // ---- Kept Desk Stickies: notes other members left that the owner chose to keep ----
+  // Member-visible by design (the sender's name and the date written show). Only the caller's own.
+  const keptRows = await must<{ id: string; sender: string; body: string; created_at: string }[]>(
+    admin.from("desk_stickies").select("id,sender,body,created_at").eq("desk_owner", userId).eq("status", "kept").order("kept_at", { ascending: false }).limit(60),
+  );
+  const senderIds = [...new Set((keptRows ?? []).map((r) => r.sender))];
+  const senderNames = new Map<string, string>();
+  if (senderIds.length > 0) {
+    const ps = await must<{ id: string; username: string }[]>(admin.from("profiles").select("id,username").in("id", senderIds));
+    for (const p of ps ?? []) senderNames.set(p.id, p.username);
+  }
+  const stickies = (keptRows ?? []).map((r) => ({ id: r.id, sender_name: senderNames.get(r.sender) ?? "A member", body: r.body, written_on: r.created_at }));
+
   return {
     counts: {
       quests: quests.length,
@@ -151,6 +164,7 @@ async function buildStatus(admin: Admin, userId: string) {
     quests,
     buddies,
     keepsakes,
+    stickies,
   };
 }
 

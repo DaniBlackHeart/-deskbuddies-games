@@ -6,10 +6,9 @@ import { buddyName } from "../lib/deskCatalog";
 
 // "See how visitors see it" (Debbie My Desk design). A PREVIEW of your own desk
 // the way a visitor will see it: the desk, your companions and a pin board. It
-// shows only your own saved desk, so nothing here is sent or shared. Visiting
-// other members' desks and Desk Stickies are later work (not the first
-// release); until then nobody else can open this. A real visitor view must be
-// built server-side and never carry deskbits, journals, goals or Focus history.
+// shows only your own saved desk, so nothing here is sent or shared. The real
+// visitor view is the Buddy Profile page, built server-side so it never carries
+// deskbits, journals, goals or Focus history.
 
 export default function MyDeskVisitorPreviewPage() {
   const { profile } = useAuth();
@@ -25,7 +24,7 @@ export default function MyDeskVisitorPreviewPage() {
           <span aria-hidden="true">‹</span> Back to My Desk
         </Link>
         <div className="vp-note" role="note">
-          <b>Preview only.</b> Nobody else can visit your desk yet. This is what visitors will see when visits arrive: your desk, your companions and a pin board. They will never see your deskbits, journals, goals or Focus history.
+          <b>Preview only.</b> This is what visitors see when they open your Buddy Profile: your desk, your companions and a pin board. They will never see your deskbits, journals, goals or Focus history.
         </div>
         <div>
           <h1 className="t-h1" style={{ margin: 0 }}>{name}'s desk</h1>
@@ -56,8 +55,8 @@ export default function MyDeskVisitorPreviewPage() {
               <p className="text-muted t-body-sm" style={{ margin: 0 }}>
                 Short notes from visitors who have checked in. They refresh each week, and you choose which ones to keep.
               </p>
-              <p className="text-muted t-body-sm" style={{ margin: 0 }}>No stickies yet. Desk Stickies are coming later.</p>
-              <span className="kdl-btn kdl-btn--off mp-btn" aria-disabled="true">Leave a Desk Sticky · Coming soon</span>
+              <p className="text-muted t-body-sm" style={{ margin: 0 }}>Your real stickies are on My Desk, under Desk Stickies.</p>
+              <span className="kdl-btn kdl-btn--off mp-btn" aria-disabled="true">Leave a Desk Sticky (visitors only)</span>
             </section>
             <section className="card" aria-labelledby="vp-see">
               <h2 id="vp-see" className="md-h2">What visitors can see</h2>

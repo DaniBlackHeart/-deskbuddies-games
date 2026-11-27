@@ -3,12 +3,14 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { supabase } from "../lib/supabaseClient";
 import { BUDDIES, buddyName } from "../lib/deskCatalog";
+import { useStickyBoard } from "../lib/useDeskStickies";
+import { PinBoard, StickiesSidePanel } from "../components/DeskStickies";
 
 // Another member's profile (opened from Who's around, Find a member and a Buddy Calendar birthday name).
 // Everything here comes from the member-profile Edge Function, which decides on the server what a
 // visitor may see: a name, the Discord avatar, the MOD badge, the month they joined and the buddies
 // keeping their desk seat. Never deskbits, XP, level, streak, stamps, journals, goals or Focus history.
-// Desk Stickies (leaving a note on their desk) are later work, so the pin board says so.
+// Desk Stickies: the pin board and "Leave a Desk Sticky" come from the desk-stickies Edge Function.
 
 type Visited = { id: string; name: string; avatar_url: string | null; is_mod: boolean; since: string; companions: string[] };
 
@@ -18,6 +20,7 @@ export default function MemberProfilePage() {
   const [person, setPerson] = useState<Visited | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "error">("loading");
   const [imgFailed, setImgFailed] = useState(false);
+  const stickies = useStickyBoard(id);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,23 +109,11 @@ export default function MemberProfilePage() {
               <img src={scene} alt={names.length ? `${person.name}'s desk with ${names.join(" and ")} on the companion mat` : `${person.name}'s desk with an empty spot for a companion`} width={160} height={112} className="md-scene__img" />
             </div>
             <p className="text-muted t-body-sm" style={{ margin: 0 }}>Placeholder art: only the companion spot redraws, and it can show one buddy.</p>
-            <h2 id="mp-pin" className="md-h2" style={{ marginTop: 8 }}>{person.name}’s pin board</h2>
-            <div className="mp-cork" role="img" aria-label="Empty pin board">
-              <span>No stickies yet</span>
-            </div>
-            <p className="text-muted t-body-sm" style={{ margin: 0 }}>Placeholder pin board. Real art and the pile’s look are still to design.</p>
+            <PinBoard ownerName={person.name} board={stickies.board} error={stickies.error} onReport={stickies.report} />
           </section>
 
           <div className="mp-side">
-            <section className="card" aria-labelledby="mp-stickies">
-              <h2 id="mp-stickies" className="md-h2">Desk Stickies</h2>
-              <p className="text-muted t-body-sm" style={{ margin: 0 }}>
-                Short notes from visitors who have checked in. They refresh each week, and {person.name} chooses which ones to keep.
-              </p>
-              <p className="text-muted t-body-sm" style={{ margin: 0 }}>No stickies yet.</p>
-              <span className="kdl-btn kdl-btn--off mp-btn" aria-disabled="true">Leave a Desk Sticky · Coming soon</span>
-              <p className="text-muted t-body-sm" style={{ margin: 0 }}>Desk Stickies are not open yet, so there is nothing to leave or report for now.</p>
-            </section>
+            <StickiesSidePanel ownerName={person.name} board={stickies.board} onLeave={stickies.leave} />
             <section className="card" aria-labelledby="mp-see">
               <h2 id="mp-see" className="md-h2">What visitors can see</h2>
               <div>
