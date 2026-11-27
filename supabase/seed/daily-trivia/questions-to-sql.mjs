@@ -74,7 +74,7 @@ rows.forEach((r, idx) => {
 
 if (out.length === 0) { console.error("No questions found (example rows are skipped)."); process.exit(1); }
 console.log(`-- Daily Trivia questions, generated from ${file.split("/").pop()} (${out.length} questions).
--- Safe to review before running. Loads into daily.trivia_questions; questions already loaded are not touched.
+-- Safe to review before running. Run it ONCE: running it again would add every question a second time.
 insert into daily.trivia_questions (type, category, prompt, choices, correct_choice, accepted_answers, scheduled_for) values
 ${out.join(",\n")};
 `);
