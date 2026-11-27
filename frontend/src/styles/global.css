@@ -3480,7 +3480,8 @@ button.page-back { font: inherit; font-weight: 700; cursor: pointer; background:
 .bbd-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .bbd-row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 10px; border-radius: 10px; background: var(--color-bg-alt); }
 .bbd-row--you { background: var(--color-primary-soft); border: 2px solid var(--color-primary); padding: 2px 8px; }
-.bbd-rank { flex: none; min-width: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.bbd-trophy { flex: none; width: 32px; height: 32px; display: inline-flex; }
+.bbd-rank { flex: none; min-width: 34px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .bbd-face { flex: none; width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 .bbd-face--initial { display: grid; place-items: center; font-weight: 800; background: var(--color-surface); border: 2px solid var(--color-border); box-sizing: border-box; }
 .bbd-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

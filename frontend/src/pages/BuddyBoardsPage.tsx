@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import AppHeader from "../components/AppHeader";
+import TrophyIcon from "../components/TrophyIcon";
 import { useBuddyBoards, type BoardRow } from "../lib/useBuddyBoards";
 
 // Buddy Boards (Debbie Buddy Boards design, 26-27 Nov 2026). First version: the Overall board only.
@@ -33,7 +34,8 @@ function Face({ name, avatar }: { name: string; avatar: string | null }) {
 function Row({ r }: { r: BoardRow }) {
   return (
     <li className={"bbd-row" + (r.is_you ? " bbd-row--you" : "")}>
-      <span className="bbd-rank">{r.rank}</span>
+      {r.rank <= 3 ? <span className="bbd-trophy"><TrophyIcon place={r.rank as 1 | 2 | 3} size={32} /></span> : <span className="bbd-trophy" aria-hidden="true" />}
+      <span className="bbd-rank">{ordinal(r.rank)}</span>
       <Face name={r.name} avatar={r.avatar_url} />
       <span className="bbd-name">
         {r.name}
@@ -171,8 +173,9 @@ export default function BuddyBoardsPage() {
                 <div className="bbd-pinned">
                   <div aria-hidden="true" className="text-muted">· · ·</div>
                   <div className="bbd-row bbd-row--you">
-                    <span className="bbd-rank">{board.you.rank}</span>
-                    <span className="bbd-name">You<span className="sr-only"> are in {ordinal(board.you.rank)} place</span></span>
+                    <span className="bbd-trophy" aria-hidden="true" />
+                    <span className="bbd-rank">{ordinal(board.you.rank)}</span>
+                    <span className="bbd-name">You</span>
                     <span className="bbd-value">{fmt(board.you.value)} XP</span>
                   </div>
                 </div>
