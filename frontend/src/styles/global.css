@@ -3472,10 +3472,24 @@ button.page-back { font: inherit; font-weight: 700; cursor: pointer; background:
 .bbd-page { display: flex; flex-direction: column; gap: 20px; }
 .bbd-head { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end; justify-content: space-between; }
 .bbd-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.bbd-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.bbd-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 640px) {
+  .bbd-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bbd-tabs > :last-child { grid-column: 1 / -1; }
+}
+.bbd-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
 @media (max-width: 860px) { .bbd-grid { grid-template-columns: minmax(0, 1fr); } }
-.bbd-card { display: flex; flex-direction: column; gap: 14px; }
-.bbd-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+.bbd-trio, .bbd-boards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+@media (max-width: 960px) { .bbd-trio, .bbd-boards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .bbd-trio, .bbd-boards { grid-template-columns: minmax(0, 1fr); } }
+.bbd-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.bbd-card--alt { background: var(--color-bg-alt); }
+.bbd-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.bbd-h { margin: 0; font-family: var(--font-heading); font-weight: 600; font-size: 1.375rem; line-height: 1.15; }
+.bbd-h--big { font-size: 1.625rem; }
+.bbd-tag { flex: none; display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border: 2px solid var(--color-border); border-radius: 999px; font-size: 0.8125rem; font-weight: 700; background: var(--color-bg); white-space: nowrap; }
+.bbd-empty { border: 2px dashed var(--color-border); border-radius: 12px; padding: 14px; }
+.bbd-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 20px; align-items: start; }
 @media (max-width: 640px) { .bbd-cols { grid-template-columns: minmax(0, 1fr); } }
 .bbd-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .bbd-row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 10px; border-radius: 10px; background: var(--color-bg-alt); }
