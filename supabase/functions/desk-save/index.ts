@@ -8,7 +8,7 @@
 // deskbits, Buddy XP or access.
 
 import { jsonResponse, handleOptions, getAdminClient, requireMember } from "../_shared/utils.ts";
-import { SLOTS, ALL_ITEMS, OPEN_ITEMS, BUDDIES, MAX_COMPANIONS, DECOR_SLOTS, DECOR_ITEMS } from "../_shared/deskCatalog.ts";
+import { SLOTS, ALL_ITEMS, OPEN_ITEMS, BUDDIES, MAX_COMPANIONS, DECOR_SLOTS, DECOR_ITEMS, WARDROBE_BUDDIES, WARDROBE_ITEMS } from "../_shared/deskCatalog.ts";
 
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
@@ -92,6 +92,40 @@ Deno.serve(async (req) => {
       }
     }
     clean.decor = decor;
+
+    // Wardrobe: { <buddy>: { <body slot>: <item key> } }. The buddy must be one that can wear things
+    // and must be found; the item must be wearable in that slot, owned ("find:<key>"), and worn by one
+    // buddy at a time. A save that does not mention "wardrobe" keeps what is already worn.
+    const wardrobe: Record<string, Record<string, string>> = {};
+    if (input.wardrobe === undefined) {
+      const { data: cur2, error: curErr2 } = await admin.from("desk_layouts").select("layout").eq("user_id", user.id).maybeSingle();
+      if (curErr2) throw curErr2;
+      const old = ((cur2?.layout as { wardrobe?: Record<string, Record<string, unknown>> } | null)?.wardrobe ?? {});
+      for (const b of WARDROBE_BUDDIES) {
+        for (const [item, slotName] of Object.entries(WARDROBE_ITEMS)) {
+          if (old[b]?.[slotName] === item) (wardrobe[b] ??= {})[slotName] = item;
+        }
+      }
+    } else {
+      if (!input.wardrobe || typeof input.wardrobe !== "object" || Array.isArray(input.wardrobe)) {
+        return jsonResponse({ error: "wardrobe must be an object" }, 400);
+      }
+      const worn = new Set<string>();
+      for (const [buddy, slots] of Object.entries(input.wardrobe as Record<string, unknown>)) {
+        if (!WARDROBE_BUDDIES.includes(buddy)) return jsonResponse({ error: "That buddy can't wear things yet" }, 400);
+        if (!slots || typeof slots !== "object" || Array.isArray(slots)) return jsonResponse({ error: "wardrobe must be an object" }, 400);
+        for (const [slotName, item] of Object.entries(slots as Record<string, unknown>)) {
+          if (item === "" || item === undefined) continue;
+          if (typeof item !== "string" || WARDROBE_ITEMS[item] !== slotName) return jsonResponse({ error: "Unknown wardrobe item" }, 400);
+          if (!owned.has(`find:${item}`)) return jsonResponse({ error: "You don't have that item yet", slot: "wardrobe" }, 403);
+          if (!owned.has(`companion:${buddy}`)) return jsonResponse({ error: "That buddy hasn't been found yet", slot: "wardrobe" }, 403);
+          if (worn.has(item)) return jsonResponse({ error: "That item is already being worn" }, 400);
+          worn.add(item);
+          (wardrobe[buddy] ??= {})[slotName] = item;
+        }
+      }
+    }
+    clean.wardrobe = wardrobe;
 
     const { error } = await admin
       .from("desk_layouts")

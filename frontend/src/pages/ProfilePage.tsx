@@ -7,6 +7,7 @@ import { useBuddybook } from "../lib/useBuddybook";
 import { useDailyCheckIn } from "../lib/useDailyCheckIn";
 import { useMemberProgress } from "../lib/useMemberProgress";
 import { useMyDesk } from "../lib/useMyDesk";
+import DeskScene from "../components/DeskScene";
 
 // Buddy Profile. Follows the "Debbie Buddy Profile" design, using the member's own real data.
 // "How others see it" is a preview on the member's own page: it hides what other members must
@@ -136,7 +137,7 @@ export default function ProfilePage() {
               {!others && <Link className="pf-chip pf-chip--on" to="/my-desk">Open My Desk</Link>}
             </div>
             <div className="pf-scene">
-              <img src={scene} alt={saved.companions[0] ? "Your desk with a buddy" : "Your desk"} width={160} height={112} />
+              <DeskScene src={scene} alt={saved.companions[0] ? "Your desk with a buddy" : "Your desk"} decor={saved.decor} buddy={saved.companions[0]} wardrobe={saved.wardrobe} />
             </div>
           </section>
 

@@ -8,7 +8,7 @@
 // Someone who is not a verified member is reported as "not found", the same as an unknown id.
 
 import { jsonResponse, handleOptions, getAdminClient, requireMember } from "../_shared/utils.ts";
-import { DECOR_SLOTS, DECOR_ITEMS } from "../_shared/deskCatalog.ts";
+import { DECOR_SLOTS, DECOR_ITEMS, WARDROBE_BUDDIES, WARDROBE_ITEMS } from "../_shared/deskCatalog.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_COMPANIONS = 2;
@@ -48,6 +48,15 @@ Deno.serve(async (req) => {
       decor[d] = typeof v === "string" && DECOR_ITEMS.includes(v) ? v : "";
     }
 
+    // What their buddies wear: only fitted buddies and known items go out.
+    const rawWear = ((lay?.layout as { wardrobe?: Record<string, Record<string, unknown>> } | null)?.wardrobe ?? {});
+    const wardrobe: Record<string, Record<string, string>> = {};
+    for (const b of WARDROBE_BUDDIES) {
+      for (const [item, slotName] of Object.entries(WARDROBE_ITEMS)) {
+        if (rawWear[b]?.[slotName] === item) (wardrobe[b] ??= {})[slotName] = item;
+      }
+    }
+
     return jsonResponse({
       id: p.id,
       name: p.username,
@@ -56,6 +65,7 @@ Deno.serve(async (req) => {
       since: p.created_at,
       companions,
       decor,
+      wardrobe,
     });
   } catch (err) {
     console.error("member-profile failed:", err);

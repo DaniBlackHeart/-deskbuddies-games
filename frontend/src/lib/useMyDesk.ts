@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "./supabaseClient";
-import { DEFAULT_LAYOUT, SLOTS, ITEMS, BUDDIES, cleanDecor, type Layout } from "./deskCatalog";
+import { DEFAULT_LAYOUT, SLOTS, ITEMS, BUDDIES, cleanDecor, cleanWardrobe, type Layout } from "./deskCatalog";
 
 // Loads the member's saved desk layout and which items they own.
 // Both tables are read-only from the browser (RLS: own rows only). Saving goes
 // through the desk-save Edge Function, which re-checks ownership on the server.
 
 function cleanLayout(raw: unknown): Layout {
-  const out: Layout = { ...DEFAULT_LAYOUT, companions: [], decor: cleanDecor(null) };
+  const out: Layout = { ...DEFAULT_LAYOUT, companions: [], decor: cleanDecor(null), wardrobe: {} };
   if (!raw || typeof raw !== "object") return out;
   const r = raw as Record<string, unknown>;
   for (const s of SLOTS) {
@@ -19,6 +19,7 @@ function cleanLayout(raw: unknown): Layout {
     out.companions = r.companions.filter((c): c is string => typeof c === "string" && BUDDIES.some((b) => b.id === c));
   }
   out.decor = cleanDecor(r.decor);
+  out.wardrobe = cleanWardrobe(r.wardrobe);
   return out;
 }
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { supabase } from "../lib/supabaseClient";
-import { BUDDIES, buddyName, cleanDecor, type Decor } from "../lib/deskCatalog";
+import { BUDDIES, buddyName, cleanDecor, cleanWardrobe, type Decor, type Wardrobe } from "../lib/deskCatalog";
 import DeskScene from "../components/DeskScene";
 import { useStickyBoard } from "../lib/useDeskStickies";
 import { PinBoard, StickiesSidePanel } from "../components/DeskStickies";
@@ -13,7 +13,7 @@ import { PinBoard, StickiesSidePanel } from "../components/DeskStickies";
 // keeping their desk seat. Never deskbits, XP, level, streak, stamps, journals, goals or Focus history.
 // Desk Stickies: the pin board and "Leave a Desk Sticky" come from the desk-stickies Edge Function.
 
-type Visited = { id: string; name: string; avatar_url: string | null; is_mod: boolean; since: string; companions: string[]; decor?: Decor };
+type Visited = { id: string; name: string; avatar_url: string | null; is_mod: boolean; since: string; companions: string[]; decor?: Decor; wardrobe?: Wardrobe };
 
 export default function MemberProfilePage() {
   const { id = "" } = useParams();
@@ -107,7 +107,7 @@ export default function MemberProfilePage() {
               {names.length > 0 ? `${names.join(" and ")} ${names.length > 1 ? "are" : "is"} keeping the seat.` : "The companion spot is waiting for a first buddy."}
             </p>
             <div className="md-scene">
-              <DeskScene src={scene} alt={names.length ? `${person.name}'s desk with ${names.join(" and ")} on the companion mat` : `${person.name}'s desk with an empty spot for a companion`} decor={cleanDecor(person.decor)} className="md-scene__img" />
+              <DeskScene src={scene} alt={names.length ? `${person.name}'s desk with ${names.join(" and ")} on the companion mat` : `${person.name}'s desk with an empty spot for a companion`} decor={cleanDecor(person.decor)} buddy={known[0]} wardrobe={cleanWardrobe(person.wardrobe)} className="md-scene__img" />
             </div>
             <p className="text-muted t-body-sm" style={{ margin: 0 }}>Placeholder art: only the companion spot redraws, and it can show one buddy.</p>
             <PinBoard ownerName={person.name} board={stickies.board} error={stickies.error} onReport={stickies.report} />

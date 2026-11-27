@@ -4,9 +4,10 @@ import AppHeader from "../components/AppHeader";
 import { BuddyCollectionCard, DeskFindsCard, DeskTimeCard } from "../components/MyDeskAroundCards";
 import { MyStickiesCard } from "../components/DeskStickies";
 import DeskScene from "../components/DeskScene";
+import { WARDROBE_BUDDIES } from "../lib/wardrobeArt";
 import { useMyDesk } from "../lib/useMyDesk";
 import {
-  ITEMS, SLOTS, SLOT_LABEL, SLOT_HINT, BUDDIES, MAX_COMPANIONS, DECOR_SLOTS, DECOR_ITEMS,
+  ITEMS, SLOTS, SLOT_LABEL, SLOT_HINT, BUDDIES, MAX_COMPANIONS, DECOR_SLOTS, DECOR_ITEMS, WARDROBE_ITEMS,
   itemName, buddyName, decorName, type Layout, type Slot, type DecorSlot,
 } from "../lib/deskCatalog";
 
@@ -14,8 +15,8 @@ import {
 // design. Placing an item never costs deskbits, Buddy XP or access. The browser
 // only asks for a layout; the desk-save Edge Function checks ownership.
 
-type Spot = Slot | "companions" | "decor";
-const SPOTS: Spot[] = [...SLOTS, "decor", "companions"];
+type Spot = Slot | "companions" | "decor" | "wardrobe";
+const SPOTS: Spot[] = [...SLOTS, "decor", "companions", "wardrobe"];
 
 function sceneFor(l: Layout): string {
   // Art exists for one buddy at a time; show the first seated one.
@@ -37,11 +38,12 @@ export default function MyDeskPage() {
   const changes = draft
     ? SLOTS.filter((s) => draft[s] !== saved[s]).length +
       (draft.companions.slice().sort().join() !== saved.companions.slice().sort().join() ? 1 : 0) +
-      DECOR_SLOTS.filter((d) => draft.decor[d] !== saved.decor[d]).length
+      DECOR_SLOTS.filter((d) => draft.decor[d] !== saved.decor[d]).length +
+      WARDROBE_BUDDIES.filter((b) => (draft.wardrobe[b]?.scarf ?? "") !== (saved.wardrobe[b]?.scarf ?? "")).length
     : 0;
 
   const startAt = (s: Spot) => () => {
-    setDraft({ ...saved, companions: [...saved.companions], decor: { ...saved.decor } });
+    setDraft({ ...saved, companions: [...saved.companions], decor: { ...saved.decor }, wardrobe: JSON.parse(JSON.stringify(saved.wardrobe)) });
     setSpot(s);
     setNotice("");
     setBlocked("");
@@ -93,6 +95,23 @@ export default function MyDeskPage() {
     next[decorSlot] = key;
     setDraft({ ...draft, decor: next });
   };
+  const pickWear = (buddy: string, itemKey: string) => {
+    if (!draft) return;
+    if (itemKey !== "" && !ownsFind(itemKey)) {
+      setBlocked("You don't have the tiny scarf yet. You can buy it in Desk Finds, and then it will be here.");
+      return;
+    }
+    setBlocked("");
+    // An item is owned once, so it is worn by one buddy at a time.
+    const next: Layout["wardrobe"] = {};
+    for (const [b, w] of Object.entries(draft.wardrobe)) {
+      if (itemKey !== "" && w.scarf === itemKey) continue;
+      next[b] = { ...w };
+    }
+    if (itemKey !== "") next[buddy] = { ...next[buddy], scarf: itemKey };
+    else if (next[buddy]) delete next[buddy].scarf;
+    setDraft({ ...draft, wardrobe: next });
+  };
   const pickBuddy = (id: string | "none") => {
     if (!draft) return;
     if (id === "none") {
@@ -121,7 +140,7 @@ export default function MyDeskPage() {
   // Home's "Decorate" button arrives here with ?decorate=1 and opens Decorate straight away.
   useEffect(() => {
     if (!loading && !loadError && params.get("decorate") === "1") {
-      setDraft({ ...saved, companions: [...saved.companions], decor: { ...saved.decor } });
+      setDraft({ ...saved, companions: [...saved.companions], decor: { ...saved.decor }, wardrobe: JSON.parse(JSON.stringify(saved.wardrobe)) });
       setSpot("companions");
       setParams({}, { replace: true });
     }
@@ -153,6 +172,12 @@ export default function MyDeskPage() {
       label: SLOT_LABEL.decor,
       value: DECOR_SLOTS.filter((d) => cur.decor[d]).map((d) => decorName(cur.decor[d])).join(", ") || "Nothing placed yet",
       color: "#F2C766",
+    },
+    {
+      slot: "wardrobe",
+      label: SLOT_LABEL.wardrobe,
+      value: WARDROBE_BUDDIES.filter((b) => cur.wardrobe[b]?.scarf).map((b) => `${buddyName(b)}: tiny scarf`).join(", ") || "Nothing worn yet",
+      color: "#8FA98A",
     },
     {
       slot: "companions",
@@ -214,7 +239,7 @@ export default function MyDeskPage() {
               </div>
             )}
             <div className="md-scene">
-              <DeskScene src={sceneFor(cur)} alt={sceneAlt} decor={cur.decor} className="md-scene__img" />
+              <DeskScene src={sceneFor(cur)} alt={sceneAlt} decor={cur.decor} buddy={cur.companions[0]} wardrobe={cur.wardrobe} className="md-scene__img" />
             </div>
             <div className="md-stage__bar">
               <div className="md-stage__text">
@@ -331,6 +356,40 @@ export default function MyDeskPage() {
                           />
                         );
                       })}
+                    </>
+                  ) : spot === "wardrobe" ? (
+                    <>
+                      {WARDROBE_BUDDIES.map((b) => {
+                        const found = isOwned("companions", b);
+                        const worn = cur.wardrobe[b]?.scarf === "tiny_scarf";
+                        return (
+                          <div key={b} style={{ gridColumn: "1 / -1", display: "grid", gap: 10 }}>
+                            <strong className="t-body">{buddyName(b)}</strong>
+                            {!found && <p className="text-muted t-body-sm" style={{ margin: 0 }}>{buddyName(b)} hasn't been found yet. Find them first, then dress them here.</p>}
+                            {found && !cur.companions.includes(b) && <p className="text-muted t-body-sm" style={{ margin: 0 }}>{buddyName(b)} isn't on your desk right now. They still keep what they wear, and you will see it when they sit there.</p>}
+                            {found && cur.companions.length > 0 && cur.companions[0] !== b && cur.companions.includes(b) && <p className="text-muted t-body-sm" style={{ margin: 0 }}>The desk picture shows one buddy at a time, so {buddyName(b)}'s outfit shows when they are the first on your desk.</p>}
+                            {found && (
+                              <>
+                                <Tile on={!worn} own name="No scarf" state={!worn ? "Chosen" : "Take it off"} color="#F3E6D2" onPick={() => pickWear(b, "")} />
+                                {WARDROBE_ITEMS.filter((w) => w.ready).map((w) => (
+                                  <Tile
+                                    key={w.key}
+                                    on={worn}
+                                    own={ownsFind(w.key)}
+                                    name={w.name}
+                                    state={worn ? "Worn" : ownsFind(w.key) ? "Owned" : "Not owned yet"}
+                                    color="#8FA98A"
+                                    onPick={() => pickWear(b, w.key)}
+                                  />
+                                ))}
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <p className="text-muted t-body-sm" style={{ gridColumn: "1 / -1", margin: 0 }}>
+                        Party hats, reading glasses and tiny backpacks can't be worn yet. Their fitting isn't done, and other buddies are still being fitted. What you buy stays yours.
+                      </p>
                     </>
                   ) : spot === "decor" ? (
                     <>

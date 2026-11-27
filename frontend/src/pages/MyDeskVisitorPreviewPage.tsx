@@ -39,7 +39,7 @@ export default function MyDeskVisitorPreviewPage() {
               <p className="text-muted" role="status">Loading your desk…</p>
             ) : (
               <div className="md-scene">
-                <DeskScene src={scene} alt={names.length ? `${name}'s desk with ${names.join(" and ")} on the companion mat` : `${name}'s desk with an empty spot for a companion`} decor={saved.decor} className="md-scene__img" />
+                <DeskScene src={scene} alt={names.length ? `${name}'s desk with ${names.join(" and ")} on the companion mat` : `${name}'s desk with an empty spot for a companion`} decor={saved.decor} buddy={saved.companions[0]} wardrobe={saved.wardrobe} className="md-scene__img" />
               </div>
             )}
             <p className="text-muted t-body-sm" style={{ margin: 0 }}>Placeholder art: only the companion spot redraws, and it can show one buddy.</p>

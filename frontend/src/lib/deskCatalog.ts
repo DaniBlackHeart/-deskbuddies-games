@@ -5,12 +5,12 @@
 export type Slot = "surface" | "monitor" | "extra" | "keyboard" | "mouse" | "pad" | "mat" | "lamp";
 export const SLOTS: Slot[] = ["surface", "monitor", "extra", "keyboard", "mouse", "pad", "mat", "lamp"];
 
-export const SLOT_LABEL: Record<Slot | "companions" | "decor", string> = {
+export const SLOT_LABEL: Record<Slot | "companions" | "decor" | "wardrobe", string> = {
   surface: "Desk surface", monitor: "Monitor", extra: "Extra monitor", keyboard: "Keyboard",
-  mouse: "Mouse", pad: "Mousepad", mat: "Desk mat", lamp: "Lamp", companions: "Companions", decor: "Desk items",
+  mouse: "Mouse", pad: "Mousepad", mat: "Desk mat", lamp: "Lamp", companions: "Companions", decor: "Desk items", wardrobe: "Wardrobe",
 };
 
-export const SLOT_HINT: Record<Slot | "companions" | "decor", string> = {
+export const SLOT_HINT: Record<Slot | "companions" | "decor" | "wardrobe", string> = {
   surface: "Colors are open to everyone for now. More unlock through milestones and Challenge rewards.",
   monitor: "Monitors unlock through milestones and Challenge rewards.",
   extra: "An extra monitor is its own item, landscape or portrait. Each unlocks through milestones and Challenge rewards.",
@@ -20,6 +20,7 @@ export const SLOT_HINT: Record<Slot | "companions" | "decor", string> = {
   mat: "A desk mat under your keyboard and mouse. Unlocks through milestones and Challenge rewards.",
   lamp: "Colors are open to everyone for now. More unlock through milestones and Challenge rewards.",
   decor: "Desk items come from Desk Finds. Each one can go in one spot. Placing them is free, and your desk keeps what you own.",
+  wardrobe: "Dress a buddy with things from Desk Finds. Paper Pal is the first buddy that can wear something. More buddies are coming.",
   companions: "Seat as many buddies as you like. How many fit will grow as your collection grows (the rule isn't decided).",
 };
 
@@ -121,11 +122,31 @@ export function cleanDecor(raw: unknown): Decor {
   return out;
 }
 
-export type Layout = Record<Slot, string> & { companions: string[]; decor: Decor };
+/** What one buddy wears, by body slot (only "scarf" has art so far). */
+export type Wear = { scarf?: string };
+export type Wardrobe = Record<string, Wear>;
+export const WARDROBE_ITEMS: { key: string; name: string; slot: "scarf" | "hat" | "glasses" | "pack"; ready: boolean }[] = [
+  { key: "tiny_scarf", name: "Tiny scarf", slot: "scarf", ready: true },
+  { key: "party_hat", name: "Party hat", slot: "hat", ready: false },
+  { key: "reading_glasses", name: "Reading glasses", slot: "glasses", ready: false },
+  { key: "tiny_backpack", name: "Tiny backpack", slot: "pack", ready: false },
+];
+/** Only known buddies and the scarf; anything else is dropped. */
+export function cleanWardrobe(raw: unknown): Wardrobe {
+  const out: Wardrobe = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [buddy, w] of Object.entries(raw as Record<string, unknown>)) {
+    if (!BUDDIES.some((b) => b.id === buddy) || !w || typeof w !== "object") continue;
+    if ((w as Record<string, unknown>).scarf === "tiny_scarf") out[buddy] = { scarf: "tiny_scarf" };
+  }
+  return out;
+}
+
+export type Layout = Record<Slot, string> & { companions: string[]; decor: Decor; wardrobe: Wardrobe };
 
 export const DEFAULT_LAYOUT: Layout = {
   surface: "oak", monitor: "basic", extra: "none", keyboard: "full",
-  mouse: "wired", pad: "sage", mat: "none", lamp: "starter", companions: [], decor: { ...EMPTY_DECOR },
+  mouse: "wired", pad: "sage", mat: "none", lamp: "starter", companions: [], decor: { ...EMPTY_DECOR }, wardrobe: {},
 };
 
 export function itemName(slot: Slot, id: string): string {

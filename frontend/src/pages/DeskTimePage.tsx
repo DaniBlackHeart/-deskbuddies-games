@@ -5,6 +5,7 @@ import { useFocusBlock, type BlockResult } from "../lib/useFocusBlock";
 import { useMyDesk } from "../lib/useMyDesk";
 import { buddyName } from "../lib/deskCatalog";
 import { ACTIVITIES, LENGTHS, MAX_GOAL_LENGTH, activityLabel, type ActivityId } from "../lib/focusBlock";
+import DeskScene from "../components/DeskScene";
 
 // Desk Time: start a Focus Block and see it through. Follows the "Debbie Desk
 // Time" design. The clock lives on the server (focus-block Edge Function): a
@@ -221,11 +222,12 @@ export default function DeskTimePage() {
             </section>
 
             <div className="dt-desk">
-              <img
+              <DeskScene
                 src={scene}
                 alt={deskLoading ? "" : names.length ? `Your desk with ${names.join(" and ")}` : "Your desk"}
-                width={160}
-                height={112}
+                decor={saved.decor}
+                buddy={saved.companions[0]}
+                wardrobe={saved.wardrobe}
                 className="dt-desk__img"
               />
               <p className="t-body text-muted" style={{ margin: 0 }}>{deskLine}</p>

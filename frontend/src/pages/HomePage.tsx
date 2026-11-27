@@ -10,6 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useDailyCheckIn } from "../lib/useDailyCheckIn";
 import { useMyDesk } from "../lib/useMyDesk";
 import { buddyName } from "../lib/deskCatalog";
+import DeskScene from "../components/DeskScene";
 
 // Home answers three questions in about ten seconds: where am I (my desk),
 // what can I do today, and who else is here. Layout follows the Debbie Home
@@ -65,11 +66,12 @@ function HomeDeskCard() {
         </div>
       </div>
       <div className="md-scene">
-        <img
+        <DeskScene
           src={scene}
           alt={loading ? "" : names.length ? `Your desk with ${names.join(" and ")} on the companion mat` : "Your desk with an empty spot for a companion"}
-          width={160}
-          height={112}
+          decor={saved.decor}
+          buddy={saved.companions[0]}
+          wardrobe={saved.wardrobe}
           className="md-scene__img"
         />
       </div>

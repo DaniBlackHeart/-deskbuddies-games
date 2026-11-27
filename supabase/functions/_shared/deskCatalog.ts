@@ -57,3 +57,9 @@ export const DECOR_SLOTS = ["d1", "d2", "d3", "d4", "d5", "d6"] as const;
 export const DECOR_ITEMS = [
   "sticky_note_stack", "pen_cup", "coaster_set", "snack_tin", "mini_cactus", "tea_mug_with_steam", "fern_pot",
 ];
+
+// Buddy wardrobe (Desk Finds items a buddy wears). Only buddies whose desk picture has been fitted can
+// wear anything; add a buddy here only when its fitting exists in frontend/src/lib/wardrobeArt.ts.
+// An item is worn by one buddy at a time (a member owns it once).
+export const WARDROBE_BUDDIES = ["paper"];
+export const WARDROBE_ITEMS: Record<string, string> = { tiny_scarf: "scarf" }; // item key -> body slot
