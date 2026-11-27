@@ -18,8 +18,8 @@ import { useLiveGames } from "../lib/useLiveGames";
 // member can be in one game (hosting or playing) and watch one game at a time.
 
 const BRAIN_BREAKS: { icon: PixelIconName; name: string; blurb: string; tag: string; path?: string }[] = [
-  { icon: "game-daily-puzzle", name: "Daily Puzzle", blurb: "Guess today's five-letter word in six tries.", tag: "New", path: "/games/daily-puzzle" },
-  { icon: "game-trivia", name: "Daily Trivia", blurb: "One question a day. You get a minute to answer.", tag: "New", path: "/games/daily-trivia" },
+  { icon: "game-daily-puzzle", name: "Five Tiles", blurb: "Guess today's five-letter word in six tries. New word at midnight.", tag: "New", path: "/games/daily-puzzle" },
+  { icon: "game-trivia", name: "Minute Quiz", blurb: "One question a day. You get a minute to answer. New one at midnight.", tag: "New", path: "/games/daily-trivia" },
   { icon: "game-daily-anagram", name: "Letter Shuffle", blurb: "Unscramble today's long word in four minutes. New word at midnight.", tag: "New", path: "/games/daily-anagram" },
   { icon: "game-daily-sudoku", name: "Number Nook", blurb: "One sudoku a day. Five mistakes allowed. New grid at midnight.", tag: "New", path: "/games/daily-sudoku" },
   { icon: "game-daily-word-search", name: "Word Hunt", blurb: "Find 8 hidden words in five minutes. New grid at midnight.", tag: "New", path: "/games/daily-word-search" },
@@ -78,7 +78,7 @@ export default function DashboardPage() {
             ))}
           </div>
           <p className="t-body-sm text-muted" style={{ margin: 0 }}>
-            Finishing a daily puzzle earns Buddy XP, solved or not. Solving earns more. One try a day, and a new one at midnight, Manila time.
+            Finishing a daily game earns Buddy XP, solved or not. Solving earns more. One try a day, and a new one at midnight, Manila time.
           </p>
         </section>
 

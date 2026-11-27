@@ -39,7 +39,7 @@ const PAGE_OF = { firsts: 2, quests: 4, buddies: 6, keeps: 9 } as const;
 const STAMP_TODO: Record<string, string> = {
   stamp_first_hello: "Check in for the first time",
   stamp_first_block: "Finish a first Focus Block",
-  stamp_first_brain_break: "Finish a first daily puzzle",
+  stamp_first_brain_break: "Finish your first Five Tiles",
   stamp_first_detour: "Try a first Daily Detour",
   stamp_first_game: "Finish a first live game",
   stamp_first_win: "Finish a first Weekly Win",
@@ -55,7 +55,7 @@ function stepLine(k: KeepsakeEntry): string {
     case "keep_welcome_back": return "Came back after 7 or more days away";
     case "keep_focus": return `Finished ${n} Focus Blocks`;
     case "keep_long_haul": return `Finished a Focus Block on ${n} different days`;
-    case "keep_brain_break": return `Finished the daily puzzle on ${n} different days`;
+    case "keep_brain_break": return `Finished Five Tiles on ${n} different days`;
     case "keep_detour": return `Tried ${n} Daily Detours`;
     case "keep_many_detours": return `Tried ${n} different detour prompts`;
     case "keep_wins": return `Finished a goal in ${n} different weeks`;

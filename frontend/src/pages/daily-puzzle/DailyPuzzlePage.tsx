@@ -107,7 +107,7 @@ export default function DailyPuzzlePage() {
   // Spoiler-free summary: marks only, no letters. (A Discord share is a later addition.)
   const summary = () => {
     const sym = { c: "🟩", p: "🟨", a: "⬛" } as Record<string, string>;
-    const head = `Debbie Daily Puzzle ${state?.puzzle_date} ${state?.status === "solved" ? guesses.length : "X"}/${max}`;
+    const head = `Debbie Five Tiles ${state?.puzzle_date} ${state?.status === "solved" ? guesses.length : "X"}/${max}`;
     return [head, ...guesses.map((g) => [...g.marks].map((m) => sym[m]).join(""))].join("\n");
   };
   const copy = async () => {
@@ -136,9 +136,9 @@ export default function DailyPuzzlePage() {
         <Link to="/games" className="page-back">‹ Back to Reality Break</Link>
         <div className="row-between" style={{ alignItems: "flex-start", gap: "var(--space-3)", flexWrap: "wrap" }}>
           <div>
-            <h1 className="t-h1">Daily Puzzle</h1>
+            <h1 className="t-h1">Five Tiles</h1>
             <p className="text-muted t-subtitle" style={{ margin: 0 }}>
-              Guess today's five-letter word in six tries.
+              Guess today's five-letter word in six tries. New word at midnight, Manila time.
             </p>
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowRules(true)}>❓ Rules</button>

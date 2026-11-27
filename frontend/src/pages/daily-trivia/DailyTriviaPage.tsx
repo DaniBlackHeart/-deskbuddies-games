@@ -79,8 +79,8 @@ export default function DailyTriviaPage() {
         <Link to="/games" className="page-back">‹ Back to Reality Break</Link>
         <div className="row-between" style={{ alignItems: "flex-start", gap: "var(--space-3)", flexWrap: "wrap" }}>
           <div>
-            <h1 className="t-h1">Daily Trivia</h1>
-            <p className="text-muted t-subtitle" style={{ margin: 0 }}>One question a day. One minute to answer.</p>
+            <h1 className="t-h1">Minute Quiz</h1>
+            <p className="text-muted t-subtitle" style={{ margin: 0 }}>One question a day. One minute to answer. New question at midnight, Manila time.</p>
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowRules(true)}>❓ Rules</button>
         </div>

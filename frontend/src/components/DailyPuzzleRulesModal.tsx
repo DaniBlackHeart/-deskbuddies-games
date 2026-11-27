@@ -1,6 +1,6 @@
 type Props = { onClose: () => void };
 
-/** "How to play" for the Daily Puzzle, opened from the ❓ Rules button on the play screen. */
+/** "How to play" for Five Tiles (the daily puzzle), opened from the ❓ Rules button on the play screen. */
 export default function DailyPuzzleRulesModal({ onClose }: Props) {
   return (
     <div
@@ -26,7 +26,7 @@ export default function DailyPuzzleRulesModal({ onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="row-between">
-          <h2 id="dp-rules-h" style={{ margin: 0 }}>How to play Daily Puzzle</h2>
+          <h2 id="dp-rules-h" style={{ margin: 0 }}>How to play Five Tiles</h2>
           <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close" style={{ padding: "4px 8px" }} autoFocus>
             ✕
           </button>

@@ -39,7 +39,7 @@ const WORD = { not_yet: "Not yet covered", partly: "Partly covered", covered: "C
 // What the page says it keeps running follows what has shipped.
 const KEEPS: { art: string; name: string; text: string }[] = [
   { art: "games", name: "The games", text: "Trivia Night, UNO, Family Feud and the other game nights." },
-  { art: "desktime", name: "Desk Time", text: "Focus Blocks, Shared Desk and the daily puzzle." },
+  { art: "desktime", name: "Desk Time", text: "Focus Blocks, Shared Desk and Five Tiles." },
   { art: "mydesk", name: "My Desk and buddies", text: "Your desk, your buddies and your Buddybook." },
   { art: "common", name: "The Common Room", text: "Posts, Pull Up a Chair and Daily Detours." },
   { art: "discord", name: "Discord connection", text: "Sign-in, roles, and posts shared with the server." },
