@@ -11,6 +11,7 @@ export type TriviaStatus = "no_question" | "not_started" | "in_progress" | "corr
 export type TriviaReward = { xp: number; deskbits: number; statuses: string[] } | null;
 
 export type TriviaState = {
+  difficulty?: string;
   trivia_date: string;
   status: TriviaStatus;
   time_limit_seconds: number;
@@ -36,7 +37,7 @@ export function useDailyTrivia() {
   const [deadline, setDeadline] = useState<number | null>(null);
 
   const apply = useCallback((s: TriviaState) => {
-    setState(s);
+    setState((prev) => ({ ...s, difficulty: s.difficulty ?? (prev?.trivia_date === s.trivia_date ? prev?.difficulty : undefined) }));
     setDeadline(s.status === "in_progress" && s.seconds_left != null ? Date.now() + s.seconds_left * 1000 : null);
     if (s.reward && s.reward.xp + s.reward.deskbits > 0) notifyProgressChanged();
   }, []);

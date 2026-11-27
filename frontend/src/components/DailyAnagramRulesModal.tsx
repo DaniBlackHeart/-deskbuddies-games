@@ -32,6 +32,7 @@ export default function DailyAnagramRulesModal({ onClose }: Props) {
           </button>
         </div>
         <ul style={{ paddingLeft: "20px", lineHeight: 1.6 }}>
+          <li>The level is picked at random each day and is the same for everyone: 7 letters is Easy, 8 is Medium, 9 is Hard.</li>
           <li>Each day there is one long word (7 to 9 letters) with its letters mixed up. Everyone gets the same one.</li>
           <li>Press Start to see it. You have four minutes to type the word. The clock runs on our side, so closing the page doesn't pause it.</li>
           <li>Guess as many times as you like. Only the word we picked counts, but every word we pick has no other word made from the same letters.</li>

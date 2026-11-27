@@ -32,6 +32,7 @@ export default function DailyWordSearchRulesModal({ onClose }: Props) {
           </button>
         </div>
         <ul style={{ paddingLeft: "20px", lineHeight: 1.6 }}>
+          <li>The level is picked at random each day and is the same for everyone. Easy has shorter words running right or down; Hard has longer words, many of them diagonal.</li>
           <li>Each day there is one 10×10 grid with 8 hidden words (4 to 8 letters). Everyone gets the same grid.</li>
           <li>Words run left to right, top to bottom, or diagonally down and to the right. Nothing runs backwards.</li>
           <li>Press Start to see the grid and the word list. You have five minutes. The clock runs on our side, so closing the page doesn't pause it.</li>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import DailyPuzzleRulesModal from "../../components/DailyPuzzleRulesModal";
+import { levelName } from "../../lib/dailyLevel";
 import { useDailyPuzzle, type GuessRow } from "../../lib/useDailyPuzzle";
 
 // Daily Puzzle: guess today's five-letter word in six tries. The server holds the word,
@@ -140,6 +141,7 @@ export default function DailyPuzzlePage() {
             <p className="text-muted t-subtitle" style={{ margin: 0 }}>
               Guess today's five-letter word in six tries. New word at midnight, Manila time.
             </p>
+            {state?.difficulty && <p className="t-body-sm" style={{ margin: "4px 0 0" }}><strong>Today's level: {levelName(state.difficulty)}</strong></p>}
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowRules(true)}>❓ Rules</button>
         </div>

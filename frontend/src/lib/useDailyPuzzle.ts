@@ -18,6 +18,7 @@ export type PuzzleState = {
   guesses: GuessRow[];
   answer?: string | null;
   reward?: PuzzleReward;
+  difficulty?: string;
 };
 
 export type GuessOutcome = "ok" | "not_a_word" | "invalid" | "closed" | "finished" | "error";

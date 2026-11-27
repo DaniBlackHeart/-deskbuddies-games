@@ -43,6 +43,7 @@ export default function DailyPuzzleRulesModal({ onClose }: Props) {
         </div>
         <ul style={{ paddingLeft: "20px", lineHeight: 1.6 }}>
           <li>A word that isn't in our list doesn't use up a guess.</li>
+          <li>The level (Easy, Medium or Hard) is picked at random each day and is the same for everyone. Harder words have unusual letters or a repeated letter.</li>
           <li>One puzzle per day. If you leave halfway, it's saved and waiting for you.</li>
           <li>A new word arrives at midnight, Manila time. A puzzle left unfinished at midnight doesn't count and doesn't pay.</li>
           <li>Finishing earns Buddy XP and a few deskbits, solved or not. Solving earns more.</li>

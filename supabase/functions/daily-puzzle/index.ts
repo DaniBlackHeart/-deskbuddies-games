@@ -75,6 +75,15 @@ async function payFinished(admin: Admin, userId: string, date: string, solved: b
   };
 }
 
+
+/** The day's level (Easy / Medium / Hard) for the page title. A missing level never blocks play. */
+async function withLevel<T extends { [k: string]: unknown }>(admin: Admin, game: string, date: unknown, state: T): Promise<T & { difficulty?: string }> {
+  if (typeof date !== "string") return state;
+  const { data, error } = await admin.rpc("daily_game_level", { p_game: game, p_date: date });
+  if (error || typeof data !== "string") return state;
+  return { ...state, difficulty: data };
+}
+
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
   if (preflight) return preflight;
@@ -125,7 +134,7 @@ Deno.serve(async (req) => {
       // Idempotent: confirms what was paid, or repairs a payout that failed earlier.
       reward = await payFinished(admin, user.id, state.puzzle_date, state.status === "solved");
     }
-    return jsonResponse({ ...state, reward });
+    return jsonResponse(await withLevel(admin, "puzzle", state.puzzle_date, { ...state, reward }));
   } catch (err) {
     console.error("daily-puzzle failed:", err);
     return jsonResponse({ error: "Could not process the daily puzzle" }, 500);

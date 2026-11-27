@@ -2,7 +2,10 @@
 // words run right, down or diagonally down-right (never backwards). Every word appears exactly once in the
 // whole grid (any direction, forwards or reversed), so there is exactly one place to find it, and no
 // accidental unkind words show up in the filler letters.
-//   node generate-word-search-puzzles.mjs [count] [seed] > puzzles.tsv
+//   node generate-word-search-puzzles.mjs [count] [seed] [easy|medium|hard] > puzzles.tsv     (default medium)
+//   easy   : words of 4 to 6 letters, running only right or down (no diagonals)
+//   medium : words of 4 to 8 letters, right, down or diagonal (the 365 puzzles of 0059)
+//   hard   : words of 6 to 8 letters, at least 4 of the 8 running diagonally
 // Output columns: grid(100 letters) <TAB> words (comma list) <TAB> start cells <TAB> end cells (0-99, row by row)
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -11,6 +14,8 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const count = Number(process.argv[2] ?? 365);
 let seed = Number(process.argv[3] ?? 2026) >>> 0;
+const LEVEL = process.argv[4] ?? "medium";
+if (!["easy", "medium", "hard"].includes(LEVEL)) { console.error("difficulty must be easy, medium or hard"); process.exit(1); }
 const rand = () => { // mulberry32
   seed = (seed + 0x6d2b79f5) >>> 0;
   let t = seed;
@@ -22,10 +27,12 @@ const pick = (n) => Math.floor(rand() * n);
 
 const N = 10;
 const BAD = ["SHIT", "FUCK", "CUNT", "DICK", "COCK", "PISS", "SLUT", "WHORE", "RAPE", "NAZI", "DAMN", "HELL", "KILL", "DEAD", "DRUG", "SEXY", "ANAL", "PORN", "NUDE"];
+const MINLEN = { easy: 4, medium: 4, hard: 6 }[LEVEL], MAXLEN = { easy: 6, medium: 8, hard: 8 }[LEVEL];
 const words = readFileSync(join(here, "words.txt"), "utf8")
   .split("\n").map((w) => w.trim().toUpperCase())
-  .filter((w) => /^[A-Z]{4,8}$/.test(w) && w !== [...w].reverse().join(""));
-const DIRS = [[0, 1], [1, 0], [1, 1]]; // right, down, diagonal down-right
+  .filter((w) => /^[A-Z]{4,8}$/.test(w) && w !== [...w].reverse().join("") && w.length >= MINLEN && w.length <= MAXLEN);
+const DIRS = LEVEL === "easy" ? [[0, 1], [1, 0]] : [[0, 1], [1, 0], [1, 1]]; // right, down, (diagonal down-right)
+const DIAG_COUNT = { easy: 0, medium: -1, hard: 4 }[LEVEL];
 
 function lines(grid) { // every line of the grid in all 8 directions, as strings
   const out = [];
@@ -52,7 +59,7 @@ function build() {
   for (const w of order) {
     let ok = false;
     for (let t = 0; t < 300 && !ok; t++) {
-      const [dr, dc] = DIRS[pick(3)];
+      const [dr, dc] = DIRS[pick(DIRS.length)];
       const r = pick(N), c = pick(N);
       const er = r + dr * (w.length - 1), ec = c + dc * (w.length - 1);
       if (er >= N || ec >= N) continue;
@@ -65,6 +72,7 @@ function build() {
     }
     if (!ok) return null;
   }
+  if (DIAG_COUNT > 0 && order.filter((w) => place[w][1] - place[w][0] === (w.length - 1) * (N + 1)).length < DIAG_COUNT) return null;
   const base = [...grid];
   for (let attempt = 0; attempt < 40; attempt++) {
     const g = base.map((x) => x || String.fromCharCode(65 + pick(26)));

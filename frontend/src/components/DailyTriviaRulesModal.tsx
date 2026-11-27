@@ -32,6 +32,7 @@ export default function DailyTriviaRulesModal({ onClose }: Props) {
           </button>
         </div>
         <ul style={{ paddingLeft: "20px", lineHeight: 1.6 }}>
+          <li>The level (Easy, Medium or Hard) of the day's question is picked at random and is the same for everyone.</li>
           <li>One question a day, the same for everyone. You see it when you press Start.</li>
           <li>You have one minute from Start. The clock runs on our side, so closing the page doesn't pause it.</li>
           <li>Some questions are multiple choice: pick one, then lock it in. Others are typed: capital letters, accents and punctuation don't matter.</li>

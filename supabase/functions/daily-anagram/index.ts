@@ -50,6 +50,15 @@ async function withReward(admin: Admin, userId: string, state: AnagramState) {
   };
 }
 
+
+/** The day's level (Easy / Medium / Hard) for the page title. A missing level never blocks play. */
+async function withLevel<T extends { [k: string]: unknown }>(admin: Admin, game: string, date: unknown, state: T): Promise<T & { difficulty?: string }> {
+  if (typeof date !== "string") return state;
+  const { data, error } = await admin.rpc("daily_game_level", { p_game: game, p_date: date });
+  if (error || typeof data !== "string") return state;
+  return { ...state, difficulty: data };
+}
+
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
   if (preflight) return preflight;
@@ -69,7 +78,7 @@ Deno.serve(async (req) => {
     if (action === "status") {
       const { data, error } = await admin.rpc("daily_anagram_state", { p_user_id: user.id });
       if (error) throw error;
-      return jsonResponse(await withReward(admin, user.id, data as AnagramState));
+      { const s = await withReward(admin, user.id, data as AnagramState); return jsonResponse(await withLevel(admin, "anagram", s.anagram_date, s)); }
     }
 
     const date = typeof body?.anagram_date === "string" ? body.anagram_date : "";
@@ -80,7 +89,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
       const out = data as { result: string } & AnagramState;
       if (out.result !== "ok") return jsonResponse({ result: out.result });
-      return jsonResponse(await withReward(admin, user.id, out));
+      { const s = await withReward(admin, user.id, out); return jsonResponse(await withLevel(admin, "anagram", s.anagram_date, s)); }
     }
 
     // guess

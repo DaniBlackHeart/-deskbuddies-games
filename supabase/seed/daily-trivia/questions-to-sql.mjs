@@ -8,6 +8,7 @@
 //   choice_a..d       multiple choice only; leave a later one blank for fewer than 4 choices
 //   correct           A, B, C or D (multiple choice only)
 //   accepted_answers  typed only; separate spellings with a | (pipe), e.g.  Paris|City of Paris
+//   difficulty        optional easy | medium | hard (blank = medium); each day's level is picked at random
 //   scheduled_for     optional YYYY-MM-DD to pin the question to one day
 // Rows whose category starts with "EXAMPLE" are skipped. Any problem stops the script and says which row.
 // Typed answers are matched like Trivia Night: case, accents and punctuation are ignored.
@@ -54,6 +55,8 @@ rows.forEach((r, idx) => {
   const type = get(r, "type");
   const prompt = get(r, "prompt");
   if (!prompt) fail("prompt is empty");
+  const level = (get(r, "difficulty") || "medium").toLowerCase();
+  if (!["easy", "medium", "hard"].includes(level)) fail("difficulty must be easy, medium or hard (or blank)");
   const sched = get(r, "scheduled_for");
   if (sched && !/^\d{4}-\d{2}-\d{2}$/.test(sched)) fail("scheduled_for must be YYYY-MM-DD");
   let choices = "null", correct = "null", accepted = "null";
@@ -69,12 +72,12 @@ rows.forEach((r, idx) => {
     if (list.length < 1) fail("accepted_answers is empty");
     accepted = j(list);
   } else fail("type must be multiple_choice or typed");
-  out.push(`  (${q(type)}, ${cat ? q(cat) : "null"}, ${q(prompt)}, ${choices}, ${correct}, ${accepted}, ${sched ? `'${sched}'` : "null"})`);
+  out.push(`  (${q(type)}, ${cat ? q(cat) : "null"}, ${q(prompt)}, ${choices}, ${correct}, ${accepted}, ${sched ? `'${sched}'` : "null"}, '${level}')`);
 });
 
 if (out.length === 0) { console.error("No questions found (example rows are skipped)."); process.exit(1); }
 console.log(`-- Daily Trivia questions, generated from ${file.split("/").pop()} (${out.length} questions).
 -- Safe to review before running. Run it ONCE: running it again would add every question a second time.
-insert into daily.trivia_questions (type, category, prompt, choices, correct_choice, accepted_answers, scheduled_for) values
+insert into daily.trivia_questions (type, category, prompt, choices, correct_choice, accepted_answers, scheduled_for, difficulty) values
 ${out.join(",\n")};
 `);

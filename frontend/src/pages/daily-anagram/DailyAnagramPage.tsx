@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import DailyAnagramRulesModal from "../../components/DailyAnagramRulesModal";
+import { levelName } from "../../lib/dailyLevel";
 import { useDailyAnagram } from "../../lib/useDailyAnagram";
 
 // Letter Shuffle (the daily anagram): one long scrambled word a day, four minutes from Start. The server
@@ -108,6 +109,7 @@ export default function DailyAnagramPage() {
           <div>
             <h1 className="t-h1">Letter Shuffle</h1>
             <p className="text-muted t-subtitle" style={{ margin: 0 }}>Unscramble today's word. New word at midnight, Manila time.</p>
+            {state?.difficulty && <p className="t-body-sm" style={{ margin: "4px 0 0" }}><strong>Today's level: {levelName(state.difficulty)}</strong></p>}
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowRules(true)}>❓ Rules</button>
         </div>

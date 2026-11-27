@@ -11,6 +11,7 @@ export type AnagramStatus = "no_word" | "not_started" | "in_progress" | "solved"
 export type AnagramReward = { xp: number; deskbits: number; statuses: string[] } | null;
 
 export type AnagramState = {
+  difficulty?: string;
   anagram_date: string;
   status: AnagramStatus;
   time_limit_seconds: number;
@@ -35,7 +36,7 @@ export function useDailyAnagram() {
   const [deadline, setDeadline] = useState<number | null>(null);
 
   const apply = useCallback((s: AnagramState) => {
-    setState(s);
+    setState((prev) => ({ ...s, difficulty: s.difficulty ?? (prev?.anagram_date === s.anagram_date ? prev?.difficulty : undefined) }));
     setDeadline(s.status === "in_progress" && s.seconds_left != null ? Date.now() + s.seconds_left * 1000 : null);
     if (s.reward && s.reward.xp + s.reward.deskbits > 0) notifyProgressChanged();
   }, []);

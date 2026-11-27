@@ -1,97 +1,97 @@
-type,category,prompt,choice_a,choice_b,choice_c,choice_d,correct,accepted_answers,scheduled_for
-multiple_choice,Tech & Math,How many sides does a hexagon have?,7,5,6,8,C,,
-typed,Science,What is the name of the galaxy that contains our solar system?,,,,,,The Milky Way|Milky Way,
-multiple_choice,Science,What is the largest planet in our solar system?,Jupiter,Neptune,Earth,Saturn,A,,
-multiple_choice,Culture,Which sport is played at Wimbledon?,Badminton,Golf,Tennis,Cricket,C,,
-multiple_choice,Culture,How many players from one team are on a basketball court at a time?,5,7,6,4,A,,
-multiple_choice,Culture,Which sport is Manny Pacquiao best known for?,Boxing,Wrestling,Judo,Karate,A,,
-typed,Science,Which planet is known as the Red Planet?,,,,,,Mars,
-multiple_choice,Nature,Which is the tallest animal in the world?,Camel,Elephant,Ostrich,Giraffe,D,,
-typed,Culture,What colour are the three stars and the sun on the Philippine flag?,,,,,,Yellow|Gold|Golden yellow,
-multiple_choice,Tech & Math,Which company owns the Android mobile operating system?,Google,Apple,Microsoft,Samsung,A,,
-multiple_choice,Science,Which gas do plants take in from the air to make food?,Oxygen,Hydrogen,Carbon dioxide,Nitrogen,C,,
-multiple_choice,History,Who was the first President of the Philippines?,Emilio Aguinaldo,Manuel Quezon,Andres Bonifacio,Sergio Osmeña,A,,
-typed,Geography,What is the capital city of Italy?,,,,,,Rome,
-multiple_choice,Culture,"Which Filipino dessert is made of shaved ice, sweet beans, fruit and milk?",Leche flan,Halo-halo,Turon,Bibingka,B,,
-typed,Geography,What is the capital city of Spain?,,,,,,Madrid,
-typed,Tech & Math,What is the square root of 81?,,,,,,9|Nine,
-multiple_choice,Science,How many hearts does an octopus have?,1,2,3,4,C,,
-multiple_choice,Science,"Which planet is best known for its large, bright rings?",Saturn,Mercury,Jupiter,Mars,A,,
-typed,Geography,What is the capital city of South Korea?,,,,,,Seoul,
-multiple_choice,Science,Which is the hardest natural substance?,Quartz,Diamond,Steel,Topaz,B,,
-multiple_choice,Geography,What is the capital city of Japan?,Kyoto,Tokyo,Osaka,Nagoya,B,,
-multiple_choice,Culture,How many strings does a standard guitar have?,8,5,4,6,D,,
-multiple_choice,History,"Which wall was opened up in 1989, a symbol of the end of the Cold War?",Hadrian's Wall,Berlin Wall,Great Wall of China,Western Wall,B,,
-multiple_choice,Geography,The Panagbenga Flower Festival is held in which Philippine city?,Baguio,Zamboanga,Cebu City,Legazpi,A,,
-typed,Geography,What is the largest country in South America?,,,,,,Brazil,
-multiple_choice,Science,What is the largest organ of the human body?,Lungs,Liver,Brain,Skin,D,,
-multiple_choice,Geography,About how many islands does the Philippines have?,"10,000","3,107","7,641","1,107",C,,
-multiple_choice,Science,How many bones does an adult human body have?,256,306,156,206,D,,
-multiple_choice,Tech & Math,What is 12 × 12?,148,144,132,124,B,,
-multiple_choice,Geography,Which river flows through Paris?,Rhine,Seine,Danube,Thames,B,,
-typed,Culture,What is the Filipino word for cooked rice?,,,,,,Kanin,
-multiple_choice,Geography,Which is the largest ocean on Earth?,Pacific,Arctic,Atlantic,Indian,A,,
-multiple_choice,Tech & Math,What does CPU stand for?,Core Power Unit,Computer Personal Unit,Central Program Utility,Central Processing Unit,D,,
-multiple_choice,History,Ferdinand Magellan died in a 1521 battle on which island?,Mactan,Panay,Luzon,Leyte,A,,
-multiple_choice,Nature,Which of these birds cannot fly?,Penguin,Owl,Parrot,Eagle,A,,
-typed,Culture,Who wrote the play Romeo and Juliet?,,,,,,William Shakespeare|Shakespeare,
-multiple_choice,Nature,Which is the only mammal that can truly fly?,Flying squirrel,Colugo,Sugar glider,Bat,D,,
-multiple_choice,History,Which ancient civilization built the pyramids of Giza?,Mayans,Egyptians,Greeks,Romans,B,,
-multiple_choice,Culture,What is the currency of Japan?,Yen,Won,Baht,Yuan,A,,
-multiple_choice,Culture,Pizza as we know it began in which Italian city?,Milan,Florence,Rome,Naples,D,,
-typed,Geography,Kyoto is a city in which country?,,,,,,Japan,
-typed,Tech & Math,How many days are in a leap year?,,,,,,366,
-multiple_choice,Science,What is the centre of an atom called?,Molecule,Electron,Nucleus,Cell,C,,
-typed,Science,Which metal is liquid at room temperature?,,,,,,Mercury,
-multiple_choice,Nature,What is a group of lions called?,Flock,Pack,Pride,Herd,C,,
-multiple_choice,Geography,Which country has the largest land area in the world?,Canada,Russia,United States,China,B,,
-typed,Geography,What is the tallest mountain on Earth above sea level?,,,,,,Mount Everest|Everest,
-multiple_choice,Nature,What is the largest animal on Earth?,Giraffe,African elephant,Blue whale,Hippopotamus,C,,
-typed,Science,What is the name of Earth's natural satellite?,,,,,,The Moon|Moon,
-multiple_choice,Science,Which vitamin does your body make when sunlight hits your skin?,Vitamin K,Vitamin A,Vitamin D,Vitamin C,C,,
-typed,Geography,What is the capital city of France?,,,,,,Paris,
-typed,Geography,What is the main language spoken in Brazil?,,,,,,Portuguese,
-multiple_choice,Science,What is the chemical symbol for gold?,Au,Gd,Go,Ag,A,,
-typed,Science,What gas do humans need to breathe in to survive?,,,,,,Oxygen,
-typed,Tech & Math,How many continents are there?,,,,,,7|Seven,
-multiple_choice,Science,What force pulls objects toward the Earth?,Inertia,Gravity,Friction,Magnetism,B,,
-multiple_choice,Culture,What does the Filipino word 'salamat' mean?,Sorry,Goodbye,Thank you,Please,C,,
-typed,Nature,What do bees make?,,,,,,Honey,
-multiple_choice,Culture,What is the national flower of the Philippines?,Sampaguita,Rose,Orchid,Ilang-ilang,A,,
-multiple_choice,Geography,What is the capital city of Thailand?,Hanoi,Jakarta,Bangkok,Kuala Lumpur,C,,
-multiple_choice,Science,Which blood cells carry oxygen around the body?,Plasma cells,White blood cells,Red blood cells,Platelets,C,,
-multiple_choice,Geography,Which is the smallest continent by land area?,Antarctica,Europe,Australia (Oceania),South America,C,,
-multiple_choice,History,Who painted the Mona Lisa?,Leonardo da Vinci,Vincent van Gogh,Raphael,Michelangelo,A,,
-typed,Geography,What is the capital city of the Philippines?,,,,,,Manila|City of Manila,
-multiple_choice,Geography,What is the capital city of Australia?,Sydney,Melbourne,Canberra,Perth,C,,
-multiple_choice,Geography,The Sinulog Festival is held in which Philippine city?,Davao City,Baguio,Cebu City,Iloilo City,C,,
-multiple_choice,Culture,A standard piano has how many keys?,76,88,66,99,B,,
-multiple_choice,Geography,Mount Fuji is found in which country?,Japan,China,Thailand,South Korea,A,,
-multiple_choice,Culture,What is the national bird of the Philippines?,Kingfisher,Philippine eagle,Hornbill,Maya,B,,
-multiple_choice,Culture,How many rings are on the Olympic flag?,7,6,4,5,D,,
-typed,Tech & Math,What is the smallest prime number?,,,,,,2|Two,
-multiple_choice,History,In which year did World War II end?,1939,1918,1950,1945,D,,
-typed,Culture,What is the Filipino word for 'water'?,,,,,,Tubig,
-typed,Culture,Who painted The Starry Night?,,,,,,Vincent van Gogh|Van Gogh|Vincent,
-multiple_choice,History,Who is generally credited with inventing the telephone?,Nikola Tesla,Alexander Graham Bell,Thomas Edison,Guglielmo Marconi,B,,
-multiple_choice,History,In which year did the Philippines declare independence from Spain?,1935,1946,1898,1896,C,,
-multiple_choice,Tech & Math,Which of these numbers is a prime number?,33,27,21,29,D,,
-multiple_choice,Geography,What is the capital city of Canada?,Montreal,Ottawa,Toronto,Vancouver,B,,
-multiple_choice,Geography,Which is the largest hot desert in the world?,Gobi,Kalahari,Sahara,Arabian,C,,
-typed,Nature,Which animal is nicknamed the 'ship of the desert'?,,,,,,Camel|A camel,
-multiple_choice,Geography,Which is the highest mountain in the Philippines?,Mount Pinatubo,Mount Apo,Mount Pulag,Mount Mayon,B,,
-multiple_choice,Science,"At sea level, water boils at what temperature?",110°C,90°C,100°C,120°C,C,,
-multiple_choice,Geography,Which is the longest river in the Philippines?,Agusan River,Cagayan River,Pampanga River,Pasig River,B,,
-multiple_choice,Culture,Mixing blue and yellow paint gives which colour?,Purple,Green,Brown,Orange,B,,
-multiple_choice,Nature,Which is the fastest land animal?,Greyhound,Horse,Lion,Cheetah,D,,
-multiple_choice,Culture,Which fruit is called the 'king of fruits' in much of Southeast Asia?,Rambutan,Mangosteen,Mango,Durian,D,,
-multiple_choice,Culture,"Which Filipino dish is meat stewed in vinegar, soy sauce and garlic?",Adobo,Tinola,Sinigang,Kare-kare,A,,
-multiple_choice,Tech & Math,Which Roman numeral stands for 50?,X,D,L,C,C,,
-multiple_choice,Tech & Math,What does HTML stand for?,HyperTool Multi Language,Home Text Markup Language,HighText Machine Language,HyperText Markup Language,D,,
-multiple_choice,Nature,How many legs does a spider have?,6,8,10,12,B,,
-multiple_choice,History,Who wrote the novel Noli Me Tangere?,Andres Bonifacio,José Rizal,Apolinario Mabini,Marcelo H. del Pilar,B,,
-typed,Culture,What is the currency of the United Kingdom?,,,,,,Pound|Pound sterling|British pound|Pounds,
-multiple_choice,History,Who was the first person to walk on the Moon?,Yuri Gagarin,Michael Collins,Neil Armstrong,Buzz Aldrin,C,,
-multiple_choice,Culture,What does the Filipino greeting 'Kumusta' mean?,Goodbye,Good luck,Thank you,How are you?,D,,
-typed,Science,What is the freezing point of water in degrees Celsius?,,,,,,0|Zero|0 degrees|0 C|0 degrees Celsius,
-typed,Science,What is the chemical formula for water?,,,,,,H2O,
+type,category,prompt,choice_a,choice_b,choice_c,choice_d,correct,accepted_answers,scheduled_for,difficulty
+multiple_choice,Tech & Math,How many sides does a hexagon have?,7,5,6,8,C,,,easy
+typed,Science,What is the name of the galaxy that contains our solar system?,,,,,,The Milky Way|Milky Way,,medium
+multiple_choice,Science,What is the largest planet in our solar system?,Jupiter,Neptune,Earth,Saturn,A,,,easy
+multiple_choice,Culture,Which sport is played at Wimbledon?,Badminton,Golf,Tennis,Cricket,C,,,easy
+multiple_choice,Culture,How many players from one team are on a basketball court at a time?,5,7,6,4,A,,,easy
+multiple_choice,Culture,Which sport is Manny Pacquiao best known for?,Boxing,Wrestling,Judo,Karate,A,,,easy
+typed,Science,Which planet is known as the Red Planet?,,,,,,Mars,,easy
+multiple_choice,Nature,Which is the tallest animal in the world?,Camel,Elephant,Ostrich,Giraffe,D,,,easy
+typed,Culture,What colour are the three stars and the sun on the Philippine flag?,,,,,,Yellow|Gold|Golden yellow,,medium
+multiple_choice,Tech & Math,Which company owns the Android mobile operating system?,Google,Apple,Microsoft,Samsung,A,,,easy
+multiple_choice,Science,Which gas do plants take in from the air to make food?,Oxygen,Hydrogen,Carbon dioxide,Nitrogen,C,,,easy
+multiple_choice,History,Who was the first President of the Philippines?,Emilio Aguinaldo,Manuel Quezon,Andres Bonifacio,Sergio Osmeña,A,,,medium
+typed,Geography,What is the capital city of Italy?,,,,,,Rome,,easy
+multiple_choice,Culture,"Which Filipino dessert is made of shaved ice, sweet beans, fruit and milk?",Leche flan,Halo-halo,Turon,Bibingka,B,,,medium
+typed,Geography,What is the capital city of Spain?,,,,,,Madrid,,easy
+typed,Tech & Math,What is the square root of 81?,,,,,,9|Nine,,easy
+multiple_choice,Science,How many hearts does an octopus have?,1,2,3,4,C,,,hard
+multiple_choice,Science,"Which planet is best known for its large, bright rings?",Saturn,Mercury,Jupiter,Mars,A,,,medium
+typed,Geography,What is the capital city of South Korea?,,,,,,Seoul,,easy
+multiple_choice,Science,Which is the hardest natural substance?,Quartz,Diamond,Steel,Topaz,B,,,medium
+multiple_choice,Geography,What is the capital city of Japan?,Kyoto,Tokyo,Osaka,Nagoya,B,,,easy
+multiple_choice,Culture,How many strings does a standard guitar have?,8,5,4,6,D,,,easy
+multiple_choice,History,"Which wall was opened up in 1989, a symbol of the end of the Cold War?",Hadrian's Wall,Berlin Wall,Great Wall of China,Western Wall,B,,,medium
+multiple_choice,Geography,The Panagbenga Flower Festival is held in which Philippine city?,Baguio,Zamboanga,Cebu City,Legazpi,A,,,medium
+typed,Geography,What is the largest country in South America?,,,,,,Brazil,,medium
+multiple_choice,Science,What is the largest organ of the human body?,Lungs,Liver,Brain,Skin,D,,,easy
+multiple_choice,Geography,About how many islands does the Philippines have?,"10,000","3,107","7,641","1,107",C,,,hard
+multiple_choice,Science,How many bones does an adult human body have?,256,306,156,206,D,,,hard
+multiple_choice,Tech & Math,What is 12 × 12?,148,144,132,124,B,,,easy
+multiple_choice,Geography,Which river flows through Paris?,Rhine,Seine,Danube,Thames,B,,,medium
+typed,Culture,What is the Filipino word for cooked rice?,,,,,,Kanin,,medium
+multiple_choice,Geography,Which is the largest ocean on Earth?,Pacific,Arctic,Atlantic,Indian,A,,,easy
+multiple_choice,Tech & Math,What does CPU stand for?,Core Power Unit,Computer Personal Unit,Central Program Utility,Central Processing Unit,D,,,medium
+multiple_choice,History,Ferdinand Magellan died in a 1521 battle on which island?,Mactan,Panay,Luzon,Leyte,A,,,hard
+multiple_choice,Nature,Which of these birds cannot fly?,Penguin,Owl,Parrot,Eagle,A,,,easy
+typed,Culture,Who wrote the play Romeo and Juliet?,,,,,,William Shakespeare|Shakespeare,,medium
+multiple_choice,Nature,Which is the only mammal that can truly fly?,Flying squirrel,Colugo,Sugar glider,Bat,D,,,easy
+multiple_choice,History,Which ancient civilization built the pyramids of Giza?,Mayans,Egyptians,Greeks,Romans,B,,,medium
+multiple_choice,Culture,What is the currency of Japan?,Yen,Won,Baht,Yuan,A,,,easy
+multiple_choice,Culture,Pizza as we know it began in which Italian city?,Milan,Florence,Rome,Naples,D,,,hard
+typed,Geography,Kyoto is a city in which country?,,,,,,Japan,,easy
+typed,Tech & Math,How many days are in a leap year?,,,,,,366,,easy
+multiple_choice,Science,What is the centre of an atom called?,Molecule,Electron,Nucleus,Cell,C,,,medium
+typed,Science,Which metal is liquid at room temperature?,,,,,,Mercury,,hard
+multiple_choice,Nature,What is a group of lions called?,Flock,Pack,Pride,Herd,C,,,medium
+multiple_choice,Geography,Which country has the largest land area in the world?,Canada,Russia,United States,China,B,,,easy
+typed,Geography,What is the tallest mountain on Earth above sea level?,,,,,,Mount Everest|Everest,,easy
+multiple_choice,Nature,What is the largest animal on Earth?,Giraffe,African elephant,Blue whale,Hippopotamus,C,,,easy
+typed,Science,What is the name of Earth's natural satellite?,,,,,,The Moon|Moon,,easy
+multiple_choice,Science,Which vitamin does your body make when sunlight hits your skin?,Vitamin K,Vitamin A,Vitamin D,Vitamin C,C,,,medium
+typed,Geography,What is the capital city of France?,,,,,,Paris,,easy
+typed,Geography,What is the main language spoken in Brazil?,,,,,,Portuguese,,medium
+multiple_choice,Science,What is the chemical symbol for gold?,Au,Gd,Go,Ag,A,,,hard
+typed,Science,What gas do humans need to breathe in to survive?,,,,,,Oxygen,,easy
+typed,Tech & Math,How many continents are there?,,,,,,7|Seven,,easy
+multiple_choice,Science,What force pulls objects toward the Earth?,Inertia,Gravity,Friction,Magnetism,B,,,easy
+multiple_choice,Culture,What does the Filipino word 'salamat' mean?,Sorry,Goodbye,Thank you,Please,C,,,medium
+typed,Nature,What do bees make?,,,,,,Honey,,easy
+multiple_choice,Culture,What is the national flower of the Philippines?,Sampaguita,Rose,Orchid,Ilang-ilang,A,,,medium
+multiple_choice,Geography,What is the capital city of Thailand?,Hanoi,Jakarta,Bangkok,Kuala Lumpur,C,,,easy
+multiple_choice,Science,Which blood cells carry oxygen around the body?,Plasma cells,White blood cells,Red blood cells,Platelets,C,,,medium
+multiple_choice,Geography,Which is the smallest continent by land area?,Antarctica,Europe,Australia (Oceania),South America,C,,,medium
+multiple_choice,History,Who painted the Mona Lisa?,Leonardo da Vinci,Vincent van Gogh,Raphael,Michelangelo,A,,,easy
+typed,Geography,What is the capital city of the Philippines?,,,,,,Manila|City of Manila,,easy
+multiple_choice,Geography,What is the capital city of Australia?,Sydney,Melbourne,Canberra,Perth,C,,,hard
+multiple_choice,Geography,The Sinulog Festival is held in which Philippine city?,Davao City,Baguio,Cebu City,Iloilo City,C,,,medium
+multiple_choice,Culture,A standard piano has how many keys?,76,88,66,99,B,,,medium
+multiple_choice,Geography,Mount Fuji is found in which country?,Japan,China,Thailand,South Korea,A,,,easy
+multiple_choice,Culture,What is the national bird of the Philippines?,Kingfisher,Philippine eagle,Hornbill,Maya,B,,,medium
+multiple_choice,Culture,How many rings are on the Olympic flag?,7,6,4,5,D,,,easy
+typed,Tech & Math,What is the smallest prime number?,,,,,,2|Two,,easy
+multiple_choice,History,In which year did World War II end?,1939,1918,1950,1945,D,,,medium
+typed,Culture,What is the Filipino word for 'water'?,,,,,,Tubig,,easy
+typed,Culture,Who painted The Starry Night?,,,,,,Vincent van Gogh|Van Gogh|Vincent,,medium
+multiple_choice,History,Who is generally credited with inventing the telephone?,Nikola Tesla,Alexander Graham Bell,Thomas Edison,Guglielmo Marconi,B,,,medium
+multiple_choice,History,In which year did the Philippines declare independence from Spain?,1935,1946,1898,1896,C,,,hard
+multiple_choice,Tech & Math,Which of these numbers is a prime number?,33,27,21,29,D,,,hard
+multiple_choice,Geography,What is the capital city of Canada?,Montreal,Ottawa,Toronto,Vancouver,B,,,easy
+multiple_choice,Geography,Which is the largest hot desert in the world?,Gobi,Kalahari,Sahara,Arabian,C,,,medium
+typed,Nature,Which animal is nicknamed the 'ship of the desert'?,,,,,,Camel|A camel,,easy
+multiple_choice,Geography,Which is the highest mountain in the Philippines?,Mount Pinatubo,Mount Apo,Mount Pulag,Mount Mayon,B,,,medium
+multiple_choice,Science,"At sea level, water boils at what temperature?",110°C,90°C,100°C,120°C,C,,,medium
+multiple_choice,Geography,Which is the longest river in the Philippines?,Agusan River,Cagayan River,Pampanga River,Pasig River,B,,,hard
+multiple_choice,Culture,Mixing blue and yellow paint gives which colour?,Purple,Green,Brown,Orange,B,,,easy
+multiple_choice,Nature,Which is the fastest land animal?,Greyhound,Horse,Lion,Cheetah,D,,,easy
+multiple_choice,Culture,Which fruit is called the 'king of fruits' in much of Southeast Asia?,Rambutan,Mangosteen,Mango,Durian,D,,,medium
+multiple_choice,Culture,"Which Filipino dish is meat stewed in vinegar, soy sauce and garlic?",Adobo,Tinola,Sinigang,Kare-kare,A,,,medium
+multiple_choice,Tech & Math,Which Roman numeral stands for 50?,X,D,L,C,C,,,hard
+multiple_choice,Tech & Math,What does HTML stand for?,HyperTool Multi Language,Home Text Markup Language,HighText Machine Language,HyperText Markup Language,D,,,medium
+multiple_choice,Nature,How many legs does a spider have?,6,8,10,12,B,,,easy
+multiple_choice,History,Who wrote the novel Noli Me Tangere?,Andres Bonifacio,José Rizal,Apolinario Mabini,Marcelo H. del Pilar,B,,,medium
+typed,Culture,What is the currency of the United Kingdom?,,,,,,Pound|Pound sterling|British pound|Pounds,,medium
+multiple_choice,History,Who was the first person to walk on the Moon?,Yuri Gagarin,Michael Collins,Neil Armstrong,Buzz Aldrin,C,,,medium
+multiple_choice,Culture,What does the Filipino greeting 'Kumusta' mean?,Goodbye,Good luck,Thank you,How are you?,D,,,medium
+typed,Science,What is the freezing point of water in degrees Celsius?,,,,,,0|Zero|0 degrees|0 C|0 degrees Celsius,,easy
+typed,Science,What is the chemical formula for water?,,,,,,H2O,,easy
