@@ -11,9 +11,9 @@ import { useUnreadCount } from "../lib/useNotifications";
 //
 // - Desktop: one icon-only bar, no More menu. Names show on hover AND on
 //   keyboard focus; every link also has an accessible name and aria-current.
-// - Phones: five icon-only tabs; More opens a dialog sheet with full labels
+// - Phones: six icon-only tabs; More opens a dialog sheet with full labels
 //   and a one-line hint for each item.
-// Roadmap items (Buddy Boards, Buddy Clubs) are left out until they ship.
+// Buddy Clubs is left out until it ships. Buddy Boards joined in Nav v5 (27 Nov 2026).
 type NavItem = {
   to: string;
   label: string;
@@ -31,16 +31,17 @@ const BEYOND: NavItem = {
   icon: "beyond-the-desk",
   hint: "Daily Detours, Weekly Wins, Side Quests, Buddybook",
 };
+const BOARDS: NavItem = { to: "/boards", label: "Buddy Boards", icon: "buddy-boards", hint: "" };
 const MY_DESK: NavItem = { to: "/my-desk", label: "My Desk", icon: "my-desk", hint: "Your desk and your buddies" };
 
-// Nav v5 (26 Nov 2026). Desktop: one ungrouped bar, no divider: Home, My Desk,
-// The Common Room, Reality Break, Beyond the Desk. Account pages (Buddy Profile, Notifications, Settings,
+// Nav v5 (26-27 Nov 2026). Desktop: one ungrouped bar, no divider: Home, My Desk,
+// The Common Room, Reality Break, Buddy Boards, Beyond the Desk. Account pages (Buddy Profile, Notifications, Settings,
 // A Note for Debbie, Keep the Desk Lit) live in the avatar menu. Subpages sit
 // under a parent and light the parent's tab (see PARENT_PREFIXES).
-const DESKTOP_GROUPS: NavItem[][] = [[HOME, MY_DESK, COMMON_ROOM, REALITY_BREAK, BEYOND]];
-// Phone bar, same order, then the More sheet (Beyond the Desk; Buddy Boards
-// and Buddy Clubs join it only when those features are live).
-const BAR_TABS = [HOME, MY_DESK, COMMON_ROOM, REALITY_BREAK];
+const DESKTOP_GROUPS: NavItem[][] = [[HOME, MY_DESK, COMMON_ROOM, REALITY_BREAK, BOARDS, BEYOND]];
+// Phone bar, same order up to Buddy Boards, then More (Beyond the Desk; Buddy Clubs
+// joins the sheet only when it is live).
+const BAR_TABS = [HOME, MY_DESK, COMMON_ROOM, REALITY_BREAK, BOARDS];
 const SHEET_MAIN = [BEYOND];
 
 // Pages that open from a parent and keep the parent's tab highlighted.
@@ -222,7 +223,7 @@ export default function AppHeader() {
         </div>
       </div>
 
-      {/* Phones: five icon-only tabs; More opens the sheet above them. */}
+      {/* Phones: six icon-only tabs; More opens the sheet above them. */}
       {isPhone && moreOpen && (
         <>
           <div className="app-sheet-backdrop" onClick={closeSheet} aria-hidden="true" />

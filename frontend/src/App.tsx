@@ -19,6 +19,7 @@ import MemberProfilePage from "./pages/MemberProfilePage";
 import CommonRoomPage from "./pages/CommonRoomPage";
 import DeskTimePage from "./pages/DeskTimePage";
 import BeyondTheDeskPage from "./pages/BeyondTheDeskPage";
+import BuddyBoardsPage from "./pages/BuddyBoardsPage";
 import BuddyCalendarPage from "./pages/BuddyCalendarPage";
 import KeepTheDeskLitPage from "./pages/KeepTheDeskLitPage";
 import NoteForDebbiePage from "./pages/NoteForDebbiePage";
@@ -167,7 +168,7 @@ export default function App() {
               path="/boards"
               element={
                 <ProtectedRoute>
-                  <ComingSoonPage title="Buddy Boards" blurb="Game rankings and community highlights will live here." />
+                  <BuddyBoardsPage />
                 </ProtectedRoute>
               }
             />

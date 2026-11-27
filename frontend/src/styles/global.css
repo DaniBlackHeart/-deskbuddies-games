@@ -1672,7 +1672,7 @@ button.app-avatar:focus-visible {
   }
   .app-bottombar__list {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 2px;
     margin: 0;
     padding: 0;
@@ -3467,3 +3467,27 @@ button.page-back { font: inherit; font-weight: 700; cursor: pointer; background:
 .ws-word--missed { text-decoration: underline; }
 .ws-word span { font-weight: 500; font-size: 0.8125rem; letter-spacing: 0; text-decoration: none; display: inline-block; }
 @media (max-width: 420px) { .ws-cell { font-size: 0.9375rem; } }
+
+/* ---- Buddy Boards (Debbie Buddy Boards design): Overall board, first version. ---- */
+.bbd-page { display: flex; flex-direction: column; gap: 20px; }
+.bbd-head { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end; justify-content: space-between; }
+.bbd-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.bbd-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .bbd-grid { grid-template-columns: minmax(0, 1fr); } }
+.bbd-card { display: flex; flex-direction: column; gap: 14px; }
+.bbd-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+@media (max-width: 640px) { .bbd-cols { grid-template-columns: minmax(0, 1fr); } }
+.bbd-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bbd-row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 10px; border-radius: 10px; background: var(--color-bg-alt); }
+.bbd-row--you { background: var(--color-primary-soft); border: 2px solid var(--color-primary); padding: 2px 8px; }
+.bbd-rank { flex: none; min-width: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.bbd-face { flex: none; width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.bbd-face--initial { display: grid; place-items: center; font-weight: 800; background: var(--color-surface); border: 2px solid var(--color-border); box-sizing: border-box; }
+.bbd-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bbd-you { flex: none; }
+.bbd-value { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bbd-pinned { display: flex; flex-direction: column; gap: 6px; }
+.bbd-places { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bbd-places li { display: flex; justify-content: space-between; gap: 12px; min-height: 36px; align-items: center; }
+.bbd-backdrop { position: fixed; inset: 0; background: rgba(61, 50, 41, 0.4); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+.bbd-dialog { max-width: 520px; width: 100%; max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }

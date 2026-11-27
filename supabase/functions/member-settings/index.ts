@@ -1,13 +1,13 @@
 // member-settings
 // Saves one Settings switch for the signed-in member. { action: "set", key, value }
-// Keys: notify_stickies, notify_news, allow_stickies, show_in_around. The member is taken from
+// Keys: notify_stickies, notify_news, allow_stickies, show_in_around, show_on_boards. The member is taken from
 // the verified session, never from the request body. Reading is done by the browser through
 // row-level security (a member can read only their own row).
 // Whatever ships Desk Stickies and Who's around must check these values on the server.
 
 import { jsonResponse, handleOptions, getAdminClient, requireMember } from "../_shared/utils.ts";
 
-const KEYS = ["notify_stickies", "notify_news", "allow_stickies", "show_in_around"];
+const KEYS = ["notify_stickies", "notify_news", "allow_stickies", "show_in_around", "show_on_boards"];
 
 Deno.serve(async (req) => {
   const preflight = handleOptions(req);
