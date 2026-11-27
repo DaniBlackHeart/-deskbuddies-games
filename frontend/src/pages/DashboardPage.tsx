@@ -19,7 +19,7 @@ import { useLiveGames } from "../lib/useLiveGames";
 
 const BRAIN_BREAKS: { icon: PixelIconName; name: string; blurb: string; tag: string; path?: string }[] = [
   { icon: "game-daily-puzzle", name: "Daily Puzzle", blurb: "Guess today's five-letter word in six tries.", tag: "New", path: "/games/daily-puzzle" },
-  { icon: "game-trivia", name: "Daily Trivia", blurb: "A fresh set of mixed questions every day.", tag: "Moves over from Trivia Night" },
+  { icon: "game-trivia", name: "Daily Trivia", blurb: "One question a day. You get a minute to answer.", tag: "New", path: "/games/daily-trivia" },
   { icon: "game-daily-anagram", name: "Daily Anagram", blurb: "Unscramble today's word. Same word for everyone, any pace.", tag: "New" },
   { icon: "game-daily-sudoku", name: "Daily Sudoku", blurb: "One grid a day. Take as long as you like.", tag: "New" },
   { icon: "game-daily-word-search", name: "Daily Word Search", blurb: "Find today's hidden words. Fastest solvers get a mention later.", tag: "New" },

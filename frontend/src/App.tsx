@@ -121,6 +121,10 @@ const RebusSpectatorPage = lazy(() => loadRebus().then((m) => ({ default: m.Rebu
 const loadDailyPuzzle = () => import("./pages/daily-puzzle/daily-puzzle.bundle");
 const DailyPuzzlePage = lazy(() => loadDailyPuzzle().then((m) => ({ default: m.DailyPuzzlePage })));
 
+// Daily Trivia
+const loadDailyTrivia = () => import("./pages/daily-trivia/daily-trivia.bundle");
+const DailyTriviaPage = lazy(() => loadDailyTrivia().then((m) => ({ default: m.DailyTriviaPage })));
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -392,6 +396,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <DailyPuzzlePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/games/daily-trivia"
+              element={
+                <ProtectedRoute>
+                  <DailyTriviaPage />
                 </ProtectedRoute>
               }
             />

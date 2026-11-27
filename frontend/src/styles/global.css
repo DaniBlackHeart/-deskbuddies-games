@@ -3413,3 +3413,15 @@ button.page-back { font: inherit; font-weight: 700; cursor: pointer; background:
 @keyframes dp-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 @media (max-width: 420px) { .dp-tile { width: 48px; height: 48px; font-size: 1.25rem; } .dp-key { height: 48px; } }
 @media (prefers-reduced-motion: reduce) { .dp-board--shake { animation: none; } }
+
+/* ---- Daily Trivia (placeholder look: plain cards, no final art) ---- */
+.dtr-bar { height: 10px; border-radius: 999px; background: var(--color-bg-alt); border: 1px solid var(--color-border); overflow: hidden; }
+.dtr-bar__fill { height: 100%; background: var(--color-primary); }
+.dtr-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.dtr-choices { display: flex; flex-direction: column; gap: 8px; }
+.dtr-choice { display: flex; align-items: center; gap: 12px; text-align: left; min-height: 52px; padding: 10px 14px; border: 2px solid var(--color-border); border-radius: 12px; background: var(--color-bg); color: var(--color-text); font: inherit; font-weight: 600; cursor: pointer; }
+.dtr-choice:hover:not(:disabled) { border-color: var(--color-primary); }
+.dtr-choice--on { border-color: var(--color-primary); background: var(--color-primary-soft); }
+.dtr-choice:disabled { cursor: not-allowed; opacity: 0.6; }
+.dtr-choice:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.dtr-choice__letter { flex: none; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 2px solid currentColor; font-weight: 800; font-size: 0.875rem; }
