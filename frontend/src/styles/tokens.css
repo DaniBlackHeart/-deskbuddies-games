@@ -62,6 +62,11 @@
   --color-warning: #d6a03c;
   --color-warning-soft: #f7ecd3;
 
+  /* Number Nook tile states */
+  --sk-blank: #e6e3df;
+  --sk-done: #cfe4f5;
+  --sk-mistake: #e8a29a;
+
   /* Shape */
   --radius-sm: 8px;
   --radius-md: 14px;
@@ -139,6 +144,10 @@
   --color-danger-soft: #4a2824;
   --color-warning: #e5b657;
   --color-warning-soft: #4a3a1e;
+
+  --sk-blank: #3a3733;
+  --sk-done: #2a4259;
+  --sk-mistake: #7a3029;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.25);

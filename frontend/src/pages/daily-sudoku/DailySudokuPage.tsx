@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
@@ -25,6 +25,8 @@ function clock(totalSeconds: number) {
   return `${h > 0 ? `${h}:` : ""}${mm}:${s < 10 ? "0" : ""}${s}`;
 }
 
+const levelName = (d?: string) => (d === "easy" ? "Easy" : d === "medium" ? "Medium" : d === "hard" ? "Hard" : "");
+
 const label = (cell: number, given: boolean, value: string) => {
   const r = Math.floor(cell / 9) + 1;
   const c = (cell % 9) + 1;
@@ -38,6 +40,7 @@ export default function DailySudokuPage() {
   const [notesOn, setNotesOn] = useState(false);
   const [notes, setNotes] = useState<Record<number, number[]>>({});
   const [message, setMessage] = useState("");
+  const [wrong, setWrong] = useState<{ cell: number; digit: number } | null>(null);
   const [confirmGiveUp, setConfirmGiveUp] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const resultRef = useRef<HTMLDivElement>(null);
@@ -69,6 +72,33 @@ export default function DailySudokuPage() {
     setConfirmGiveUp(false);
   }, [state?.sudoku_date, running]);
 
+  // Rows, columns and 3x3 boxes with all nine numbers placed turn light blue. Numbers are only ever placed
+  // when correct, so a full section is a correct section.
+  const doneCells = useMemo(() => {
+    const done = new Set<number>();
+    if (board.length !== 81) return done;
+    const full = (idx: number[]) => idx.every((i) => board[i] !== "0");
+    for (let k = 0; k < 9; k++) {
+      const row = Array.from({ length: 9 }, (_, j) => k * 9 + j);
+      const col = Array.from({ length: 9 }, (_, j) => j * 9 + k);
+      const box = Array.from({ length: 9 }, (_, j) => (Math.floor(k / 3) * 3 + Math.floor(j / 3)) * 9 + (k % 3) * 3 + (j % 3));
+      for (const g of [row, col, box]) if (full(g)) g.forEach((i) => done.add(i));
+    }
+    return done;
+  }, [board]);
+
+  // How many of each number are on the board; a number with all nine placed is greyed out on the pad.
+  const placed = useMemo(() => {
+    const n = Array(10).fill(0);
+    for (const ch of board) if (ch !== "0") n[Number(ch)]++;
+    return n;
+  }, [board]);
+
+  // The wrong number stays visible (in a red tile) until the member moves on.
+  useEffect(() => {
+    if (wrong && (!running || selected !== wrong.cell)) setWrong(null);
+  }, [wrong, running, selected]);
+
   const elapsed = running && startedAt ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
 
   const focusCell = (i: number) => {
@@ -96,6 +126,7 @@ export default function DailySudokuPage() {
 
   const enter = async (digit: number) => {
     if (!running || busy || selected === null) return;
+    setWrong(null);
     if (puzzle[selected] !== "0") { setMessage("That's one of the starting numbers."); return; }
     if (board[selected] !== "0") { setMessage("That cell already has its number."); return; }
     if (notesOn) {
@@ -111,7 +142,7 @@ export default function DailySudokuPage() {
     const cell = selected;
     const outcome = await place(cell, digit);
     if (outcome === "ok") { setMessage(""); clearNotesFor(cell, digit); }
-    else if (outcome === "wrong") setMessage(`${digit} doesn't go there. That's a mistake.`);
+    else if (outcome === "wrong") { setMessage(`${digit} doesn't go there. That's a mistake.`); setWrong({ cell, digit }); }
     else if (outcome === "closed") setMessage("A new day has started. Here is today's grid.");
     else if (outcome === "filled" || outcome === "given") setMessage("That cell is already filled.");
   };
@@ -146,13 +177,17 @@ export default function DailySudokuPage() {
         const v = cells[i] ?? "0";
         const given = puzzle[i] !== "0";
         const wrongSolved = locked && solution && v === "0";
-        const shown = v !== "0" ? v : wrongSolved ? solution[i] : "";
-        const cellNotes = !locked ? notes[i] : undefined;
+        const isWrong = !locked && wrong?.cell === i;
+        const shown = isWrong ? String(wrong.digit) : v !== "0" ? v : wrongSolved ? solution[i] : "";
+        const cellNotes = !locked && !isWrong ? notes[i] : undefined;
         const r = Math.floor(i / 9);
         const c = i % 9;
         const cls = [
           "sk-cell",
           given ? "sk-cell--given" : v !== "0" ? "sk-cell--filled" : "",
+          v === "0" ? "sk-cell--blank" : "",
+          doneCells.has(i) ? "sk-cell--done" : "",
+          isWrong ? "sk-cell--wrong" : "",
           wrongSolved ? "sk-cell--revealed" : "",
           selected === i && !locked ? "sk-cell--selected" : "",
           selectedDigit && v === selectedDigit && !locked ? "sk-cell--same" : "",
@@ -166,7 +201,7 @@ export default function DailySudokuPage() {
             ref={(el) => { cellRefs.current[i] = el; }}
             className={cls}
             tabIndex={locked ? -1 : (selected ?? 0) === i ? 0 : -1}
-            aria-label={label(i, given, shown || "0") + (cellNotes?.length ? `, notes ${cellNotes.join(" ")}` : "")}
+            aria-label={(isWrong ? `Row ${r + 1}, column ${c + 1}, wrong number ${shown}, mistake` : label(i, given, shown || "0")) + (doneCells.has(i) ? ", section complete" : "") + (cellNotes?.length ? `, notes ${cellNotes.join(" ")}` : "")}
             onClick={() => !locked && setSelected(i)}
             disabled={locked}
           >
@@ -200,6 +235,7 @@ export default function DailySudokuPage() {
         {status === "not_started" && (
           <div className="dt-card">
             <h2 className="t-h2" style={{ margin: 0 }}>Ready for today's grid?</h2>
+            {state?.difficulty && <p style={{ margin: 0 }}><strong>Today's level: {levelName(state.difficulty)}</strong> (the same for everyone)</p>}
             <p className="text-muted" style={{ margin: 0 }}>
               There's no time limit, but your time counts. The clock starts when you press Start and keeps going if you leave the page. You can make {max - 1} mistakes; the {max}th ends the game.
             </p>
@@ -212,7 +248,7 @@ export default function DailySudokuPage() {
         {running && state && (
           <div className="dt-card">
             <div className="row-between" style={{ gap: "var(--space-3)", flexWrap: "wrap" }}>
-              <span className="dt-label">TIME <strong style={{ fontVariantNumeric: "tabular-nums" }}>{clock(elapsed)}</strong></span>
+              <span className="dt-label">{levelName(state.difficulty).toUpperCase()} · TIME <strong style={{ fontVariantNumeric: "tabular-nums" }}>{clock(elapsed)}</strong></span>
               <span className="dt-label" role="status" aria-live="polite">MISTAKES {mistakes} OF {max}</span>
             </div>
 
@@ -224,7 +260,7 @@ export default function DailySudokuPage() {
 
             <div className="sk-pad" role="group" aria-label="Number pad">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => (
-                <button key={d} type="button" className="dp-key" onClick={() => void enter(d)} disabled={busy || selected === null}>{d}</button>
+                <button key={d} type="button" className={`dp-key${placed[d] >= 9 ? " sk-key--done" : ""}`} aria-label={placed[d] >= 9 ? `${d}, all placed` : String(d)} onClick={() => void enter(d)} disabled={busy || selected === null || placed[d] >= 9}>{d}</button>
               ))}
             </div>
             <div className="dt-actions">
@@ -243,14 +279,14 @@ export default function DailySudokuPage() {
                 </div>
               </div>
             )}
-            <p className="text-muted t-body-sm" style={{ margin: 0 }}>Keyboard: arrow keys move, 1 to 9 enter a number, N toggles notes, Backspace clears notes. Notes aren't saved.</p>
+            <p className="text-muted t-body-sm" style={{ margin: 0 }}>Greyed-out numbers are already placed everywhere. Blue tiles are in a finished row, column or box; a red tile is a mistake. Keyboard: arrow keys move, 1 to 9 enter a number, N toggles notes, Backspace clears notes. Notes aren't saved.</p>
           </div>
         )}
 
         {finished && state && (
           <div className="dt-card" ref={resultRef} tabIndex={-1} aria-live="polite">
             <h2 className="t-h2" style={{ margin: 0 }}>
-              {status === "solved" ? "Solved!" : state.end_reason === "gave_up" ? "You gave up" : "Out of mistakes"}
+              {levelName(state.difficulty) ? `${levelName(state.difficulty)}: ` : ""}{status === "solved" ? "Solved!" : state.end_reason === "gave_up" ? "You gave up" : "Out of mistakes"}
             </h2>
             {status === "solved" && state.solve_ms != null && (
               <p style={{ margin: 0 }}>
